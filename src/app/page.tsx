@@ -23,17 +23,32 @@ export default function HomePage() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("onboarding").insert([
+      // Basic validation
+      if (!formData.restaurantName || !formData.contactPerson || !formData.phone) {
+        toast.error("Please fill in all fields.");
+        return;
+      }
+
+      console.log("Submitting application for:", formData.restaurantName);
+
+      const { data, error } = await supabase.from("onboarding").insert([
         {
           restaurant_name: formData.restaurantName,
           contact_person: formData.contactPerson,
           phone_number: formData.phone,
           city: formData.city,
         },
-      ]);
+      ]).select();
 
-      if (error) throw error;
+      if (error) {
+        // Special handling for common pool exhaustion errors
+        if (error.message?.includes("pool") || error.message?.includes("connection")) {
+          throw new Error("The database is currently busy. Please wait a few seconds and try again.");
+        }
+        throw error;
+      }
 
+      console.log("Submission successful:", data);
       toast.success("Application received. We will reach out soon.");
       setFormData({
         restaurantName: "",
@@ -41,9 +56,9 @@ export default function HomePage() {
         phone: "",
         city: "Coimbatore"
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error submitting form:", err);
-      toast.error("Something went wrong. Please try again.");
+      toast.error(err.message || "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
