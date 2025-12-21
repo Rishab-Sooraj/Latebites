@@ -411,6 +411,7 @@ export default function HomePage() {
             <div className="flex justify-center gap-12 text-[10px] uppercase tracking-[0.2em] font-light text-muted-foreground/60">
               <a href="#onboard" className="hover:text-white transition-colors">Onboard</a>
               <a href="#founders" className="hover:text-white transition-colors">Team</a>
+              <a href="/admin" className="hover:text-white transition-colors">Admin</a>
               <a href="#" className="hover:text-white transition-colors">Instagram</a>
               <a href="mailto:hello@latebites.in" className="hover:text-white transition-colors">Email</a>
             </div>
