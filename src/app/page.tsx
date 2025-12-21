@@ -243,7 +243,135 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* 6. OUR VISION */}
+      {/* 6. IMPACT STATS */}
+      <Section className="bg-primary text-primary-foreground min-h-[auto] py-32">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+          {[
+            { label: "Meals Rescued", value: "12,400+" },
+            { label: "Partner Kitchens", value: "48" },
+            { label: "Cities Reached", value: "4" },
+            { label: "CO2 Mitigated", value: "8.2T" },
+          ].map((stat, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1, duration: 1 }}
+              viewport={{ once: true }}
+              className="space-y-4"
+            >
+              <div className="text-4xl md:text-7xl font-serif leading-none tracking-tighter">{stat.value}</div>
+              <div className="text-[10px] uppercase tracking-[0.4em] opacity-50 font-medium">{stat.label}</div>
+            </motion.div>
+          ))}
+        </div>
+      </Section>
+
+      {/* 7. OUR PARTNERS & FOOTPRINT */}
+      <Section>
+        <div className="space-y-32">
+          <div className="text-center space-y-8">
+            <RevealText
+              text="A collective effort."
+              tag="h2"
+              className="text-4xl md:text-7xl font-serif italic tracking-tight"
+            />
+            <p className="text-muted-foreground max-w-2xl mx-auto font-light text-lg">
+              Expanding across India's culinary hubs. From local heritage kitchens to modern gastronomy labs.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-24 items-center">
+            <div className="space-y-16">
+              {[
+                {
+                  city: "Coimbatore",
+                  partners: ["The French Door", "Haribhavanam", "Bird on Tree", "On The Go"],
+                  status: "Active"
+                },
+                {
+                  city: "Bangalore",
+                  partners: ["Oota Company", "The Pizza Bakery", "Sly Granny"],
+                  status: "Expanding"
+                },
+                {
+                  city: "Chennai",
+                  partners: ["Pumpkin Tales", "Amethyst", "Writer's Cafe"],
+                  status: "Expanding"
+                },
+                {
+                  city: "Kochi",
+                  partners: ["French Toast", "Cassava", "Rice Boat"],
+                  status: "Expanding"
+                }
+              ].map((location, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.2, duration: 1 }}
+                  viewport={{ once: true }}
+                  className="group space-y-6"
+                >
+                  <div className="flex items-center justify-between border-b border-primary/10 pb-4">
+                    <h3 className="text-3xl font-serif">{location.city}</h3>
+                    <span className="text-[10px] uppercase tracking-widest text-primary font-bold px-3 py-1 bg-primary/5 rounded-full">
+                      {location.status}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-8 gap-y-3">
+                    {location.partners.map((partner, j) => (
+                      <span key={j} className="text-muted-foreground font-light hover:text-primary transition-colors cursor-default">
+                        {partner}
+                      </span>
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="relative aspect-square">
+              <div className="absolute inset-0 bg-secondary/20 rounded-full blur-[100px] opacity-50" />
+              <div className="relative h-full w-full border border-primary/5 rounded-sm flex items-center justify-center p-12 overflow-hidden bg-background/50 backdrop-blur-sm">
+                 <div className="text-center space-y-8">
+                    <div className="space-y-2">
+                      <div className="text-8xl font-serif text-primary/10 select-none">INDIA</div>
+                      <div className="text-sm uppercase tracking-[0.5em] font-light">Present in 4 Hubs</div>
+                    </div>
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-px h-24 bg-gradient-to-b from-primary/50 to-transparent" />
+                      <p className="text-xs uppercase tracking-widest leading-relaxed text-muted-foreground italic">
+                        "Every city has a rhythm. <br/> We're here to save its breath."
+                      </p>
+                    </div>
+                 </div>
+                 {/* Visual decoration */}
+                 {[...Array(5)].map((_, i) => (
+                   <motion.div
+                    key={i}
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      opacity: [0.1, 0.3, 0.1],
+                    }}
+                    transition={{
+                      duration: 4 + i,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    className="absolute w-2 h-2 bg-primary rounded-full"
+                    style={{
+                      left: `${20 + Math.random() * 60}%`,
+                      top: `${20 + Math.random() * 60}%`,
+                    }}
+                   />
+                 ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* 8. OUR VISION */}
       <Section className="bg-secondary/10">
         <div className="max-w-3xl space-y-12">
           <RevealText
