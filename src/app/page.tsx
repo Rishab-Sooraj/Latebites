@@ -6,6 +6,7 @@ import { Section } from "@/components/cinematic/Section";
 import { RevealText } from "@/components/cinematic/RevealText";
 import { ParallaxImage } from "@/components/cinematic/ParallaxImage";
 import { Header } from "@/components/Header";
+import { LiveBackground } from "@/components/cinematic/LiveBackground";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
