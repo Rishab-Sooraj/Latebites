@@ -34,9 +34,11 @@ export default function RootLayout({
           data-only-in-iframe="true"
           data-debug="true"
           data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
-        />
-        {children}
-        <VisualEditsMessenger />
+          />
+          {children}
+          <Toaster position="bottom-right" />
+          <VisualEditsMessenger />
+
       </body>
     </html>
   );
