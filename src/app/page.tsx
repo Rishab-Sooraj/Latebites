@@ -74,10 +74,15 @@ export default function HomePage() {
   return (
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
       <motion.div
-        className="fixed top-0 left-0 right-0 h-[2px] bg-primary origin-left z-[100]"
-        style={{ scaleX }}
-      />
-      <LiveBackground />
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 2, ease: "easeOut" }}
+      >
+        <motion.div
+          className="fixed top-0 left-0 right-0 h-[2px] bg-primary origin-left z-[100]"
+          style={{ scaleX }}
+        />
+        <LiveBackground />
       <Header />
       {/* 1. HERO SECTION */}
       <Section className="relative h-screen flex items-center justify-center">
