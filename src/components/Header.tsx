@@ -13,10 +13,10 @@ export function Header() {
       <div className="font-serif italic text-2xl tracking-tighter pointer-events-auto cursor-default">
         Latebites
       </div>
-      <div className="flex gap-8 text-[10px] uppercase tracking-[0.3em] text-muted-foreground pointer-events-auto">
-        <a href="#" className="hover:text-primary transition-colors">Vision</a>
-        <a href="#" className="hover:text-primary transition-colors">Manifesto</a>
-      </div>
+        <div className="flex gap-8 text-[10px] uppercase tracking-[0.3em] text-muted-foreground pointer-events-auto">
+          <a href="#founders" className="hover:text-primary transition-colors">Team</a>
+          <a href="#onboard" className="hover:text-primary transition-colors">Onboard</a>
+        </div>
     </motion.header>
   );
 }
