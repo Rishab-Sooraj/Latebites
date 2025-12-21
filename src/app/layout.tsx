@@ -5,7 +5,7 @@ import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "A Manifesto for Food Rescue",
+  title: "Latebites | A Manifesto for Food Rescue",
   description: "Reducing food waste by enabling end-of-day food rescue with dignity and transparency.",
 };
 
