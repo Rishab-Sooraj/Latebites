@@ -73,6 +73,10 @@ export default function HomePage() {
   };
   return (
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-[2px] bg-primary origin-left z-[100]"
+        style={{ scaleX }}
+      />
       <LiveBackground />
       <Header />
       {/* 1. HERO SECTION */}
