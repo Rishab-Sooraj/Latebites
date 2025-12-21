@@ -5,9 +5,12 @@ import { Section } from "@/components/cinematic/Section";
 import { RevealText } from "@/components/cinematic/RevealText";
 import { ParallaxImage } from "@/components/cinematic/ParallaxImage";
 
+import { Header } from "@/components/Header";
+
 export default function HomePage() {
   return (
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
+      <Header />
       {/* 1. HERO SECTION */}
       <Section className="relative h-screen flex items-center justify-center">
         <div className="text-center space-y-8 max-w-4xl">
