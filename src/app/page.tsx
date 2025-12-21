@@ -11,6 +11,13 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function HomePage() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
   const [formData, setFormData] = useState({
     restaurantName: "",
     contactPerson: "",
