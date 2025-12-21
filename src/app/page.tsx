@@ -320,11 +320,14 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="bg-background p-8 md:p-12 rounded-sm border border-primary/10 shadow-sm"
           >
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Restaurant Name</label>
                 <input
                   type="text"
+                  required
+                  value={formData.restaurantName}
+                  onChange={(e) => setFormData({ ...formData, restaurantName: e.target.value })}
                   placeholder="The Kitchen Collective"
                   className="w-full bg-transparent border-b border-primary/20 py-3 focus:outline-none focus:border-primary transition-colors font-light"
                 />
@@ -333,6 +336,9 @@ export default function HomePage() {
                 <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Contact Person</label>
                 <input
                   type="text"
+                  required
+                  value={formData.contactPerson}
+                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                   placeholder="Your Name"
                   className="w-full bg-transparent border-b border-primary/20 py-3 focus:outline-none focus:border-primary transition-colors font-light"
                 />
@@ -341,6 +347,9 @@ export default function HomePage() {
                 <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Phone Number</label>
                 <input
                   type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+91 ...."
                   className="w-full bg-transparent border-b border-primary/20 py-3 focus:outline-none focus:border-primary transition-colors font-light"
                 />
@@ -356,9 +365,10 @@ export default function HomePage() {
               </div>
               <button
                 type="submit"
-                className="w-full py-4 mt-8 bg-primary text-primary-foreground text-xs uppercase tracking-[0.3em] hover:opacity-90 transition-opacity"
+                disabled={isSubmitting}
+                className="w-full py-4 mt-8 bg-primary text-primary-foreground text-xs uppercase tracking-[0.3em] hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                Apply to Rescue
+                {isSubmitting ? "Sending..." : "Apply to Rescue"}
               </button>
             </form>
           </motion.div>
