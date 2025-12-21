@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, useScroll, useSpring } from "motion/react";
 import { Section } from "@/components/cinematic/Section";
 import { RevealText } from "@/components/cinematic/RevealText";
 import { ParallaxImage } from "@/components/cinematic/ParallaxImage";
