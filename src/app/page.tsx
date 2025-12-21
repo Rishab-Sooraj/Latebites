@@ -1,13 +1,53 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import { Section } from "@/components/cinematic/Section";
 import { RevealText } from "@/components/cinematic/RevealText";
 import { ParallaxImage } from "@/components/cinematic/ParallaxImage";
-
 import { Header } from "@/components/Header";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function HomePage() {
+  const [formData, setFormData] = useState({
+    restaurantName: "",
+    contactPerson: "",
+    phone: "",
+    city: "Coimbatore"
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.from("onboarding").insert([
+        {
+          restaurant_name: formData.restaurantName,
+          contact_person: formData.contactPerson,
+          phone_number: formData.phone,
+          city: formData.city,
+        },
+      ]);
+
+      if (error) throw error;
+
+      toast.success("Application received. We will reach out soon.");
+      setFormData({
+        restaurantName: "",
+        contactPerson: "",
+        phone: "",
+        city: "Coimbatore"
+      });
+    } catch (err) {
+      console.error("Error submitting form:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
       <Header />
