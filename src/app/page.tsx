@@ -209,10 +209,13 @@ export default function HomePage() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ delay: 1, duration: 2 }}
-            className="space-y-4 pt-12"
+            className="space-y-6 pt-12"
           >
-            <p className="text-muted-foreground tracking-widest uppercase text-xs">Based in Mumbai — Enabling Change Digitally</p>
-            <div className="flex justify-center gap-8 text-sm font-light text-muted-foreground/60">
+            <div className="space-y-2">
+              <p className="text-muted-foreground tracking-widest uppercase text-[10px]">Founded by three friends in Coimbatore</p>
+              <p className="text-sm font-serif italic text-white/80">Rishab.S — Nimai Krishna — Nitishwar Murrgesh</p>
+            </div>
+            <div className="flex justify-center gap-8 text-[10px] uppercase tracking-[0.2em] font-light text-muted-foreground/60">
               <a href="#" className="hover:text-white transition-colors">Manifesto</a>
               <a href="#" className="hover:text-white transition-colors">Instagram</a>
               <a href="#" className="hover:text-white transition-colors">Email</a>
