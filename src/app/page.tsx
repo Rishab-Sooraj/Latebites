@@ -14,6 +14,14 @@ export default function HomePage() {
       {/* 1. HERO SECTION */}
       <Section className="relative h-screen flex items-center justify-center">
         <div className="text-center space-y-8 max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.5 }}
+            className="text-xs uppercase tracking-[0.5em] text-primary font-medium"
+          >
+            Latebites
+          </motion.div>
           <RevealText
             text="Surplus is a gift, not a burden."
             tag="h1"
