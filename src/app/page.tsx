@@ -198,28 +198,150 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* 7. CLOSING STATEMENT */}
+      {/* 7. THE FOUNDERS */}
+      <Section id="founders">
+        <div className="space-y-16">
+          <div className="max-w-2xl">
+            <RevealText
+              text="Rooted in friendship."
+              tag="h2"
+              className="text-4xl md:text-6xl font-serif italic"
+            />
+            <p className="mt-6 text-xl font-light text-muted-foreground">
+              Latebites was born in Coimbatore from a shared observation by three friends. We believe technology should serve tradition, and innovation should protect dignity.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { name: "Rishab.S", role: "Founder" },
+              { name: "Nimai Krishna", role: "Founder" },
+              { name: "Nitishwar Murrgesh", role: "Founder" },
+            ].map((founder, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.2, duration: 1 }}
+                viewport={{ once: true }}
+                className="group"
+              >
+                <div className="aspect-[4/5] bg-secondary/30 rounded-sm mb-6 relative overflow-hidden flex items-center justify-center border border-primary/5 transition-colors group-hover:bg-secondary/50">
+                  <span className="text-muted-foreground/20 font-serif italic text-lg tracking-widest uppercase">Photo Coming Soon</span>
+                </div>
+                <h3 className="text-2xl font-serif group-hover:text-primary transition-colors">{founder.name}</h3>
+                <p className="text-sm uppercase tracking-widest text-muted-foreground mt-1">{founder.role}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* 8. RESTAURANT ONBOARDING */}
+      <Section id="onboard" className="bg-secondary/20">
+        <div className="grid md:grid-cols-2 gap-16 items-start">
+          <div className="space-y-8">
+            <RevealText
+              text="Join the Latebites movement."
+              tag="h2"
+              className="text-4xl md:text-6xl font-serif"
+            />
+            <p className="text-xl font-light text-muted-foreground leading-relaxed">
+              We're looking for partner restaurants who value their craft and care about their surplus. Rescue your effort with us in Coimbatore.
+            </p>
+            <div className="pt-8 space-y-4">
+              <div className="flex items-center gap-4 text-sm tracking-widest uppercase text-muted-foreground/60">
+                <span className="h-px w-8 bg-primary/30" />
+                <span>Smooth Onboarding</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm tracking-widest uppercase text-muted-foreground/60">
+                <span className="h-px w-8 bg-primary/30" />
+                <span>Intentional Reach</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm tracking-widest uppercase text-muted-foreground/60">
+                <span className="h-px w-8 bg-primary/30" />
+                <span>Dignified Disposal</span>
+              </div>
+            </div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1 }}
+            viewport={{ once: true }}
+            className="bg-background p-8 md:p-12 rounded-sm border border-primary/10 shadow-sm"
+          >
+            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Restaurant Name</label>
+                <input
+                  type="text"
+                  placeholder="The Kitchen Collective"
+                  className="w-full bg-transparent border-b border-primary/20 py-3 focus:outline-none focus:border-primary transition-colors font-light"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Contact Person</label>
+                <input
+                  type="text"
+                  placeholder="Your Name"
+                  className="w-full bg-transparent border-b border-primary/20 py-3 focus:outline-none focus:border-primary transition-colors font-light"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Phone Number</label>
+                <input
+                  type="tel"
+                  placeholder="+91 ...."
+                  className="w-full bg-transparent border-b border-primary/20 py-3 focus:outline-none focus:border-primary transition-colors font-light"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">City</label>
+                <input
+                  type="text"
+                  defaultValue="Coimbatore"
+                  readOnly
+                  className="w-full bg-transparent border-b border-primary/20 py-3 focus:outline-none focus:border-primary transition-colors font-light opacity-50"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-4 mt-8 bg-primary text-primary-foreground text-xs uppercase tracking-[0.3em] hover:opacity-90 transition-opacity"
+              >
+                Apply to Rescue
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      </Section>
+
+      {/* 9. CLOSING STATEMENT */}
       <Section className="h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center space-y-12">
           <RevealText
+            text="Latebites."
+            className="text-6xl md:text-9xl font-serif italic font-light tracking-tighter"
+          />
+          <RevealText
             text="We’re just getting started."
-            className="text-4xl md:text-6xl font-serif italic font-light"
+            className="text-2xl md:text-3xl font-serif italic font-light opacity-60"
+            delay={0.5}
           />
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ delay: 1, duration: 2 }}
-            className="space-y-6 pt-12"
+            className="space-y-8 pt-12"
           >
-            <div className="space-y-2">
-              <p className="text-muted-foreground tracking-widest uppercase text-[10px]">Founded by three friends in Coimbatore</p>
-              <p className="text-sm font-serif italic text-white/80">Rishab.S — Nimai Krishna — Nitishwar Murrgesh</p>
-            </div>
-            <div className="flex justify-center gap-8 text-[10px] uppercase tracking-[0.2em] font-light text-muted-foreground/60">
-              <a href="#" className="hover:text-white transition-colors">Manifesto</a>
+            <div className="flex justify-center gap-12 text-[10px] uppercase tracking-[0.2em] font-light text-muted-foreground/60">
+              <a href="#onboard" className="hover:text-white transition-colors">Onboard</a>
+              <a href="#founders" className="hover:text-white transition-colors">Team</a>
               <a href="#" className="hover:text-white transition-colors">Instagram</a>
-              <a href="#" className="hover:text-white transition-colors">Email</a>
+              <a href="mailto:hello@latebites.in" className="hover:text-white transition-colors">Email</a>
             </div>
+            <p className="text-[9px] uppercase tracking-widest text-muted-foreground opacity-30">© 2024 Latebites — Coimbatore, India</p>
           </motion.div>
         </div>
       </Section>
