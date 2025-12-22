@@ -1,0 +1,27 @@
+# Netlify Configuration for Latebites
+# This file tells Netlify how to build and deploy your Next.js application
+
+[build]
+  # The command to build your Next.js app
+  command = "npm run build"
+  
+  # The directory where the built files will be
+  publish = ".next"
+
+# Next.js specific settings for Netlify
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Redirect rules for Next.js routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variables that should be set in Netlify dashboard
+# (Don't put actual values here - set them in Netlify UI)
+# Required:
+# - NEXT_PUBLIC_SUPABASE_URL
+# - NEXT_PUBLIC_SUPABASE_ANON_KEY
+# - NEXT_PUBLIC_APP_URL (set to your Netlify URL)
+# - RESEND_API_KEY
