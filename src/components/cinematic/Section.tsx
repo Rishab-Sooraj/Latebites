@@ -8,9 +8,10 @@ interface SectionProps {
   children: ReactNode;
   className?: string;
   id?: string;
+  style?: React.CSSProperties;
 }
 
-export function Section({ children, className, id }: SectionProps) {
+export function Section({ children, className, id, style }: SectionProps) {
   return (
     <motion.section
       id={id}
@@ -18,6 +19,7 @@ export function Section({ children, className, id }: SectionProps) {
       whileInView={{ opacity: 1 }}
       transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
       viewport={{ once: true, amount: 0.2 }}
+      style={style}
       className={cn(
         "min-h-screen flex flex-col items-center justify-center px-6 md:px-24 py-24 md:py-48",
         className
