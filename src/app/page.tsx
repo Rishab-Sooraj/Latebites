@@ -321,7 +321,7 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* 7. HOW WE WORK */}
+      {/* 7. HOW WE WORK - Part 1: Bag System & Quality */}
       <Section className="bg-secondary/10">
         <div className="max-w-6xl mx-auto space-y-24 md:space-y-32">
           {/* Section Header */}
@@ -391,7 +391,7 @@ export default function HomePage() {
                   We don't rescue waste. We rescue <span className="italic">surplus</span>. There's a difference, and we guard it fiercely.
                 </p>
                 <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed">
-                  Every restaurant partner knows: <span className="font-medium text-foreground">old food has no place here</span>. Neither does compromise. Our team doesn't just monitor hygiene—we monitor character. We track patterns. We build relationships. We intervene early.
+                  Every restaurant partner knows: <span className="font-medium">old food has no place here</span>. Neither does compromise. Our team doesn't just monitor hygiene—we monitor character. We track patterns. We build relationships. We intervene early.
                 </p>
                 <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed">
                   Because when you trust us with your dinner, we take that seriously.
@@ -426,62 +426,79 @@ export default function HomePage() {
               className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
             />
           </div>
+        </div>
+      </Section>
 
-          {/* Restaurant Vetting */}
-          <div className="max-w-4xl mx-auto text-center space-y-12">
-            <RevealText
-              text="Careful curation, not casual collection."
-              tag="h3"
-              className="text-3xl sm:text-4xl md:text-5xl font-serif italic"
-            />
-            <div className="space-y-6 text-left">
-              <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed text-muted-foreground">
-                We don't onboard restaurants. We <span className="text-foreground italic">partner</span> with them. And partnerships require scrutiny.
-              </p>
-              <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed text-muted-foreground">
-                Our vetting process is rigorous because it has to be. We're not building a marketplace—we're building trust.
-              </p>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-6 text-left">
-              {[
-                {
-                  title: "Character assessment",
-                  question: "Do they share our values?",
-                },
-                {
-                  title: "Hygiene verification",
-                  question: "Do their standards match ours?",
-                },
-                {
-                  title: "Operational alignment",
-                  question: "Can they commit to consistency?",
-                },
-                {
-                  title: "Ongoing monitoring",
-                  question: "Do they maintain excellence?",
-                },
-              ].map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1, duration: 0.6 }}
-                  viewport={{ once: true }}
-                  className="p-6 border border-primary/20 space-y-2"
-                >
-                  <h4 className="text-base sm:text-lg font-medium">{item.title}</h4>
-                  <p className="text-sm sm:text-base text-muted-foreground font-light italic">{item.question}</p>
-                </motion.div>
-              ))}
-            </div>
-            <div className="space-y-6 pt-8">
-              <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed">
-                We're stern because we care. We care for you the way we care for the food. The way we care for the environment. The way we care for the future we're building together.
-              </p>
-              <p className="text-lg sm:text-xl md:text-2xl font-serif italic text-primary">
-                Rejection isn't failure. It's protection.
-              </p>
-            </div>
+      {/* 7. HOW WE WORK - Part 2: Restaurant Vetting */}
+      <Section
+        className="overflow-hidden"
+        style={{
+          background: 'var(--navy)',
+          color: 'var(--navy-foreground)'
+        }}
+      >
+        <div className="max-w-4xl mx-auto text-center space-y-12">
+          <RevealText
+            text="Careful curation, not casual collection."
+            tag="h3"
+            className="text-3xl sm:text-4xl md:text-5xl font-serif italic"
+          />
+          <div className="space-y-6 text-left">
+            <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed opacity-80">
+              We don't onboard restaurants. We <span className="italic">partner</span> with them. And partnerships require scrutiny.
+            </p>
+            <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed opacity-80">
+              Our vetting process is rigorous because it has to be. We're not building a marketplace—we're building trust.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-6 text-left">
+            {[
+              {
+                title: "Character assessment",
+                question: "Do they share our values?",
+              },
+              {
+                title: "Hygiene verification",
+                question: "Do their standards match ours?",
+              },
+              {
+                title: "Operational alignment",
+                question: "Can they commit to consistency?",
+              },
+              {
+                title: "Ongoing monitoring",
+                question: "Do they maintain excellence?",
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{
+                  scale: 1.05,
+                  borderColor: "hsl(var(--primary-foreground))",
+                  backgroundColor: "hsl(var(--primary-foreground) / 0.05)",
+                }}
+                transition={{
+                  delay: i * 0.1,
+                  duration: 0.6,
+                  hover: { duration: 0.3 }
+                }}
+                viewport={{ once: true }}
+                className="p-8 border-2 border-primary-foreground/20 space-y-3 cursor-pointer bg-primary-foreground/5 backdrop-blur-sm hover:shadow-2xl hover:shadow-primary-foreground/10 transition-all"
+              >
+                <h4 className="text-lg sm:text-xl font-semibold tracking-tight">{item.title}</h4>
+                <p className="text-sm sm:text-base text-primary-foreground/70 font-light italic leading-relaxed">{item.question}</p>
+              </motion.div>
+            ))}
+          </div>
+          <div className="space-y-6 pt-8">
+            <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed">
+              We're stern because we care. We care for you the way we care for the food. The way we care for the environment. The way we care for the future we're building together.
+            </p>
+            <p className="text-lg sm:text-xl md:text-2xl font-serif italic text-primary-foreground">
+              Rejection isn't failure. It's protection.
+            </p>
           </div>
         </div>
       </Section>
@@ -690,6 +707,6 @@ export default function HomePage() {
           </motion.div>
         </div>
       </Section>
-    </main>
+    </main >
   );
 }
