@@ -131,7 +131,7 @@ export default function HomePage() {
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
       <Header />
       {/* 1. HERO SECTION */}
-      <Section className="relative h-screen flex items-center justify-center perspective-deep overflow-hidden">
+      <Section className="relative h-screen flex items-center justify-center perspective-deep overflow-hidden bg-gradient-to-br from-cyan-100 via-blue-100 to-teal-100">
         {/* Scroll-Driven Floating Elements */}
         <ScrollFloatingElements />
 
@@ -236,7 +236,14 @@ export default function HomePage() {
               className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
             />
           </div>
-        </Section>
+          <ParallaxImage
+            src="https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&q=80&w=1074"
+            alt="Restaurant pasta dish"
+            aspectRatio="portrait"
+            className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
+          />
+        </div>
+      </Section>
 
         {/* 3. OUR BELIEF */}
         <Section>
@@ -374,17 +381,35 @@ export default function HomePage() {
           </div>
         </Section>
 
-        {/* 7. OUR PARTNERS & FOOTPRINT */}
-        <Section>
-          <div className="space-y-32">
-            <div className="text-center space-y-8">
-              <RevealText
-                text="A collective effort."
-                tag="h2"
-                className="text-4xl md:text-7xl font-serif italic tracking-tight"
-              />
-              <p className="text-muted-foreground max-w-2xl mx-auto font-light text-lg">
-                Expanding across India's culinary hubs. From local heritage kitchens to modern gastronomy labs.
+      {/* 4. WHAT WE DO */}
+      <Section className="bg-primary text-primary-foreground overflow-hidden">
+        <div className="grid md:grid-cols-2 gap-24 items-center">
+          <ParallaxImage
+            src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=687"
+            alt="Gourmet burger"
+            aspectRatio="portrait"
+            className="rounded-sm opacity-80"
+          />
+          <div className="space-y-12">
+            <RevealText
+              text="End-of-day intentionality."
+              tag="h2"
+              className="text-4xl md:text-6xl font-serif"
+            />
+            <div className="space-y-8 text-xl font-light text-primary-foreground/80">
+              <RevealText text="We identify surplus as the kitchen closes." />
+              <RevealText text="We enable local pickup for those who care." />
+              <RevealText text="We ensure nothing goes into the dark." />
+            </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.5 }}
+              viewport={{ once: true }}
+              className="pt-8 border-t border-primary-foreground/20"
+            >
+              <p className="text-sm uppercase tracking-[0.3em] font-light">
+                Pickup only. Limited quantity. Zero waste.
               </p>
             </div>
 
@@ -643,7 +668,7 @@ export default function HomePage() {
               {
                 label: "Environmental",
                 text: "Reducing the methane footprint of our cities, one night at a time.",
-                img: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&q=80&w=1170"
+                img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=1170"
               },
               {
                 label: "Cultural",
@@ -782,8 +807,8 @@ export default function HomePage() {
               </div>
             </div>
             <ParallaxImage
-              src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=1170"
-              alt="Quality inspection"
+              src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&q=80&w=1170"
+              alt="Ramen bowl"
               aspectRatio="portrait"
               className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
             />

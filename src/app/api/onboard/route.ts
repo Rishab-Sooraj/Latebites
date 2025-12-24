@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
             console.log('🔗 Verification URL:', verificationUrl);
 
             const emailResult = await resend.emails.send({
-                from: 'Latebites <onboarding@resend.dev>',
+                from: 'Latebites <hello@onboarding.latebites.in>',
                 to: email,
                 subject: 'Verify Your Email - Latebites Restaurant Onboarding',
                 html: emailHtml,
