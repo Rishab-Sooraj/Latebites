@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
+import { Instagram, Mail, Youtube } from "lucide-react";
 import { Section } from "@/components/cinematic/Section";
 import { RevealText } from "@/components/cinematic/RevealText";
 import { ParallaxImage } from "@/components/cinematic/ParallaxImage";
+import { use3DTilt } from "@/hooks/use3DTilt";
+import { ScrollFloatingElements } from "@/components/ScrollParallax";
 
 import { Header } from "@/components/Header";
+import "./3d-effects.css";
 
 export default function HomePage() {
   // Form state management
@@ -127,8 +131,11 @@ export default function HomePage() {
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
       <Header />
       {/* 1. HERO SECTION */}
-      <Section className="relative h-screen flex items-center justify-center">
-        <div className="text-center space-y-6 sm:space-y-8 max-w-4xl px-4 sm:px-6">
+      <Section className="relative h-screen flex items-center justify-center perspective-deep overflow-hidden">
+        {/* Scroll-Driven Floating Elements */}
+        <ScrollFloatingElements />
+
+        <div className="text-center space-y-6 sm:space-y-8 max-w-4xl px-4 sm:px-6 preserve-3d relative z-10">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -137,12 +144,26 @@ export default function HomePage() {
           >
             Latebites
           </motion.div>
-          <RevealText
-            text="Surplus is a gift, not a burden."
-            tag="h1"
-            className="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-serif font-light leading-[1.1] tracking-tight"
-            delay={0.2}
-          />
+          <motion.div
+            animate={{
+              rotateX: [0, 2, 0, -2, 0],
+              rotateY: [0, -3, 0, 3, 0],
+              z: [0, 10, 0, 10, 0]
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            <RevealText
+              text="Surplus is a gift, not a burden."
+              tag="h1"
+              className="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-serif font-light leading-[1.1] tracking-tight"
+              delay={0.2}
+            />
+          </motion.div>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -476,16 +497,18 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 whileHover={{
                   scale: 1.05,
+                  z: 30,
                   borderColor: "hsl(var(--primary-foreground))",
                   backgroundColor: "hsl(var(--primary-foreground) / 0.05)",
                 }}
                 transition={{
                   delay: i * 0.1,
                   duration: 0.6,
-                  hover: { duration: 0.3 }
+                  ease: [0.22, 1, 0.36, 1],
                 }}
                 viewport={{ once: true }}
-                className="p-8 border-2 border-primary-foreground/20 space-y-3 cursor-pointer bg-primary-foreground/5 backdrop-blur-sm hover:shadow-2xl hover:shadow-primary-foreground/10 transition-all"
+                style={{ transformStyle: "preserve-3d" }}
+                className="p-8 border-2 border-primary-foreground/20 rounded-sm cursor-pointer bg-primary-foreground/5 backdrop-blur-sm hover:shadow-2xl hover:shadow-primary-foreground/10 transition-all"
               >
                 <h4 className="text-lg sm:text-xl font-semibold tracking-tight">{item.title}</h4>
                 <p className="text-sm sm:text-base text-primary-foreground/70 font-light italic leading-relaxed">{item.question}</p>
@@ -503,44 +526,7 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* 7. THE FOUNDERS */}
-      <Section id="founders">
-        <div className="space-y-16">
-          <div className="max-w-2xl">
-            <RevealText
-              text="Rooted in friendship."
-              tag="h2"
-              className="text-4xl md:text-6xl font-serif italic"
-            />
-            <p className="mt-6 text-xl font-light text-muted-foreground">
-              Latebites was born in Coimbatore from a shared observation by three friends. We believe technology should serve tradition, and innovation should protect dignity.
-            </p>
-          </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: "Rishab.S", role: "Founder" },
-              { name: "Nimai Krishna", role: "Founder" },
-              { name: "Nitishwar Murrgesh", role: "Founder" },
-            ].map((founder, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.2, duration: 1 }}
-                viewport={{ once: true }}
-                className="group"
-              >
-                <div className="aspect-[4/5] bg-secondary/30 rounded-sm mb-6 relative overflow-hidden flex items-center justify-center border border-primary/5 transition-colors group-hover:bg-secondary/50">
-                  <span className="text-muted-foreground/20 font-serif italic text-lg tracking-widest uppercase">Photo Coming Soon</span>
-                </div>
-                <h3 className="text-2xl font-serif group-hover:text-primary transition-colors">{founder.name}</h3>
-                <p className="text-sm uppercase tracking-widest text-muted-foreground mt-1">{founder.role}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </Section>
 
       {/* 8. RESTAURANT ONBOARDING */}
       <Section id="onboard" className="bg-secondary/20">
@@ -697,13 +683,34 @@ export default function HomePage() {
             transition={{ delay: 1, duration: 2 }}
             className="space-y-8 pt-12"
           >
-            <div className="flex justify-center gap-12 text-[10px] uppercase tracking-[0.2em] font-light text-muted-foreground/60">
-              <a href="#onboard" className="hover:text-white transition-colors">Onboard</a>
-              <a href="#founders" className="hover:text-white transition-colors">Team</a>
-              <a href="#" className="hover:text-white transition-colors">Instagram</a>
-              <a href="mailto:hello@latebites.in" className="hover:text-white transition-colors">Email</a>
+            <div className="flex justify-center gap-8 items-center">
+              <a
+                href="https://youtube.com/@latebites"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground/60 hover:text-white transition-colors"
+                aria-label="YouTube"
+              >
+                <Youtube className="w-5 h-5" />
+              </a>
+              <a
+                href="https://instagram.com/latebites.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground/60 hover:text-white transition-colors"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-5 h-5" />
+              </a>
+              <a
+                href="mailto:hello@latebites.in"
+                className="text-muted-foreground/60 hover:text-white transition-colors"
+                aria-label="Email"
+              >
+                <Mail className="w-5 h-5" />
+              </a>
             </div>
-            <p className="text-[9px] uppercase tracking-widest text-muted-foreground opacity-30">© 2024 Latebites — Coimbatore, India</p>
+            <p className="text-[9px] uppercase tracking-widest text-white/70">© 2024 Latebites - Coimbatore, India. All rights reserved.</p>
           </motion.div>
         </div>
       </Section>

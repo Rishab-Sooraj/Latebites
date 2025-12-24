@@ -1,0 +1,108 @@
+/* 3D Perspective Containers */
+.perspective-container {
+    perspective: 1000px;
+    transform-style: preserve-3d;
+}
+
+.perspective-deep {
+    perspective: 2000px;
+    transform-style: preserve-3d;
+}
+
+/* 3D Depth Layers */
+.layer-back {
+    transform: translateZ(-100px);
+}
+
+.layer-middle {
+    transform: translateZ(0px);
+}
+
+.layer-front {
+    transform: translateZ(100px);
+}
+
+/* 3D Hover Effects */
+.hover-lift {
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hover-lift:hover {
+    transform: translateZ(50px) scale(1.02);
+}
+
+/* 3D Card Effects */
+.card-3d {
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card-3d:hover {
+    transform: translateZ(30px) rotateX(2deg) rotateY(2deg);
+}
+
+/* Floating Animation */
+@keyframes float-3d {
+
+    0%,
+    100% {
+        transform: translateZ(0px) translateY(0px);
+    }
+
+    50% {
+        transform: translateZ(20px) translateY(-10px);
+    }
+}
+
+.float-3d {
+    animation: float-3d 6s ease-in-out infinite;
+}
+
+/* Subtle Rotation */
+@keyframes rotate-3d-subtle {
+    0% {
+        transform: rotateX(0deg) rotateY(0deg);
+    }
+
+    50% {
+        transform: rotateX(5deg) rotateY(5deg);
+    }
+
+    100% {
+        transform: rotateX(0deg) rotateY(0deg);
+    }
+}
+
+.rotate-3d-subtle {
+    animation: rotate-3d-subtle 10s ease-in-out infinite;
+    transform-style: preserve-3d;
+}
+
+/* Depth Shadows */
+.shadow-3d-sm {
+    box-shadow:
+        0 10px 30px -10px rgba(0, 0, 0, 0.3),
+        0 0 50px -20px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-3d-md {
+    box-shadow:
+        0 20px 60px -15px rgba(0, 0, 0, 0.4),
+        0 0 80px -30px rgba(0, 0, 0, 0.2);
+}
+
+.shadow-3d-lg {
+    box-shadow:
+        0 30px 90px -20px rgba(0, 0, 0, 0.5),
+        0 0 120px -40px rgba(0, 0, 0, 0.3);
+}
+
+/* Preserve 3D */
+.preserve-3d {
+    transform-style: preserve-3d;
+}
+
+/* Backface Hidden */
+.backface-hidden {
+    backface-visibility: hidden;
+}
