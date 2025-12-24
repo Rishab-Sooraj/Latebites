@@ -131,7 +131,7 @@ export default function HomePage() {
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
       <Header />
       {/* 1. HERO SECTION */}
-      <Section className="relative h-screen flex items-center justify-center perspective-deep overflow-hidden">
+      <Section className="relative h-screen flex items-center justify-center perspective-deep overflow-hidden bg-gradient-to-br from-cyan-100 via-blue-100 to-teal-100">
         {/* Scroll-Driven Floating Elements */}
         <ScrollFloatingElements />
 
@@ -202,8 +202,8 @@ export default function HomePage() {
             />
           </div>
           <ParallaxImage
-            src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1074"
-            alt="Surplus vegetables"
+            src="https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&q=80&w=1074"
+            alt="Restaurant pasta dish"
             aspectRatio="portrait"
             className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
           />
@@ -253,8 +253,8 @@ export default function HomePage() {
       <Section className="bg-primary text-primary-foreground overflow-hidden">
         <div className="grid md:grid-cols-2 gap-24 items-center">
           <ParallaxImage
-            src="https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=687"
-            alt="Handing over food"
+            src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=687"
+            alt="Gourmet burger"
             aspectRatio="portrait"
             className="rounded-sm opacity-80"
           />
@@ -302,7 +302,7 @@ export default function HomePage() {
               {
                 label: "Environmental",
                 text: "Reducing the methane footprint of our cities, one night at a time.",
-                img: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&q=80&w=1170"
+                img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=1170"
               },
               {
                 label: "Cultural",
@@ -441,8 +441,8 @@ export default function HomePage() {
               </div>
             </div>
             <ParallaxImage
-              src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=1170"
-              alt="Quality inspection"
+              src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&q=80&w=1170"
+              alt="Ramen bowl"
               aspectRatio="portrait"
               className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
             />
