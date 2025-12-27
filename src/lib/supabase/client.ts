@@ -4,6 +4,14 @@ import type { Database } from '@/types/database'
 export function createClient() {
     return createBrowserClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            auth: {
+                persistSession: true, // Keep users signed in
+                autoRefreshToken: true, // Auto-refresh tokens
+                detectSessionInUrl: true, // Detect OAuth redirects
+                flowType: 'pkce', // PKCE flow for enhanced security (Google OAuth compliant)
+            }
+        }
     )
 }
