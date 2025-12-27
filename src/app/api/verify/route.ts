@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
+
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
     try {
@@ -14,7 +16,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Find the submission with this token
-        const { data: submissions, error: fetchError } = await supabase
+        const { data: submissions, error: fetchError } = await supabaseAdmin
             .from('Resturant Onboarding')
             .select('*')
             .eq('verification_token', token)
@@ -38,7 +40,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Update to verified
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseAdmin
             .from('Resturant Onboarding')
             .update({ verified: true })
             .eq('verification_token', token);
