@@ -44,7 +44,15 @@ function LoginPageContent() {
                 password,
             });
 
-            if (authError) throw authError;
+            if (authError) {
+                // Check if it's an invalid credentials error
+                if (authError.message.includes('Invalid login credentials') ||
+                    authError.message.includes('Email not confirmed') ||
+                    authError.status === 400) {
+                    throw new Error("Account not found. Please create an account first by clicking 'Sign up' below.");
+                }
+                throw authError;
+            }
 
             const tableName = selectedRole === "customer" ? "customers" : "restaurants";
             const { data: profileData, error: profileError } = await supabase
@@ -55,7 +63,7 @@ function LoginPageContent() {
 
             if (profileError || !profileData) {
                 await supabase.auth.signOut();
-                throw new Error(`No ${selectedRole} account found. Please check your role selection or sign up.`);
+                throw new Error(`No ${selectedRole} account found. Please check your role selection or create an account first.`);
             }
 
             const defaultRedirect = selectedRole === "customer" ? "/browse" : "/restaurant/dashboard";
