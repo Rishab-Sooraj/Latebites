@@ -3,7 +3,7 @@ import "./globals.css";
 import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
 import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
-import { Toaster } from "sonner";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
   title: "Latebites | A Manifesto for Food Rescue",
@@ -34,11 +34,11 @@ export default function RootLayout({
           data-only-in-iframe="true"
           data-debug="true"
           data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
-          />
+        />
+        <AuthProvider>
           {children}
-          <Toaster position="bottom-right" />
-          <VisualEditsMessenger />
-
+        </AuthProvider>
+        <VisualEditsMessenger />
       </body>
     </html>
   );
