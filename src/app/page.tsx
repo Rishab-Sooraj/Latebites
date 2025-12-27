@@ -8,6 +8,7 @@ import { RevealText } from "@/components/cinematic/RevealText";
 import { ParallaxImage } from "@/components/cinematic/ParallaxImage";
 import { use3DTilt } from "@/hooks/use3DTilt";
 import { ScrollFloatingElements } from "@/components/ScrollParallax";
+import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import "./3d-effects.css";
@@ -172,6 +173,19 @@ export default function HomePage() {
           >
             A manifesto for intentional food rescue.
           </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.2, duration: 1 }}
+            className="pt-8"
+          >
+            <Link
+              href="/browse"
+              className="inline-block px-8 py-4 bg-primary text-primary-foreground text-sm uppercase tracking-[0.3em] hover:opacity-90 transition-opacity rounded-sm"
+            >
+              Find Rescue Bags
+            </Link>
+          </motion.div>
         </div>
         <motion.div
           initial={{ opacity: 0 }}

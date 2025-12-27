@@ -1,0 +1,27 @@
+⚠️ IMPORTANT: Supabase Credentials Needed
+==========================================
+
+Before running the app, you need to add your Supabase credentials to the .env file.
+
+📝 Steps:
+
+1. Open this file: mobile_app/.env
+
+2. Copy your credentials from the web project:
+   - Location: /Users/rishabsooraj/orchids-projects/food-rescue-manifesto/.env.local
+   - You need: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+3. Paste them into mobile_app/.env like this:
+
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_ANON_KEY=your-anon-key-here
+
+4. Save the file
+
+5. Run: flutter pub get && flutter run
+
+✅ That's it! The app will now connect to your Supabase backend.
+
+---
+
+Note: The .env file is gitignored for security. Never commit credentials to git!

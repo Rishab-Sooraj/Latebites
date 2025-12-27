@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { Resend } from 'resend';
 import { generateVerificationEmail, generateVerificationToken } from '@/lib/email-template';
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check for duplicate email
-        const { data: existingEmail, error: checkError } = await supabase
+        const { data: existingEmail, error: checkError } = await supabaseAdmin
             .from('Resturant Onboarding')
             .select('email')
             .eq('email', email)
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify?token=${verificationToken}`;
 
         // Insert data into Supabase with verified: false
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
             .from('Resturant Onboarding')
             .insert([
                 {

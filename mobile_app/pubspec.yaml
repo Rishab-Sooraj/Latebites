@@ -1,0 +1,88 @@
+name: latebites
+description: A premium food rescue mobile app - Surplus is a gift, not a burden.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  
+  # Navigation
+  go_router: ^14.0.0
+  
+  # Supabase integration
+  supabase_flutter: ^2.5.0
+  
+  # Authentication
+  google_sign_in: ^6.2.1
+  
+  # Environment variables
+  flutter_dotenv: ^5.1.0
+  
+  # Location Services
+  geolocator: ^13.0.1
+  geocoding: ^3.0.0
+  permission_handler: ^11.3.0
+  
+  # UI & Animations
+  google_fonts: ^6.1.0
+  flutter_animate: ^4.5.0
+  cached_network_image: ^3.3.1
+  flutter_svg: ^2.0.10
+  shimmer: ^3.0.0
+  
+  # Utilities
+  url_launcher: ^6.2.5
+  intl: ^0.19.0
+  uuid: ^4.5.0
+  image_picker: ^1.0.7
+  
+  # State management
+  provider: ^6.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.8
+  riverpod_generator: ^2.4.0
+  riverpod_lint: ^2.3.10
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - .env
+  
+  # Fonts are loaded via Google Fonts package, no local assets needed
+  # fonts:
+  #   - family: CormorantGaramond
+  #     fonts:
+  #       - asset: assets/fonts/CormorantGaramond-Light.ttf
+  #         weight: 300
+  #       - asset: assets/fonts/CormorantGaramond-Regular.ttf
+  #         weight: 400
+  #       - asset: assets/fonts/CormorantGaramond-LightItalic.ttf
+  #         weight: 300
+  #         style: italic
+  #       - asset: assets/fonts/CormorantGaramond-Italic.ttf
+  #         weight: 400
+  #         style: italic
+  #   
+  #   - family: PlusJakartaSans
+  #     fonts:
+  #       - asset: assets/fonts/PlusJakartaSans-ExtraLight.ttf
+  #         weight: 200
+  #       - asset: assets/fonts/PlusJakartaSans-Light.ttf
+  #         weight: 300
+  #       - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+  #         weight: 400
+  #       - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+  #         weight: 500
