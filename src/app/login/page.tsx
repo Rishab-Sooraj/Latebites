@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
@@ -9,7 +9,7 @@ import { Phone, Mail, ArrowRight, Eye, EyeOff, User, Store, Sparkles } from "luc
 
 export const dynamic = 'force-dynamic';
 
-export default function LoginPage() {
+function LoginPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirect = searchParams.get("redirect");
@@ -405,5 +405,13 @@ export default function LoginPage() {
                 </motion.div>
             </AnimatePresence>
         </main>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+            <LoginPageContent />
+        </Suspense>
     );
 }
