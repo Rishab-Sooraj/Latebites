@@ -36,6 +36,8 @@ export default function SignupPage() {
         }
 
         try {
+            console.log("Starting signup process...");
+
             // Sign up with email and password (disable email confirmation)
             const { data, error: signupError } = await supabase.auth.signUp({
                 email: formData.email,
@@ -49,26 +51,44 @@ export default function SignupPage() {
                 },
             });
 
-            if (signupError) throw signupError;
+            console.log("Signup response:", { data, error: signupError });
 
-            if (data.user) {
-                // Create customer profile
-                const { error: profileError } = await supabase.from("customers").insert([{
-                    id: data.user.id,
-                    name: formData.name,
-                    phone: formData.phone.startsWith("+") ? formData.phone : `+91${formData.phone}`,
-                    email: formData.email,
-                }]);
-
-                if (profileError) {
-                    console.error("Error creating profile:", profileError);
-                }
-
-                // Redirect to browse page immediately
-                // Note: If email confirmation is enabled in Supabase, user will need to confirm first
-                router.push("/browse");
+            if (signupError) {
+                console.error("Signup error:", signupError);
+                throw signupError;
             }
+
+            if (!data.user) {
+                throw new Error("No user returned from signup");
+            }
+
+            console.log("User created:", data.user.id);
+
+            // Create customer profile
+            const profileData = {
+                id: data.user.id,
+                name: formData.name,
+                phone: formData.phone.startsWith("+") ? formData.phone : `+91${formData.phone}`,
+                email: formData.email,
+            };
+
+            console.log("Creating profile with data:", profileData);
+
+            const { error: profileError } = await supabase.from("customers").insert([profileData]);
+
+            if (profileError) {
+                console.error("Profile creation error:", profileError);
+                setError(`Account created but profile failed: ${profileError.message}. Please contact support.`);
+                setLoading(false);
+                return;
+            }
+
+            console.log("Profile created successfully!");
+
+            // Redirect to browse page immediately
+            router.push("/browse");
         } catch (err: any) {
+            console.error("Signup failed:", err);
             setError(err.message || "Failed to create account");
         } finally {
             setLoading(false);
