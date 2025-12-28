@@ -73,52 +73,67 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setError("");
 
         try {
-            console.log("Attempting login for:", email, "as", role);
+            console.log("🔐 Starting login for:", email, "as", role);
 
+            // Step 1: Authenticate with Supabase
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
-            console.log("Auth response:", { authData, authError });
+            console.log("✅ Auth response:", { user: authData?.user?.id, error: authError?.message });
 
             if (authError) {
+                console.error("❌ Auth error:", authError);
                 if (authError.message.includes("Invalid login credentials")) {
-                    throw new Error("Incorrect password. Please try again.");
+                    throw new Error("Incorrect email or password. Please try again.");
                 }
-                throw authError;
+                throw new Error(authError.message);
             }
 
             if (!authData.user) {
                 throw new Error("No user returned from login");
             }
 
-            console.log("User authenticated:", authData.user.id);
+            console.log("👤 User authenticated:", authData.user.id);
 
-            // Check if profile exists in the correct table based on role
+            // Step 2: Check if profile exists in the correct table
             const tableName = role === "customer" ? "customers" : "restaurants";
+            console.log("🔍 Checking profile in table:", tableName);
+
             const { data: profileData, error: profileError } = await supabase
                 .from(tableName)
                 .select("id")
                 .eq("id", authData.user.id)
                 .maybeSingle();
 
-            console.log("Profile check in", tableName, ":", { profileData, profileError });
+            console.log("📋 Profile check result:", {
+                table: tableName,
+                found: !!profileData,
+                error: profileError?.message
+            });
 
-            if (profileError || !profileData) {
+            if (profileError) {
+                console.error("❌ Profile error:", profileError);
                 await supabase.auth.signOut();
-                throw new Error(`No ${role} profile found. Please check your role selection or sign up again.`);
+                throw new Error(`Database error: ${profileError.message}`);
             }
 
-            console.log("Login successful, redirecting...");
+            if (!profileData) {
+                console.error("❌ No profile found in", tableName);
+                await supabase.auth.signOut();
+                throw new Error(`No ${role} account found. Please check your role selection or sign up first.`);
+            }
+
+            console.log("✅ Login successful! Redirecting...");
             onClose();
 
             // Redirect based on role
             const redirectPath = role === "customer" ? "/browse" : "/restaurant/dashboard";
             router.push(redirectPath);
         } catch (err: any) {
-            console.error("Login error:", err);
-            setError(err.message || "Failed to sign in");
+            console.error("❌ Login failed:", err);
+            setError(err.message || "Failed to sign in. Please try again.");
         } finally {
             setLoading(false);
         }
