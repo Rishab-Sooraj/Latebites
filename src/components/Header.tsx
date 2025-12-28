@@ -1,17 +1,20 @@
+```javascript
 "use client";
 
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { User, LogOut, ShoppingBag, LayoutDashboard, UserCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AuthModal from "./AuthModal";
 
 export function Header() {
   const { user, customer, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
-
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
   const { scrollY } = useScroll();
 
   // Transform scroll position to opacity and translateY
@@ -29,6 +32,18 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <>
       <motion.header
@@ -43,38 +58,73 @@ export function Header() {
 
         <div className="flex gap-4 sm:gap-6 md:gap-8 items-center pointer-events-auto">
           {user && customer ? (
-            <div className="flex items-center gap-4">
-              <Link
-                href="/browse"
-                className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-primary/10 rounded-full transition-colors text-sm"
+            <div className="relative" ref={dropdownRef}>
+              <motion.button
+                onClick={() => setShowDropdown(!showDropdown)}
+                style={{ 
+                  opacity,
+                  y: translateY,
+                  scale
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30
+                }}
+                className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-600 to-amber-600 text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-lg"
+                aria-label="User menu"
               >
-                <ShoppingBag className="w-4 h-4" />
-                Browse
-              </Link>
-              <Link
-                href="/customer/dashboard"
-                className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-primary/10 rounded-full transition-colors text-sm"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </Link>
-              <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
-                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                <div className="text-sm font-medium">
                   {customer.name.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-sm font-medium hidden sm:inline">{customer.name}</span>
-              </div>
-              <button
-                onClick={signOut}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              </motion.button>
+
+              {/* Dropdown Menu */}
+              <AnimatePresence>
+                {showDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden"
+                  >
+                    <div className="py-2">
+                      <Link
+                        href="/browse"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 transition-colors text-sm text-gray-700"
+                      >
+                        <ShoppingBag className="w-4 h-4 text-orange-600" />
+                        Browse
+                      </Link>
+                      <Link
+                        href="/customer/dashboard"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 transition-colors text-sm text-gray-700"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-orange-600" />
+                        Dashboard
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          signOut();
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-sm text-gray-700"
+                      >
+                        <LogOut className="w-4 h-4 text-red-600" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
             <motion.button
               onClick={() => setShowAuthModal(true)}
-              style={{
+              style={{ 
                 opacity,
                 y: translateY,
                 scale
