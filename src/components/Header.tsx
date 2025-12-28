@@ -1,4 +1,3 @@
-```javascript
 "use client";
 
 import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
@@ -14,7 +13,7 @@ export function Header() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   const { scrollY } = useScroll();
 
   // Transform scroll position to opacity and translateY
@@ -61,7 +60,7 @@ export function Header() {
             <div className="relative" ref={dropdownRef}>
               <motion.button
                 onClick={() => setShowDropdown(!showDropdown)}
-                style={{ 
+                style={{
                   opacity,
                   y: translateY,
                   scale
@@ -124,7 +123,7 @@ export function Header() {
           ) : (
             <motion.button
               onClick={() => setShowAuthModal(true)}
-              style={{ 
+              style={{
                 opacity,
                 y: translateY,
                 scale
