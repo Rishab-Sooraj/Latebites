@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Mail, Phone, MessageCircle, Search, HelpCircle, Package, CreditCard, User as UserIcon, AlertCircle } from "lucide-react";
+import { ChevronDown, Mail, Phone, MessageCircle, Search, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -69,77 +69,65 @@ export default function HelpPage() {
     });
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-            {/* Hero Section */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white">
-                <div className="absolute inset-0 opacity-10">
-                    <div className="absolute inset-0" style={{
-                        backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
-                        backgroundSize: '40px 40px'
-                    }} />
-                </div>
-
-                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="min-h-screen bg-background">
+            {/* Hero Section - Minimalist */}
+            <section className="border-b border-border">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
                     <motion.div
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
-                        className="text-center"
+                        className="max-w-3xl mx-auto text-center"
                     >
-                        <div className="flex items-center justify-center gap-2 mb-4">
-                            <HelpCircle className="w-8 h-8" />
-                            <span className="text-sm uppercase tracking-widest font-semibold">
-                                Support Center
-                            </span>
-                        </div>
-                        <h1 className="text-5xl md:text-6xl font-serif italic mb-4">
+                        <HelpCircle className="w-6 h-6 mx-auto mb-6 text-muted-foreground" />
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-light leading-tight mb-6">
                             How can we help you?
                         </h1>
-                        <p className="text-xl text-purple-100 max-w-2xl mx-auto">
+                        <p className="text-lg md:text-xl text-muted-foreground font-light leading-relaxed">
                             Find answers to common questions or get in touch with our support team
                         </p>
                     </motion.div>
                 </div>
-            </div>
+            </section>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 pb-16">
-                {/* Search Bar */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+                {/* Search Bar - Minimal */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-white rounded-2xl shadow-2xl p-6 mb-12"
+                    className="max-w-2xl mx-auto mb-16"
                 >
                     <div className="relative">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                         <input
                             type="text"
                             placeholder="Search for help..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg"
+                            className="w-full pl-12 pr-4 py-4 border border-border focus:outline-none focus:border-foreground/20 transition-colors bg-background text-foreground"
                         />
                     </div>
                 </motion.div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
                     {/* FAQ Section */}
                     <div className="lg:col-span-2">
-                        {/* Category Filters */}
+                        {/* Category Filters - Minimal */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
-                            className="mb-8"
+                            className="mb-12"
                         >
                             <div className="flex flex-wrap gap-3">
                                 {categories.map((category) => (
                                     <button
                                         key={category}
                                         onClick={() => setSelectedCategory(category)}
-                                        className={`px-4 py-2 rounded-xl font-medium transition-all ${selectedCategory === category
-                                                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
-                                                : "bg-white text-gray-700 hover:bg-gray-100"
+                                        className={`px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${selectedCategory === category
+                                                ? "bg-foreground text-background"
+                                                : "border border-border hover:border-foreground/20"
                                             }`}
                                     >
                                         {category}
@@ -148,25 +136,25 @@ export default function HelpPage() {
                             </div>
                         </motion.div>
 
-                        {/* FAQ List */}
-                        <div className="space-y-4">
+                        {/* FAQ List - Minimal */}
+                        <div className="space-y-6">
                             {filteredFAQs.map((faq, index) => (
                                 <motion.div
                                     key={index}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.4 + index * 0.05 }}
-                                    className="bg-white rounded-2xl shadow-lg overflow-hidden"
+                                    className="border-b border-border"
                                 >
                                     <button
                                         onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
-                                        className="w-full p-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                        className="w-full py-6 text-left flex items-start justify-between gap-4 hover:opacity-70 transition-opacity"
                                     >
                                         <div className="flex-1">
-                                            <span className="text-xs uppercase tracking-wider text-purple-600 font-semibold mb-2 block">
+                                            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">
                                                 {faq.category}
-                                            </span>
-                                            <h3 className="text-lg font-semibold text-gray-900">
+                                            </p>
+                                            <h3 className="text-lg md:text-xl font-serif font-light">
                                                 {faq.question}
                                             </h3>
                                         </div>
@@ -174,7 +162,7 @@ export default function HelpPage() {
                                             animate={{ rotate: expandedFAQ === index ? 180 : 0 }}
                                             transition={{ duration: 0.3 }}
                                         >
-                                            <ChevronDown className="w-6 h-6 text-gray-400" />
+                                            <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                                         </motion.div>
                                     </button>
 
@@ -187,7 +175,7 @@ export default function HelpPage() {
                                                 transition={{ duration: 0.3 }}
                                                 className="overflow-hidden"
                                             >
-                                                <div className="px-6 pb-6 text-gray-600 leading-relaxed">
+                                                <div className="pb-6 text-muted-foreground font-light leading-relaxed">
                                                     {faq.answer}
                                                 </div>
                                             </motion.div>
@@ -201,89 +189,72 @@ export default function HelpPage() {
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="text-center py-12"
+                                className="text-center py-16"
                             >
-                                <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                <p className="text-gray-600 text-lg">
+                                <p className="text-muted-foreground font-light">
                                     No results found. Try a different search or category.
                                 </p>
                             </motion.div>
                         )}
                     </div>
 
-                    {/* Contact Section */}
-                    <div className="space-y-6">
+                    {/* Contact Section - Minimal */}
+                    <div className="space-y-12">
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.5 }}
                         >
-                            <h2 className="text-2xl font-serif italic mb-6 text-gray-900">
+                            <h2 className="text-2xl md:text-3xl font-serif font-light mb-8">
                                 Still need help?
                             </h2>
 
-                            {/* Email Support */}
-                            <div className="bg-white rounded-2xl p-6 shadow-lg mb-4 hover:shadow-xl transition-shadow">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-blue-100 rounded-xl">
-                                        <Mail className="w-6 h-6 text-blue-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-gray-900 mb-1">Email Us</h3>
-                                        <p className="text-sm text-gray-600 mb-3">
-                                            We'll respond within 24 hours
-                                        </p>
-                                        <a
-                                            href="mailto:support@latebites.com"
-                                            className="text-blue-600 hover:underline font-medium"
-                                        >
-                                            support@latebites.com
-                                        </a>
-                                    </div>
+                            <div className="space-y-8">
+                                {/* Email Support */}
+                                <div className="border-b border-border pb-6">
+                                    <Mail className="w-5 h-5 text-muted-foreground mb-3" />
+                                    <h3 className="text-lg font-serif font-light mb-2">Email Us</h3>
+                                    <p className="text-sm text-muted-foreground font-light mb-3">
+                                        We'll respond within 24 hours
+                                    </p>
+                                    <a
+                                        href="mailto:support@latebites.com"
+                                        className="text-sm hover:opacity-70 transition-opacity"
+                                    >
+                                        support@latebites.com
+                                    </a>
                                 </div>
-                            </div>
 
-                            {/* Phone Support */}
-                            <div className="bg-white rounded-2xl p-6 shadow-lg mb-4 hover:shadow-xl transition-shadow">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-green-100 rounded-xl">
-                                        <Phone className="w-6 h-6 text-green-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-gray-900 mb-1">Call Us</h3>
-                                        <p className="text-sm text-gray-600 mb-3">
-                                            Mon-Sat, 9 AM - 9 PM
-                                        </p>
-                                        <a
-                                            href="tel:+911234567890"
-                                            className="text-green-600 hover:underline font-medium"
-                                        >
-                                            +91 123 456 7890
-                                        </a>
-                                    </div>
+                                {/* Phone Support */}
+                                <div className="border-b border-border pb-6">
+                                    <Phone className="w-5 h-5 text-muted-foreground mb-3" />
+                                    <h3 className="text-lg font-serif font-light mb-2">Call Us</h3>
+                                    <p className="text-sm text-muted-foreground font-light mb-3">
+                                        Mon-Sat, 9 AM - 9 PM
+                                    </p>
+                                    <a
+                                        href="tel:+911234567890"
+                                        className="text-sm hover:opacity-70 transition-opacity"
+                                    >
+                                        +91 123 456 7890
+                                    </a>
                                 </div>
-                            </div>
 
-                            {/* WhatsApp Support */}
-                            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-green-100 rounded-xl">
-                                        <MessageCircle className="w-6 h-6 text-green-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-gray-900 mb-1">WhatsApp</h3>
-                                        <p className="text-sm text-gray-600 mb-3">
-                                            Chat with us instantly
-                                        </p>
-                                        <a
-                                            href="https://wa.me/911234567890"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-green-600 hover:underline font-medium"
-                                        >
-                                            Start Chat
-                                        </a>
-                                    </div>
+                                {/* WhatsApp Support */}
+                                <div className="pb-6">
+                                    <MessageCircle className="w-5 h-5 text-muted-foreground mb-3" />
+                                    <h3 className="text-lg font-serif font-light mb-2">WhatsApp</h3>
+                                    <p className="text-sm text-muted-foreground font-light mb-3">
+                                        Chat with us instantly
+                                    </p>
+                                    <a
+                                        href="https://wa.me/911234567890"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm hover:opacity-70 transition-opacity"
+                                    >
+                                        Start Chat →
+                                    </a>
                                 </div>
                             </div>
                         </motion.div>
@@ -296,7 +267,7 @@ export default function HelpPage() {
                         >
                             <Link
                                 href="/customer/dashboard"
-                                className="block bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all text-center font-semibold"
+                                className="block border border-border hover:border-foreground/20 transition-colors p-6 text-center text-sm uppercase tracking-[0.2em]"
                             >
                                 ← Back to Dashboard
                             </Link>
