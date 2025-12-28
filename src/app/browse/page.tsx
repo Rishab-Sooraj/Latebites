@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,18 +16,6 @@ type Restaurant = Database['public']['Tables']['restaurants']['Row'] & {
 
 type RescueBag = Database['public']['Tables']['rescue_bags']['Row'];
 
-// Popular locations in India (can be expanded)
-const POPULAR_LOCATIONS = [
-    { name: "Coimbatore, Tamil Nadu", lat: 11.0168, lng: 76.9558 },
-    { name: "Chennai, Tamil Nadu", lat: 13.0827, lng: 80.2707 },
-    { name: "Bangalore, Karnataka", lat: 12.9716, lng: 77.5946 },
-    { name: "Mumbai, Maharashtra", lat: 19.0760, lng: 72.8777 },
-    { name: "Delhi", lat: 28.7041, lng: 77.1025 },
-    { name: "Hyderabad, Telangana", lat: 17.3850, lng: 78.4867 },
-    { name: "Pune, Maharashtra", lat: 18.5204, lng: 73.8567 },
-    { name: "Kolkata, West Bengal", lat: 22.5726, lng: 88.3639 },
-];
-
 export default function BrowsePage() {
     const { customer } = useAuth();
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -38,7 +26,9 @@ export default function BrowsePage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
-    const [locationSearchQuery, setLocationSearchQuery] = useState("");
+
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
     const supabase = createClient();
 
@@ -46,19 +36,76 @@ export default function BrowsePage() {
         getCurrentLocation()
             .then((coords) => {
                 setUserLocation(coords);
-                setLocationName("Current Location");
                 fetchData(coords);
+                reverseGeocode(coords);
             })
             .catch((error) => {
                 console.error("Location error:", error);
                 setLocationError(error.message);
-                // Default to Coimbatore if location fails
-                const defaultLocation = POPULAR_LOCATIONS[0];
-                setUserLocation({ latitude: defaultLocation.lat, longitude: defaultLocation.lng });
-                setLocationName(defaultLocation.name);
-                fetchData({ latitude: defaultLocation.lat, longitude: defaultLocation.lng });
+                fetchData(null);
             });
     }, []);
+
+    // Initialize Google Maps Autocomplete
+    useEffect(() => {
+        if (showLocationModal && searchInputRef.current && !autocompleteRef.current) {
+            const loadGoogleMaps = () => {
+                if (window.google && window.google.maps) {
+                    initAutocomplete();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+                script.async = true;
+                script.defer = true;
+                script.onload = () => initAutocomplete();
+                document.head.appendChild(script);
+            };
+
+            const initAutocomplete = () => {
+                if (searchInputRef.current && window.google) {
+                    autocompleteRef.current = new google.maps.places.Autocomplete(
+                        searchInputRef.current,
+                        {
+                            componentRestrictions: { country: "in" },
+                            fields: ["geometry", "formatted_address", "name"],
+                        }
+                    );
+
+                    autocompleteRef.current.addListener("place_changed", () => {
+                        const place = autocompleteRef.current?.getPlace();
+                        if (place?.geometry?.location) {
+                            const coords: Coordinates = {
+                                latitude: place.geometry.location.lat(),
+                                longitude: place.geometry.location.lng(),
+                            };
+                            setUserLocation(coords);
+                            setLocationName(place.formatted_address || place.name || "");
+                            fetchData(coords);
+                            setShowLocationModal(false);
+                        }
+                    });
+                }
+            };
+
+            loadGoogleMaps();
+        }
+    }, [showLocationModal]);
+
+    const reverseGeocode = async (coords: Coordinates) => {
+        try {
+            const response = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+            );
+            const data = await response.json();
+            if (data.results && data.results[0]) {
+                setLocationName(data.results[0].formatted_address);
+            }
+        } catch (error) {
+            console.error("Reverse geocode error:", error);
+        }
+    };
 
     const fetchData = async (coords: Coordinates | null) => {
         setLoading(true);
@@ -112,8 +159,8 @@ export default function BrowsePage() {
         try {
             const coords = await getCurrentLocation();
             setUserLocation(coords);
-            setLocationName("Current Location");
             await fetchData(coords);
+            await reverseGeocode(coords);
             setShowLocationModal(false);
         } catch (error: any) {
             setLocationError(error.message);
@@ -122,24 +169,8 @@ export default function BrowsePage() {
         }
     };
 
-    const handleSelectLocation = (location: typeof POPULAR_LOCATIONS[0]) => {
-        const coords: Coordinates = {
-            latitude: location.lat,
-            longitude: location.lng,
-        };
-        setUserLocation(coords);
-        setLocationName(location.name);
-        fetchData(coords);
-        setShowLocationModal(false);
-        setLocationSearchQuery("");
-    };
-
     const filteredRestaurants = restaurants.filter((restaurant) =>
         restaurant.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const filteredLocations = POPULAR_LOCATIONS.filter((location) =>
-        location.name.toLowerCase().includes(locationSearchQuery.toLowerCase())
     );
 
     return (
@@ -181,12 +212,18 @@ export default function BrowsePage() {
                         >
                             <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             <div className="flex-1 text-left">
-                                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                                    {userLocation ? "Current Location" : "Select Location"}
-                                </p>
-                                <p className="text-sm font-light truncate">
-                                    {locationName || "Within 7km radius"}
-                                </p>
+                                {userLocation ? (
+                                    <>
+                                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                                            Current Location
+                                        </p>
+                                        <p className="text-sm font-light truncate">
+                                            {locationName || "Within 7km radius"}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm font-light">Set your location</p>
+                                )}
                             </div>
                         </motion.button>
 
@@ -311,7 +348,7 @@ export default function BrowsePage() {
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="bg-background border border-border max-w-md w-full p-8 max-h-[80vh] overflow-y-auto"
+                            className="bg-background border border-border max-w-md w-full p-8"
                         >
                             <div className="flex items-start justify-between mb-6">
                                 <div>
@@ -319,7 +356,7 @@ export default function BrowsePage() {
                                         Your Location
                                     </h3>
                                     <p className="text-sm text-muted-foreground font-light">
-                                        Search for a city or use your current location
+                                        Search for a location or use your current location
                                     </p>
                                 </div>
                                 <button
@@ -336,41 +373,14 @@ export default function BrowsePage() {
                                 </div>
                             )}
 
-                            {/* Search Input */}
-                            <div className="mb-6">
+                            {/* Search Input with Google Autocomplete */}
+                            <div className="mb-4">
                                 <input
+                                    ref={searchInputRef}
                                     type="text"
-                                    placeholder="Search for a city..."
-                                    value={locationSearchQuery}
-                                    onChange={(e) => setLocationSearchQuery(e.target.value)}
+                                    placeholder="Search for a location..."
                                     className="w-full px-4 py-3 border border-border focus:outline-none focus:border-foreground/20 transition-colors bg-background text-sm"
                                 />
-                            </div>
-
-                            {/* Popular Locations */}
-                            <div className="mb-6">
-                                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">
-                                    {locationSearchQuery ? "Search Results" : "Popular Cities"}
-                                </p>
-                                <div className="space-y-2">
-                                    {filteredLocations.map((location) => (
-                                        <button
-                                            key={location.name}
-                                            onClick={() => handleSelectLocation(location)}
-                                            className="w-full text-left px-4 py-3 border border-border hover:border-foreground/20 transition-colors"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <MapPin className="w-4 h-4 text-muted-foreground" />
-                                                <span className="text-sm font-light">{location.name}</span>
-                                            </div>
-                                        </button>
-                                    ))}
-                                    {filteredLocations.length === 0 && (
-                                        <p className="text-sm text-muted-foreground font-light text-center py-4">
-                                            No cities found
-                                        </p>
-                                    )}
-                                </div>
                             </div>
 
                             <div className="relative mb-6">
