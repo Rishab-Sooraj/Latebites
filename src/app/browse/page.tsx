@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentLocation, calculateDistance, formatDistance, type Coordinates } from "@/lib/location/geolocation";
-import { MapPin, Search, Clock, Sparkles, TrendingUp, Leaf, ChevronRight, Heart, Star } from "lucide-react";
+import { MapPin, Search, Clock, X, Navigation } from "lucide-react";
 import Link from "next/link";
 import type { Database } from "@/types/database";
 
@@ -19,17 +19,16 @@ type RescueBag = Database['public']['Tables']['rescue_bags']['Row'];
 export default function BrowsePage() {
     const { customer } = useAuth();
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-    const [featuredBags, setFeaturedBags] = useState<(RescueBag & { restaurants: Restaurant })[]>([]);
     const [loading, setLoading] = useState(true);
     const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
     const [locationError, setLocationError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [showLocationModal, setShowLocationModal] = useState(false);
+    const [locationLoading, setLocationLoading] = useState(false);
 
     const supabase = createClient();
 
     useEffect(() => {
-        // Get user location
         getCurrentLocation()
             .then((coords) => {
                 setUserLocation(coords);
@@ -45,7 +44,6 @@ export default function BrowsePage() {
         setLoading(true);
 
         try {
-            // Fetch restaurants with their rescue bags
             const { data: restaurantData, error: restaurantError } = await supabase
                 .from("restaurants")
                 .select(`
@@ -57,7 +55,6 @@ export default function BrowsePage() {
 
             if (restaurantError) throw restaurantError;
 
-            // Calculate distances and filter restaurants with available bags
             let restaurantsWithDistance = (restaurantData || []) as Restaurant[];
 
             if (coords) {
@@ -69,35 +66,18 @@ export default function BrowsePage() {
                     }),
                 }));
 
-                // Filter to only show restaurants within 7km radius
                 restaurantsWithDistance = restaurantsWithDistance.filter(
                     (r) => r.distance !== undefined && r.distance <= 7
                 );
 
-                // Sort by distance
                 restaurantsWithDistance.sort((a, b) => (a.distance || 0) - (b.distance || 0));
             }
 
-            // Filter to only show restaurants with available bags
             const restaurantsWithBags = restaurantsWithDistance.filter(
                 (r) => r.rescue_bags && r.rescue_bags.length > 0
             );
 
             setRestaurants(restaurantsWithBags);
-
-            // Get featured bags (random selection from available bags)
-            const allBags = restaurantsWithBags.flatMap((restaurant) =>
-                (restaurant.rescue_bags || [])
-                    .filter((bag) => bag.is_active && bag.quantity_available > 0)
-                    .map((bag) => ({
-                        ...bag,
-                        restaurants: restaurant,
-                    }))
-            );
-
-            // Shuffle and take first 6 for featured
-            const shuffled = allBags.sort(() => 0.5 - Math.random());
-            setFeaturedBags(shuffled.slice(0, 6));
         } catch (error) {
             console.error("Error fetching data:", error);
         } finally {
@@ -105,392 +85,244 @@ export default function BrowsePage() {
         }
     };
 
-    const filteredRestaurants = restaurants.filter((restaurant) => {
-        const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = !selectedCategory || restaurant.cuisine_types?.includes(selectedCategory);
-        return matchesSearch && matchesCategory;
-    });
+    const handleRefreshLocation = async () => {
+        setLocationLoading(true);
+        setLocationError("");
 
-    // Get unique cuisine types
-    const cuisineTypes = Array.from(
-        new Set(restaurants.flatMap((r) => r.cuisine_types || []))
+        try {
+            const coords = await getCurrentLocation();
+            setUserLocation(coords);
+            await fetchData(coords);
+            setShowLocationModal(false);
+        } catch (error: any) {
+            setLocationError(error.message);
+        } finally {
+            setLocationLoading(false);
+        }
+    };
+
+    const filteredRestaurants = restaurants.filter((restaurant) =>
+        restaurant.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
-        <main className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50">
-            {/* Hero Section */}
-            <section className="relative pt-32 pb-20 px-4 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
-
-                <div className="max-w-7xl mx-auto relative z-10">
+        <main className="min-h-screen bg-background">
+            {/* Hero Section - Minimalist */}
+            <section className="border-b border-border">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-center mb-12"
+                        transition={{ duration: 0.8 }}
+                        className="max-w-3xl"
                     >
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-6">
-                            <Sparkles className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-medium text-primary">
-                                {userLocation ? `${filteredRestaurants.length} restaurants nearby` : "Discover rescue bags"}
-                            </span>
-                        </div>
-
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif mb-4">
-                            Rescue food,{" "}
-                            <span className="italic text-primary">save the planet</span>
+                        <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-6">
+                            Browse Rescue Bags
+                        </p>
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-light leading-tight mb-6">
+                            Rescue food, <span className="italic">save the planet.</span>
                         </h1>
-
-                        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-                            {customer?.name ? `Welcome back, ${customer.name}! ` : ""}
-                            Discover surplus food from restaurants near you at 50% off or more
+                        <p className="text-lg md:text-xl text-muted-foreground font-light leading-relaxed">
+                            {customer?.name ? `Welcome back, ${customer.name.split(" ")[0]}. ` : ""}
+                            Discover surplus food from restaurants near you at 50% off or more.
                         </p>
                     </motion.div>
+                </div>
+            </section>
 
-                    {/* Search Bar */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="max-w-2xl mx-auto mb-8"
-                    >
-                        <div className="relative">
-                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            {/* Location & Search Bar */}
+            <div className="border-b border-border">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        {/* Location Selector */}
+                        <motion.button
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 }}
+                            onClick={() => setShowLocationModal(true)}
+                            className="flex items-center gap-3 px-6 py-4 border border-border hover:border-foreground/20 transition-colors"
+                        >
+                            <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 text-left">
+                                {userLocation ? (
+                                    <>
+                                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                                            Current Location
+                                        </p>
+                                        <p className="text-sm font-light">
+                                            Within 7km radius
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm font-light">Set your location</p>
+                                )}
+                            </div>
+                        </motion.button>
+
+                        {/* Search Bar */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="flex-1 relative"
+                        >
+                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                             <input
                                 type="text"
+                                placeholder="Search restaurants..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search restaurants or cuisine..."
-                                className="w-full pl-14 pr-6 py-5 bg-white/80 backdrop-blur-sm border-2 border-primary/20 rounded-full focus:outline-none focus:border-primary transition-all shadow-lg text-lg"
+                                className="w-full pl-12 pr-4 py-4 border border-border focus:outline-none focus:border-foreground/20 transition-colors bg-background"
                             />
-                        </div>
-                    </motion.div>
-
-                    {/* Location Status */}
-                    {locationError && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="max-w-2xl mx-auto mb-8 p-4 bg-yellow-50/80 backdrop-blur-sm border border-yellow-200 rounded-full text-sm text-yellow-800 text-center"
-                        >
-                            <MapPin className="w-4 h-4 inline mr-2" />
-                            {locationError}
                         </motion.div>
-                    )}
-
-                    {/* Category Pills */}
-                    {cuisineTypes.length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="flex gap-3 justify-center flex-wrap"
-                        >
-                            <button
-                                onClick={() => setSelectedCategory(null)}
-                                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!selectedCategory
-                                    ? "bg-primary text-primary-foreground shadow-lg"
-                                    : "bg-white/60 hover:bg-white/80"
-                                    }`}
-                            >
-                                All
-                            </button>
-                            {cuisineTypes.slice(0, 5).map((cuisine) => (
-                                <button
-                                    key={cuisine}
-                                    onClick={() => setSelectedCategory(cuisine)}
-                                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cuisine
-                                        ? "bg-primary text-primary-foreground shadow-lg"
-                                        : "bg-white/60 hover:bg-white/80"
-                                        }`}
-                                >
-                                    {cuisine}
-                                </button>
-                            ))}
-                        </motion.div>
-                    )}
-                </div>
-            </section>
-
-            {/* Featured Bags Section */}
-            {featuredBags.length > 0 && (
-                <section className="py-12 px-4">
-                    <div className="max-w-7xl mx-auto">
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex items-center justify-between mb-8"
-                        >
-                            <div>
-                                <h2 className="text-3xl md:text-4xl font-serif mb-2">
-                                    Featured rescue bags
-                                </h2>
-                                <p className="text-muted-foreground">
-                                    Limited availability • Pickup today
-                                </p>
-                            </div>
-                            <TrendingUp className="w-8 h-8 text-primary" />
-                        </motion.div>
-
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {featuredBags.map((bag, index) => (
-                                <motion.div
-                                    key={bag.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.05 }}
-                                    className="group relative bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300"
-                                >
-                                    {/* Image */}
-                                    <div className="h-56 bg-gradient-to-br from-cyan-100 to-teal-100 relative overflow-hidden">
-                                        {bag.restaurants.cover_image_url ? (
-                                            <img
-                                                src={bag.restaurants.cover_image_url}
-                                                alt={bag.restaurants.name}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <Leaf className="w-16 h-16 text-primary/20" />
-                                            </div>
-                                        )}
-
-                                        {/* Discount Badge */}
-                                        <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-4 py-2 rounded-full font-bold text-sm shadow-lg">
-                                            {Math.round((1 - bag.discounted_price / bag.original_price) * 100)}% OFF
-                                        </div>
-
-                                        {/* Distance Badge */}
-                                        {bag.restaurants.distance && (
-                                            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                                                <MapPin className="w-3 h-3" />
-                                                {formatDistance(bag.restaurants.distance)}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Content */}
-                                    <div className="p-6">
-                                        <div className="mb-4">
-                                            <h3 className="text-xl font-serif mb-1 group-hover:text-primary transition-colors">
-                                                {bag.title}
-                                            </h3>
-                                            <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                                {bag.restaurants.name}
-                                            </p>
-                                        </div>
-
-                                        {bag.description && (
-                                            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                                                {bag.description}
-                                            </p>
-                                        )}
-
-                                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-primary/10">
-                                            <div>
-                                                <p className="text-xs text-muted-foreground line-through">
-                                                    ₹{bag.original_price}
-                                                </p>
-                                                <p className="text-2xl font-bold text-primary">
-                                                    ₹{bag.discounted_price}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" />
-                                                    {bag.pickup_start_time.slice(0, 5)} - {bag.pickup_end_time.slice(0, 5)}
-                                                </p>
-                                                <p className="text-xs font-medium text-primary">
-                                                    {bag.quantity_available} left
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <Link
-                                            href={`/bag/${bag.id}`}
-                                            className="block w-full py-3 bg-primary text-primary-foreground text-center text-sm uppercase tracking-widest hover:opacity-90 transition-opacity rounded-sm font-medium"
-                                        >
-                                            Reserve Now
-                                        </Link>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
                     </div>
-                </section>
-            )}
 
-            {/* Nearby Restaurants Section */}
-            <section className="py-12 px-4 bg-white/40">
-                <div className="max-w-7xl mx-auto">
+                    {/* Results Count */}
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-6"
+                    >
+                        {filteredRestaurants.length} {filteredRestaurants.length === 1 ? "Restaurant" : "Restaurants"} Found
+                    </motion.p>
+                </div>
+            </div>
+
+            {/* Restaurants List */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                {loading ? (
+                    <div className="text-center py-24">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
+                        <p className="text-sm text-muted-foreground mt-4 uppercase tracking-[0.2em]">
+                            Loading...
+                        </p>
+                    </div>
+                ) : filteredRestaurants.length === 0 ? (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="flex items-center justify-between mb-8"
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-center py-24"
                     >
-                        <div>
-                            <h2 className="text-3xl md:text-4xl font-serif mb-2">
-                                Restaurants near you
-                            </h2>
-                            <p className="text-muted-foreground">
-                                {userLocation
-                                    ? "Sorted by distance from your location"
-                                    : "Enable location to see nearest first"}
-                            </p>
-                        </div>
-                        <MapPin className="w-8 h-8 text-primary" />
+                        <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-6" />
+                        <h3 className="text-2xl font-serif font-light mb-3">
+                            No restaurants nearby
+                        </h3>
+                        <p className="text-muted-foreground font-light mb-8">
+                            Try changing your location or check back later
+                        </p>
+                        <button
+                            onClick={() => setShowLocationModal(true)}
+                            className="inline-block px-6 py-3 border border-border hover:border-foreground/20 transition-colors text-sm uppercase tracking-[0.2em]"
+                        >
+                            Change Location
+                        </button>
                     </motion.div>
-
-                    {loading ? (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[1, 2, 3, 4, 5, 6].map((i) => (
-                                <div key={i} className="bg-white rounded-lg p-6 animate-pulse">
-                                    <div className="h-40 bg-gray-200 rounded mb-4" />
-                                    <div className="h-4 bg-gray-200 rounded mb-2" />
-                                    <div className="h-4 bg-gray-200 rounded w-2/3" />
-                                </div>
-                            ))}
-                        </div>
-                    ) : filteredRestaurants.length > 0 ? (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredRestaurants.map((restaurant, index) => {
-                                const availableBags = restaurant.rescue_bags?.filter(
-                                    (bag) => bag.is_active && bag.quantity_available > 0
-                                ) || [];
-
-                                return (
-                                    <motion.div
-                                        key={restaurant.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        whileInView={{ opacity: 1, y: 0 }}
-                                        viewport={{ once: true }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group"
-                                    >
-                                        {/* Restaurant Image */}
-                                        <div className="h-48 bg-gradient-to-br from-cyan-100 to-teal-100 relative overflow-hidden">
-                                            {restaurant.cover_image_url ? (
-                                                <img
-                                                    src={restaurant.cover_image_url}
-                                                    alt={restaurant.name}
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Leaf className="w-16 h-16 text-primary/20" />
-                                                </div>
-                                            )}
-
-                                            {restaurant.distance && (
-                                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-full text-sm font-medium flex items-center gap-1 shadow-lg">
-                                                    <MapPin className="w-4 h-4 text-primary" />
-                                                    {formatDistance(restaurant.distance)}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Content */}
-                                        <div className="p-6">
-                                            <div className="mb-4">
-                                                <h3 className="text-2xl font-serif mb-2 group-hover:text-primary transition-colors">
+                ) : (
+                    <div className="space-y-8">
+                        {filteredRestaurants.map((restaurant, index) => (
+                            <motion.div
+                                key={restaurant.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="border-b border-border pb-8 last:border-0"
+                            >
+                                <Link
+                                    href={`/restaurant/${restaurant.id}`}
+                                    className="block group"
+                                >
+                                    <div className="flex items-start justify-between gap-6">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <h3 className="text-2xl md:text-3xl font-serif font-light group-hover:opacity-70 transition-opacity">
                                                     {restaurant.name}
                                                 </h3>
-                                                {restaurant.cuisine_types && restaurant.cuisine_types.length > 0 && (
-                                                    <div className="flex gap-2 flex-wrap">
-                                                        {restaurant.cuisine_types.slice(0, 3).map((cuisine) => (
-                                                            <span
-                                                                key={cuisine}
-                                                                className="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full"
-                                                            >
-                                                                {cuisine}
-                                                            </span>
-                                                        ))}
-                                                    </div>
+                                                {restaurant.distance !== undefined && (
+                                                    <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                                                        {formatDistance(restaurant.distance)}
+                                                    </span>
                                                 )}
                                             </div>
-
-                                            {restaurant.description && (
-                                                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                                                    {restaurant.description}
-                                                </p>
-                                            )}
-
-                                            <div className="flex items-center justify-between pt-4 border-t border-primary/10">
-                                                <div className="text-sm">
-                                                    <p className="font-medium text-primary">
-                                                        {availableBags.length} bag{availableBags.length !== 1 ? "s" : ""} available
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Starting from ₹{Math.min(...availableBags.map((b) => b.discounted_price))}
-                                                    </p>
+                                            <p className="text-sm text-muted-foreground font-light mb-4">
+                                                {restaurant.cuisine_types?.join(", ")}
+                                            </p>
+                                            <div className="flex items-center gap-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className="w-3 h-3" />
+                                                    <span>Pickup: 8-10 PM</span>
                                                 </div>
-                                                <ChevronRight className="w-5 h-5 text-primary group-hover:translate-x-1 transition-transform" />
+                                                <div>
+                                                    {restaurant.rescue_bags?.length || 0} {restaurant.rescue_bags?.length === 1 ? "Bag" : "Bags"} Available
+                                                </div>
                                             </div>
                                         </div>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-center py-20 bg-white rounded-lg"
-                        >
-                            <Leaf className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
-                            <p className="text-xl text-muted-foreground mb-2">
-                                {searchQuery
-                                    ? "No restaurants match your search"
-                                    : "No restaurants with available bags right now"}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                Check back later or try a different search
-                            </p>
-                        </motion.div>
-                    )}
-                </div>
-            </section>
-
-            {/* Impact Stats */}
-            <section className="py-20 px-4 bg-primary text-primary-foreground">
-                <div className="max-w-7xl mx-auto">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="text-center mb-12"
-                    >
-                        <h2 className="text-3xl md:text-5xl font-serif mb-4">
-                            Join the rescue movement
-                        </h2>
-                        <p className="text-lg opacity-80">
-                            Every bag you rescue makes a difference
-                        </p>
-                    </motion.div>
-
-                    <div className="grid md:grid-cols-3 gap-8">
-                        {[
-                            { icon: Leaf, value: "50%+", label: "Discount on every bag" },
-                            { icon: TrendingUp, value: "Zero", label: "Food waste" },
-                            { icon: Heart, value: "Local", label: "Community impact" },
-                        ].map((stat, index) => (
-                            <motion.div
-                                key={stat.label}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1 }}
-                                className="text-center"
-                            >
-                                <stat.icon className="w-12 h-12 mx-auto mb-4" />
-                                <p className="text-4xl font-bold mb-2">{stat.value}</p>
-                                <p className="text-lg opacity-80">{stat.label}</p>
+                                    </div>
+                                </Link>
                             </motion.div>
                         ))}
                     </div>
-                </div>
-            </section>
+                )}
+            </div>
+
+            {/* Location Modal */}
+            <AnimatePresence>
+                {showLocationModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={() => setShowLocationModal(false)}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-background border border-border max-w-md w-full p-8"
+                        >
+                            <div className="flex items-start justify-between mb-6">
+                                <div>
+                                    <h3 className="text-2xl font-serif font-light mb-2">
+                                        Your Location
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground font-light">
+                                        We use your location to show nearby restaurants within 7km
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowLocationModal(false)}
+                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {locationError && (
+                                <div className="mb-6 p-4 border border-red-200 bg-red-50">
+                                    <p className="text-sm text-red-800 font-light">{locationError}</p>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleRefreshLocation}
+                                disabled={locationLoading}
+                                className="w-full flex items-center justify-center gap-3 px-6 py-4 border border-border hover:border-foreground/20 transition-colors disabled:opacity-50"
+                            >
+                                <Navigation className="w-4 h-4" />
+                                <span className="text-sm uppercase tracking-[0.2em]">
+                                    {locationLoading ? "Getting Location..." : "Use Current Location"}
+                                </span>
+                            </button>
+
+                            <p className="text-xs text-muted-foreground text-center mt-6 font-light">
+                                We only use your location to show nearby restaurants. Your privacy is important to us.
+                            </p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </main>
     );
 }
