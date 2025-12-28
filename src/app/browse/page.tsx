@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +8,7 @@ import { getCurrentLocation, calculateDistance, formatDistance, type Coordinates
 import { MapPin, Search, Clock, X, Navigation } from "lucide-react";
 import Link from "next/link";
 import type { Database } from "@/types/database";
+import { Loader } from "@googlemaps/js-api-loader";
 
 type Restaurant = Database['public']['Tables']['restaurants']['Row'] & {
     distance?: number;
@@ -21,10 +22,14 @@ export default function BrowsePage() {
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
     const [loading, setLoading] = useState(true);
     const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
+    const [locationName, setLocationName] = useState("");
     const [locationError, setLocationError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
+
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
     const supabase = createClient();
 
@@ -33,12 +38,64 @@ export default function BrowsePage() {
             .then((coords) => {
                 setUserLocation(coords);
                 fetchData(coords);
+                reverseGeocode(coords);
             })
             .catch((error) => {
                 setLocationError(error.message);
                 fetchData(null);
             });
     }, []);
+
+    // Initialize Google Maps Autocomplete
+    useEffect(() => {
+        if (showLocationModal && searchInputRef.current && !autocompleteRef.current) {
+            const loader = new Loader({
+                apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+                version: "weekly",
+                libraries: ["places"],
+            });
+
+            loader.load().then(() => {
+                if (searchInputRef.current) {
+                    autocompleteRef.current = new google.maps.places.Autocomplete(
+                        searchInputRef.current,
+                        {
+                            componentRestrictions: { country: "in" },
+                            fields: ["geometry", "formatted_address", "name"],
+                        }
+                    );
+
+                    autocompleteRef.current.addListener("place_changed", () => {
+                        const place = autocompleteRef.current?.getPlace();
+                        if (place?.geometry?.location) {
+                            const coords: Coordinates = {
+                                latitude: place.geometry.location.lat(),
+                                longitude: place.geometry.location.lng(),
+                            };
+                            setUserLocation(coords);
+                            setLocationName(place.formatted_address || place.name || "");
+                            fetchData(coords);
+                            setShowLocationModal(false);
+                        }
+                    });
+                }
+            });
+        }
+    }, [showLocationModal]);
+
+    const reverseGeocode = async (coords: Coordinates) => {
+        try {
+            const response = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+            );
+            const data = await response.json();
+            if (data.results && data.results[0]) {
+                setLocationName(data.results[0].formatted_address);
+            }
+        } catch (error) {
+            console.error("Reverse geocode error:", error);
+        }
+    };
 
     const fetchData = async (coords: Coordinates | null) => {
         setLoading(true);
@@ -93,6 +150,7 @@ export default function BrowsePage() {
             const coords = await getCurrentLocation();
             setUserLocation(coords);
             await fetchData(coords);
+            await reverseGeocode(coords);
             setShowLocationModal(false);
         } catch (error: any) {
             setLocationError(error.message);
@@ -149,8 +207,8 @@ export default function BrowsePage() {
                                         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                                             Current Location
                                         </p>
-                                        <p className="text-sm font-light">
-                                            Within 7km radius
+                                        <p className="text-sm font-light truncate">
+                                            {locationName || "Within 7km radius"}
                                         </p>
                                     </>
                                 ) : (
@@ -288,7 +346,7 @@ export default function BrowsePage() {
                                         Your Location
                                     </h3>
                                     <p className="text-sm text-muted-foreground font-light">
-                                        We use your location to show nearby restaurants within 7km
+                                        Search for a location or use your current location
                                     </p>
                                 </div>
                                 <button
@@ -305,6 +363,25 @@ export default function BrowsePage() {
                                 </div>
                             )}
 
+                            {/* Search Input with Autocomplete */}
+                            <div className="mb-4">
+                                <input
+                                    ref={searchInputRef}
+                                    type="text"
+                                    placeholder="Search for a location..."
+                                    className="w-full px-4 py-3 border border-border focus:outline-none focus:border-foreground/20 transition-colors bg-background text-sm"
+                                />
+                            </div>
+
+                            <div className="relative mb-6">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-border"></div>
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase tracking-[0.2em]">
+                                    <span className="bg-background px-2 text-muted-foreground">Or</span>
+                                </div>
+                            </div>
+
                             <button
                                 onClick={handleRefreshLocation}
                                 disabled={locationLoading}
@@ -317,7 +394,7 @@ export default function BrowsePage() {
                             </button>
 
                             <p className="text-xs text-muted-foreground text-center mt-6 font-light">
-                                We only use your location to show nearby restaurants. Your privacy is important to us.
+                                We only use your location to show nearby restaurants within 7km
                             </p>
                         </motion.div>
                     </motion.div>
