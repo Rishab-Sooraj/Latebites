@@ -8,7 +8,6 @@ import { getCurrentLocation, calculateDistance, formatDistance, type Coordinates
 import { MapPin, Search, Clock, X, Navigation } from "lucide-react";
 import Link from "next/link";
 import type { Database } from "@/types/database";
-import { Loader } from "@googlemaps/js-api-loader";
 
 type Restaurant = Database['public']['Tables']['restaurants']['Row'] & {
     distance?: number;
@@ -49,14 +48,23 @@ export default function BrowsePage() {
     // Initialize Google Maps Autocomplete
     useEffect(() => {
         if (showLocationModal && searchInputRef.current && !autocompleteRef.current) {
-            const loader = new Loader({
-                apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-                version: "weekly",
-                libraries: ["places"],
-            });
+            // Load Google Maps script
+            const loadGoogleMaps = () => {
+                if (window.google && window.google.maps) {
+                    initAutocomplete();
+                    return;
+                }
 
-            loader.load().then(() => {
-                if (searchInputRef.current) {
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+                script.async = true;
+                script.defer = true;
+                script.onload = () => initAutocomplete();
+                document.head.appendChild(script);
+            };
+
+            const initAutocomplete = () => {
+                if (searchInputRef.current && window.google) {
                     autocompleteRef.current = new google.maps.places.Autocomplete(
                         searchInputRef.current,
                         {
@@ -79,7 +87,9 @@ export default function BrowsePage() {
                         }
                     });
                 }
-            });
+            };
+
+            loadGoogleMaps();
         }
     }, [showLocationModal]);
 
