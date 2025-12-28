@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { X, Mail, Lock, User, Phone, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-type AuthStep = "email" | "login" | "signup";
+type AuthStep = "role" | "email" | "login" | "signup";
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -17,7 +17,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const router = useRouter();
     const supabase = createClient();
 
-    const [step, setStep] = useState<AuthStep>("email");
+    const [step, setStep] = useState<AuthStep>("role");
+    const [role, setRole] = useState<"customer" | "restaurant">("customer");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
@@ -28,7 +29,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     // Reset state when modal closes
     useEffect(() => {
         if (!isOpen) {
-            setStep("email");
+            setStep("role");
+            setRole("customer");
             setEmail("");
             setPassword("");
             setName("");
@@ -71,10 +73,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setError("");
 
         try {
-            const { error: authError } = await supabase.auth.signInWithPassword({
+            console.log("Attempting login for:", email);
+
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
+
+            console.log("Auth response:", { authData, authError });
 
             if (authError) {
                 if (authError.message.includes("Invalid login credentials")) {
@@ -83,9 +89,31 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 throw authError;
             }
 
+            if (!authData.user) {
+                throw new Error("No user returned from login");
+            }
+
+            console.log("User authenticated:", authData.user.id);
+
+            // Check if customer profile exists
+            const { data: profileData, error: profileError } = await supabase
+                .from("customers")
+                .select("id")
+                .eq("id", authData.user.id)
+                .maybeSingle();
+
+            console.log("Profile check:", { profileData, profileError });
+
+            if (profileError || !profileData) {
+                await supabase.auth.signOut();
+                throw new Error("No customer profile found. Please contact support or sign up again.");
+            }
+
+            console.log("Login successful, redirecting to /browse");
             onClose();
             router.push("/browse");
         } catch (err: any) {
+            console.error("Login error:", err);
             setError(err.message || "Failed to sign in");
         } finally {
             setLoading(false);
@@ -191,11 +219,45 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                     Latebites
                                 </h1>
                                 <p className="text-sm text-gray-600 mt-2">
-                                    {step === "email" && "Welcome! Enter your email to continue"}
+                                    {step === "role" && "Welcome! Choose your account type"}
+                                    {step === "email" && "Enter your email to continue"}
                                     {step === "login" && "Welcome back!"}
                                     {step === "signup" && "Create your account"}
                                 </p>
                             </div>
+
+                            {/* Role Selection Step */}
+                            {step === "role" && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setRole("customer");
+                                                setStep("email");
+                                            }}
+                                            className="p-6 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group"
+                                        >
+                                            <div className="text-4xl mb-2">🍽️</div>
+                                            <div className="font-semibold text-gray-900 group-hover:text-orange-600">Customer</div>
+                                            <div className="text-xs text-gray-500 mt-1">Rescue surplus food</div>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setRole("restaurant");
+                                                setStep("email");
+                                            }}
+                                            className="p-6 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group"
+                                        >
+                                            <div className="text-4xl mb-2">🏪</div>
+                                            <div className="font-semibold text-gray-900 group-hover:text-orange-600">Restaurant</div>
+                                            <div className="text-xs text-gray-500 mt-1">List surplus food</div>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Email Step */}
                             {step === "email" && (
