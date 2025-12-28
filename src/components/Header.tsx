@@ -1,15 +1,33 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { User, LogOut, ShoppingBag, LayoutDashboard, UserCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthModal from "./AuthModal";
 
 export function Header() {
   const { user, customer, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isAtTop, setIsAtTop] = useState(true);
+
+  const { scrollY } = useScroll();
+
+  // Transform scroll position to opacity and translateY
+  const opacity = useTransform(scrollY, [0, 200], [1, 0]);
+  const translateY = useTransform(scrollY, [0, 200], [0, -20]);
+  const scale = useTransform(scrollY, [0, 200], [1, 0.9]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Consider "at top" if within first 100px
+      setIsAtTop(window.scrollY < 100);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <>
@@ -54,13 +72,23 @@ export function Header() {
               </button>
             </div>
           ) : (
-            <button
+            <motion.button
               onClick={() => setShowAuthModal(true)}
+              style={{
+                opacity,
+                y: translateY,
+                scale
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 30
+              }}
               className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-600 to-amber-600 text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-lg"
               aria-label="Sign in or sign up"
             >
               <UserCircle className="w-6 h-6" />
-            </button>
+            </motion.button>
           )}
         </div>
       </motion.header>
