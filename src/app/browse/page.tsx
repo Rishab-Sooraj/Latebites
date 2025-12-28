@@ -69,6 +69,11 @@ export default function BrowsePage() {
                     }),
                 }));
 
+                // Filter to only show restaurants within 7km radius
+                restaurantsWithDistance = restaurantsWithDistance.filter(
+                    (r) => r.distance !== undefined && r.distance <= 7
+                );
+
                 // Sort by distance
                 restaurantsWithDistance.sort((a, b) => (a.distance || 0) - (b.distance || 0));
             }
@@ -183,8 +188,8 @@ export default function BrowsePage() {
                             <button
                                 onClick={() => setSelectedCategory(null)}
                                 className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!selectedCategory
-                                        ? "bg-primary text-primary-foreground shadow-lg"
-                                        : "bg-white/60 hover:bg-white/80"
+                                    ? "bg-primary text-primary-foreground shadow-lg"
+                                    : "bg-white/60 hover:bg-white/80"
                                     }`}
                             >
                                 All
@@ -194,8 +199,8 @@ export default function BrowsePage() {
                                     key={cuisine}
                                     onClick={() => setSelectedCategory(cuisine)}
                                     className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cuisine
-                                            ? "bg-primary text-primary-foreground shadow-lg"
-                                            : "bg-white/60 hover:bg-white/80"
+                                        ? "bg-primary text-primary-foreground shadow-lg"
+                                        : "bg-white/60 hover:bg-white/80"
                                         }`}
                                 >
                                     {cuisine}
