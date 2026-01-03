@@ -5,9 +5,8 @@ import { motion } from "framer-motion";
 import { Instagram, Mail, Youtube } from "lucide-react";
 import { Section } from "@/components/cinematic/Section";
 import { RevealText } from "@/components/cinematic/RevealText";
-import { ParallaxImage } from "@/components/cinematic/ParallaxImage";
-import { use3DTilt } from "@/hooks/use3DTilt";
-import { ScrollFloatingElements } from "@/components/ScrollParallax";
+import { ScrollProgressIndicator } from "@/components/ScrollProgressIndicator";
+import { ScrollRevealImage } from "@/components/ScrollRevealImage";
 import Link from "next/link";
 
 import { Header } from "@/components/Header";
@@ -132,8 +131,9 @@ export default function HomePage() {
   return (
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
       <Header />
+      <ScrollProgressIndicator />
       {/* 1. HERO SECTION */}
-      <Section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <Section id="hero" className="relative h-screen flex items-center justify-center overflow-hidden">
         {/* Full-bleed Background with Ken Burns */}
         <motion.div
           className="absolute inset-0 z-0 ken-burns"
@@ -250,7 +250,7 @@ export default function HomePage() {
       </Section>
 
       {/* 2. THE PROBLEM */}
-      <Section className="bg-secondary/20">
+      <Section id="problem" className="bg-secondary/20">
         <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center px-4 sm:px-6">
           <div className="space-y-8 md:space-y-12">
             <RevealText
@@ -267,17 +267,17 @@ export default function HomePage() {
               className="text-lg font-medium text-foreground border-l-2 border-primary pl-6 py-2"
             />
           </div>
-          <ParallaxImage
+          <ScrollRevealImage
             src="/images/indian-thali.png"
             alt="Traditional Indian Thali"
             aspectRatio="portrait"
-            className="rounded-sm grayscale-reveal lift-shadow"
+            className="rounded-sm"
           />
         </div>
       </Section>
 
       {/* 3. OUR BELIEF */}
-      <Section>
+      <Section id="belief">
         <div className="max-w-4xl mx-auto text-center space-y-16">
           <RevealText
             text="Rescue carries dignity. Discounts carry desperation."
@@ -316,13 +316,13 @@ export default function HomePage() {
       </Section>
 
       {/* 4. WHAT WE DO */}
-      <Section className="bg-primary text-primary-foreground overflow-hidden">
+      <Section id="what-we-do" className="bg-primary text-primary-foreground overflow-hidden">
         <div className="grid md:grid-cols-2 gap-24 items-center">
-          <ParallaxImage
+          <ScrollRevealImage
             src="/images/paneer-curry.png"
             alt="Paneer Butter Masala"
             aspectRatio="portrait"
-            className="rounded-sm opacity-90 lift-shadow"
+            className="rounded-sm"
           />
           <div className="space-y-12">
             <RevealText
@@ -351,7 +351,7 @@ export default function HomePage() {
       </Section>
 
       {/* 5. OUR IMPACT */}
-      <Section>
+      <Section id="impact">
         <div className="grid md:grid-cols-2 gap-16 items-start">
           <div className="space-y-12 md:sticky md:top-24">
             <RevealText
@@ -377,7 +377,7 @@ export default function HomePage() {
               }
             ].map((item, i) => (
               <div key={i} className="space-y-8">
-                <ParallaxImage src={item.img} alt={item.label} aspectRatio="square" className="rounded-sm" />
+                <ScrollRevealImage src={item.img} alt={item.label} aspectRatio="square" className="rounded-sm" />
                 <div className="space-y-4">
                   <span className="text-xs uppercase tracking-widest text-primary font-bold">{item.label}</span>
                   <p className="text-2xl font-serif font-light">{item.text}</p>
@@ -389,7 +389,7 @@ export default function HomePage() {
       </Section>
 
       {/* 6. OUR VISION */}
-      <Section className="bg-secondary/10">
+      <Section id="vision" className="bg-secondary/10">
         <div className="max-w-3xl space-y-12">
           <RevealText
             text="Cities that breathe together."
@@ -506,11 +506,11 @@ export default function HomePage() {
                 </ul>
               </div>
             </div>
-            <ParallaxImage
+            <ScrollRevealImage
               src="/images/south-indian-dosa.png"
               alt="South Indian Dosa"
               aspectRatio="portrait"
-              className="rounded-sm grayscale-reveal lift-shadow"
+              className="rounded-sm"
             />
           </div>
         </div>
