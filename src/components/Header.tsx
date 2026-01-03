@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import AuthModal from "./AuthModal";
 
 // Sections with dark backgrounds where we need WHITE text
-const darkSections = ["hero", "what-we-do"];
+const darkSections = ["hero", "what-we-do", "vetting", "closing"];
 
 export function Header() {
   const { user, customer, signOut } = useAuth();
@@ -26,7 +26,19 @@ export function Header() {
   const scale = useTransform(scrollY, [0, 200], [1, 0.9]);
 
   useEffect(() => {
-    const sections = ["hero", "problem", "belief", "what-we-do", "impact", "vision", "onboard"];
+    // ALL sections must be listed here for color detection to work
+    const sections = [
+      "hero",
+      "problem",
+      "belief",
+      "what-we-do",
+      "impact",
+      "vision",
+      "how-we-work",
+      "vetting",
+      "onboard",
+      "closing"
+    ];
 
     const handleScroll = () => {
       // Consider "at top" if within first 100px
