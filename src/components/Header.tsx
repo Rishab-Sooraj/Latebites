@@ -7,11 +7,15 @@ import { User, LogOut, ShoppingBag, LayoutDashboard, UserCircle } from "lucide-r
 import { useState, useEffect, useRef } from "react";
 import AuthModal from "./AuthModal";
 
+// Sections with dark backgrounds where we need WHITE text
+const darkSections = ["hero", "what-we-do"];
+
 export function Header() {
   const { user, customer, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
+  const [useDarkText, setUseDarkText] = useState(false); // false = white, true = black
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { scrollY } = useScroll();
@@ -22,12 +26,27 @@ export function Header() {
   const scale = useTransform(scrollY, [0, 200], [1, 0.9]);
 
   useEffect(() => {
+    const sections = ["hero", "problem", "belief", "what-we-do", "impact", "vision", "onboard"];
+
     const handleScroll = () => {
       // Consider "at top" if within first 100px
       setIsAtTop(window.scrollY < 100);
+
+      // Detect which section we're in for color
+      sections.forEach((sectionId) => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          const { top, bottom } = element.getBoundingClientRect();
+          // Check if header (top of viewport) is within this section
+          if (top <= 50 && bottom > 50) {
+            setUseDarkText(!darkSections.includes(sectionId));
+          }
+        }
+      });
     };
 
     window.addEventListener("scroll", handleScroll);
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -43,6 +62,8 @@ export function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const textColor = useDarkText ? "text-black" : "text-white";
+
   return (
     <>
       <motion.header
@@ -51,7 +72,10 @@ export function Header() {
         transition={{ delay: 0.5, duration: 1 }}
         className="fixed top-0 left-0 w-full z-50 px-4 py-4 sm:px-6 sm:py-6 md:px-12 md:py-12 flex justify-between items-center pointer-events-none"
       >
-        <Link href="/" className="font-serif italic text-lg sm:text-xl md:text-2xl tracking-tighter pointer-events-auto cursor-pointer hover:opacity-80 transition-opacity">
+        <Link
+          href="/"
+          className={`font-serif italic text-lg sm:text-xl md:text-2xl tracking-tighter pointer-events-auto cursor-pointer hover:opacity-80 transition-all duration-300 ${textColor}`}
+        >
           Latebites
         </Link>
 
