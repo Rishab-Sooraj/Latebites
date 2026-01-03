@@ -1,3 +1,13 @@
-// Placeholder file for OpenNext compatibility
-// This file exists because OpenNext expects a pages directory
-export default {};
+import { Html, Head, Main, NextScript } from 'next/document'
+
+export default function Document() {
+    return (
+        <Html lang="en">
+            <Head />
+            <body>
+                <Main />
+                <NextScript />
+            </body>
+        </Html>
+    )
+}
