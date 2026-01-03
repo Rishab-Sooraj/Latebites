@@ -12,6 +12,7 @@ import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import "./3d-effects.css";
+import "./premium-animations.css";
 
 export default function HomePage() {
   // Form state management
@@ -133,92 +134,117 @@ export default function HomePage() {
       <Header />
       {/* 1. HERO SECTION */}
       <Section className="relative h-screen flex items-center justify-center overflow-hidden">
-        {/* Full-bleed Background Image with Ken Burns effect */}
+        {/* Full-bleed Background with Ken Burns */}
         <motion.div
-          className="absolute inset-0 z-0"
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 20, ease: "linear" }}
+          className="absolute inset-0 z-0 ken-burns"
+          initial={{ scale: 1.2, filter: "blur(20px)" }}
+          animate={{ scale: 1.1, filter: "blur(0px)" }}
+          transition={{ duration: 2.5, ease: [0.22, 1, 0.36, 1] }}
         >
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
               backgroundImage: "url('/images/hero-indian-food.png')",
-              filter: "brightness(0.7)"
             }}
           />
         </motion.div>
 
-        {/* Dark Overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30 z-[1]" />
+        {/* Premium Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/20 z-[1]" />
+
+        {/* Noise Texture */}
+        <div className="absolute inset-0 z-[2] noise-overlay pointer-events-none" />
+
+        {/* Blur Vignette */}
+        <div className="absolute inset-0 z-[2] blur-vignette pointer-events-none" />
 
         {/* Content */}
-        <div className="text-center space-y-6 sm:space-y-8 max-w-5xl px-4 sm:px-6 relative z-10">
+        <div className="text-center space-y-8 max-w-5xl px-4 sm:px-6 relative z-10">
+          {/* Brand Tag */}
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.5, delay: 0.3 }}
-            className="text-xs uppercase tracking-[0.5em] text-white/80 font-medium"
+            initial={{ opacity: 0, y: -30, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 1, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-center justify-center gap-3"
           >
-            • Latebites •
+            <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-white/50" />
+            <span className="text-xs uppercase tracking-[0.5em] text-white/80 font-light">Latebites</span>
+            <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-white/50" />
           </motion.div>
 
+          {/* Main Headline */}
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.2, delay: 0.5 }}
-            className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-serif font-light leading-[1.1] tracking-tight text-white"
-            style={{ textShadow: "0 4px 30px rgba(0,0,0,0.5)" }}
+            initial={{ opacity: 0, y: 50, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 1.2, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl font-serif font-light leading-[0.95] tracking-[-0.02em] text-white"
+            style={{ textShadow: "0 8px 60px rgba(0,0,0,0.8)" }}
           >
             Rescue Food.
             <br />
-            <span className="italic">Save the Planet.</span>
+            <motion.span
+              className="italic text-white/90"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 1.5 }}
+            >
+              Save the Planet.
+            </motion.span>
           </motion.h1>
 
+          {/* Subheadline */}
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 1 }}
-            className="text-lg sm:text-xl md:text-2xl text-white/70 font-light tracking-wide max-w-2xl mx-auto px-4"
+            transition={{ delay: 1.8, duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            className="text-lg sm:text-xl md:text-2xl text-white/60 font-light tracking-wide max-w-2xl mx-auto"
           >
-            Get delicious surplus meals at 50% off from your favorite local restaurants.
+            Get delicious surplus meals at <span className="text-white font-medium">50% off</span> from your favorite local restaurants.
           </motion.p>
 
+          {/* CTA Buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.4, duration: 1 }}
-            className="pt-6 flex flex-col sm:flex-row gap-4 justify-center items-center"
+            transition={{ delay: 2.2, duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            className="pt-4 flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
             <Link
               href="/browse"
-              className="inline-block px-10 py-4 bg-white text-black text-sm uppercase tracking-[0.3em] hover:bg-white/90 transition-all duration-300 rounded-sm font-medium"
+              className="btn-premium group relative inline-flex items-center gap-2 px-10 py-5 bg-white text-black text-xs uppercase tracking-[0.3em] rounded-sm font-medium overflow-hidden"
             >
-              Find Rescue Bags
+              <span className="relative z-10">Find Rescue Bags</span>
+              <motion.span
+                className="relative z-10"
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                →
+              </motion.span>
             </Link>
             <Link
               href="#onboard"
-              className="inline-block px-10 py-4 border-2 border-white/50 text-white text-sm uppercase tracking-[0.3em] hover:bg-white/10 hover:border-white transition-all duration-300 rounded-sm font-medium"
+              className="group relative inline-flex items-center gap-2 px-10 py-5 border border-white/30 text-white text-xs uppercase tracking-[0.3em] rounded-sm font-light hover:bg-white/5 hover:border-white/60 transition-all duration-500"
             >
               Partner With Us
             </Link>
           </motion.div>
         </div>
 
-        {/* Scroll indicator */}
+        {/* Scroll Indicator - Premium */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2, duration: 1 }}
-          className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 3, duration: 1.5 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10"
         >
           <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="flex flex-col items-center gap-2"
+            animate={{ y: [0, 12, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-center gap-3"
           >
-            <span className="text-white/50 text-[10px] uppercase tracking-[0.3em]">Scroll</span>
-            <div className="w-[1px] h-8 bg-gradient-to-b from-white/50 to-transparent" />
+            <span className="text-white/40 text-[9px] uppercase tracking-[0.4em] font-light">Explore</span>
+            <div className="w-[1px] h-12 bg-gradient-to-b from-white/40 via-white/20 to-transparent" />
           </motion.div>
         </motion.div>
       </Section>
@@ -245,7 +271,7 @@ export default function HomePage() {
             src="/images/indian-thali.png"
             alt="Traditional Indian Thali"
             aspectRatio="portrait"
-            className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
+            className="rounded-sm grayscale-reveal lift-shadow"
           />
         </div>
       </Section>
@@ -293,10 +319,10 @@ export default function HomePage() {
       <Section className="bg-primary text-primary-foreground overflow-hidden">
         <div className="grid md:grid-cols-2 gap-24 items-center">
           <ParallaxImage
-            src="/images/south-indian-dosa.png"
-            alt="South Indian Dosa"
+            src="/images/paneer-curry.png"
+            alt="Paneer Butter Masala"
             aspectRatio="portrait"
-            className="rounded-sm opacity-80"
+            className="rounded-sm opacity-90 lift-shadow"
           />
           <div className="space-y-12">
             <RevealText
@@ -342,12 +368,12 @@ export default function HomePage() {
               {
                 label: "Environmental",
                 text: "Reducing the methane footprint of our cities, one night at a time.",
-                img: "/images/indian-thali.png"
+                img: "/images/street-chaat.png"
               },
               {
                 label: "Cultural",
                 text: "Rekindling the Indian value of 'Prasad'—that food is sacred and never to be wasted.",
-                img: "/images/south-indian-dosa.png"
+                img: "/images/biryani-closeup.png"
               }
             ].map((item, i) => (
               <div key={i} className="space-y-8">
@@ -481,10 +507,10 @@ export default function HomePage() {
               </div>
             </div>
             <ParallaxImage
-              src="/images/hero-indian-food.png"
-              alt="Indian Biryani and Street Food"
+              src="/images/south-indian-dosa.png"
+              alt="South Indian Dosa"
               aspectRatio="portrait"
-              className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
+              className="rounded-sm grayscale-reveal lift-shadow"
             />
           </div>
         </div>
