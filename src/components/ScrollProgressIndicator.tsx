@@ -9,6 +9,7 @@ interface Section {
     number: string;
 }
 
+// ALL sections in order
 const sections: Section[] = [
     { id: "hero", label: "Welcome", number: "01" },
     { id: "problem", label: "The Problem", number: "02" },
@@ -16,11 +17,14 @@ const sections: Section[] = [
     { id: "what-we-do", label: "What We Do", number: "04" },
     { id: "impact", label: "Our Impact", number: "05" },
     { id: "vision", label: "The Vision", number: "06" },
-    { id: "onboard", label: "Join Us", number: "07" },
+    { id: "how-we-work", label: "How We Work", number: "07" },
+    { id: "vetting", label: "Vetting", number: "08" },
+    { id: "onboard", label: "Join Us", number: "09" },
+    { id: "closing", label: "Closing", number: "10" },
 ];
 
-// Sections with dark backgrounds where we need WHITE text
-const darkSections = ["hero", "what-we-do"];
+// Sections with DARK backgrounds where we need WHITE text
+const darkSections = ["hero", "what-we-do", "vetting", "closing"];
 
 export function ScrollProgressIndicator() {
     const [activeSection, setActiveSection] = useState(0);
@@ -85,7 +89,7 @@ export function ScrollProgressIndicator() {
                     </div>
 
                     {/* Section Numbers */}
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                         {sections.map((section, index) => (
                             <motion.button
                                 key={section.id}
@@ -100,7 +104,7 @@ export function ScrollProgressIndicator() {
                                 transition={{ duration: 0.2 }}
                             >
                                 <span
-                                    className="text-[11px] font-medium tracking-widest transition-colors duration-300"
+                                    className="text-[10px] font-medium tracking-widest transition-colors duration-300"
                                     style={{
                                         color: activeSection === index ? primaryColor : mutedColor
                                     }}
@@ -113,7 +117,7 @@ export function ScrollProgressIndicator() {
                                     style={{ backgroundColor: primaryColor }}
                                     initial={{ width: 0 }}
                                     animate={{
-                                        width: activeSection === index ? 20 : 0,
+                                        width: activeSection === index ? 16 : 0,
                                         opacity: activeSection === index ? 1 : 0
                                     }}
                                     transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}

@@ -409,7 +409,7 @@ export default function HomePage() {
       </Section>
 
       {/* 7. HOW WE WORK - Part 1: Bag System & Quality */}
-      <Section className="bg-secondary/10">
+      <Section id="how-we-work" className="bg-secondary/10">
         <div className="max-w-6xl mx-auto space-y-24 md:space-y-32">
           {/* Section Header */}
           <div className="max-w-3xl">
@@ -518,6 +518,7 @@ export default function HomePage() {
 
       {/* 7. HOW WE WORK - Part 2: Restaurant Vetting */}
       <Section
+        id="vetting"
         className="overflow-hidden"
         style={{
           background: 'var(--navy)',
@@ -732,7 +733,7 @@ export default function HomePage() {
       </Section>
 
       {/* 9. CLOSING STATEMENT */}
-      <Section className="h-screen flex items-center justify-center bg-black text-white">
+      <Section id="closing" className="h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center space-y-12">
           <RevealText
             text="Latebites."
