@@ -132,68 +132,94 @@ export default function HomePage() {
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
       <Header />
       {/* 1. HERO SECTION */}
-      <Section className="relative h-screen flex items-center justify-center perspective-deep overflow-hidden bg-gradient-to-br from-cyan-100 via-blue-100 to-teal-100">
-        {/* Scroll-Driven Floating Elements */}
-        <ScrollFloatingElements />
+      <Section className="relative h-screen flex items-center justify-center overflow-hidden">
+        {/* Full-bleed Background Image with Ken Burns effect */}
+        <motion.div
+          className="absolute inset-0 z-0"
+          initial={{ scale: 1.1 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 20, ease: "linear" }}
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: "url('/images/hero-indian-food.png')",
+              filter: "brightness(0.7)"
+            }}
+          />
+        </motion.div>
 
-        <div className="text-center space-y-6 sm:space-y-8 max-w-4xl px-4 sm:px-6 preserve-3d relative z-10">
+        {/* Dark Overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30 z-[1]" />
+
+        {/* Content */}
+        <div className="text-center space-y-6 sm:space-y-8 max-w-5xl px-4 sm:px-6 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.5 }}
-            className="text-xs uppercase tracking-[0.5em] text-primary font-medium"
+            transition={{ duration: 1.5, delay: 0.3 }}
+            className="text-xs uppercase tracking-[0.5em] text-white/80 font-medium"
           >
-            Latebites
+            • Latebites •
           </motion.div>
-          <motion.div
-            animate={{
-              rotateX: [0, 2, 0, -2, 0],
-              rotateY: [0, -3, 0, 3, 0],
-              z: [0, 10, 0, 10, 0]
-            }}
-            transition={{
-              duration: 12,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            style={{ transformStyle: "preserve-3d" }}
+
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, delay: 0.5 }}
+            className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-serif font-light leading-[1.1] tracking-tight text-white"
+            style={{ textShadow: "0 4px 30px rgba(0,0,0,0.5)" }}
           >
-            <RevealText
-              text="Surplus is a gift, not a burden."
-              tag="h1"
-              className="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-serif font-light leading-[1.1] tracking-tight"
-              delay={0.2}
-            />
-          </motion.div>
+            Rescue Food.
+            <br />
+            <span className="italic">Save the Planet.</span>
+          </motion.h1>
+
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 1 }}
-            className="text-base sm:text-lg md:text-xl text-muted-foreground font-light tracking-wide max-w-xl mx-auto px-4"
+            transition={{ delay: 1, duration: 1 }}
+            className="text-lg sm:text-xl md:text-2xl text-white/70 font-light tracking-wide max-w-2xl mx-auto px-4"
           >
-            A manifesto for intentional food rescue.
+            Get delicious surplus meals at 50% off from your favorite local restaurants.
           </motion.p>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2, duration: 1 }}
-            className="pt-8"
+            transition={{ delay: 1.4, duration: 1 }}
+            className="pt-6 flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
             <Link
               href="/browse"
-              className="inline-block px-8 py-4 bg-primary text-primary-foreground text-sm uppercase tracking-[0.3em] hover:opacity-90 transition-opacity rounded-sm"
+              className="inline-block px-10 py-4 bg-white text-black text-sm uppercase tracking-[0.3em] hover:bg-white/90 transition-all duration-300 rounded-sm font-medium"
             >
               Find Rescue Bags
             </Link>
+            <Link
+              href="#onboard"
+              className="inline-block px-10 py-4 border-2 border-white/50 text-white text-sm uppercase tracking-[0.3em] hover:bg-white/10 hover:border-white transition-all duration-300 rounded-sm font-medium"
+            >
+              Partner With Us
+            </Link>
           </motion.div>
         </div>
+
+        {/* Scroll indicator */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5, duration: 2 }}
-          className="absolute bottom-12 left-1/2 -translate-x-1/2 text-muted-foreground/40 text-sm uppercase tracking-[0.2em]"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2, duration: 1 }}
+          className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10"
         >
-          Scroll to breathe
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="flex flex-col items-center gap-2"
+          >
+            <span className="text-white/50 text-[10px] uppercase tracking-[0.3em]">Scroll</span>
+            <div className="w-[1px] h-8 bg-gradient-to-b from-white/50 to-transparent" />
+          </motion.div>
         </motion.div>
       </Section>
 
@@ -216,8 +242,8 @@ export default function HomePage() {
             />
           </div>
           <ParallaxImage
-            src="https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&q=80&w=1074"
-            alt="Restaurant pasta dish"
+            src="/images/indian-thali.png"
+            alt="Traditional Indian Thali"
             aspectRatio="portrait"
             className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
           />
@@ -267,8 +293,8 @@ export default function HomePage() {
       <Section className="bg-primary text-primary-foreground overflow-hidden">
         <div className="grid md:grid-cols-2 gap-24 items-center">
           <ParallaxImage
-            src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=687"
-            alt="Gourmet burger"
+            src="/images/south-indian-dosa.png"
+            alt="South Indian Dosa"
             aspectRatio="portrait"
             className="rounded-sm opacity-80"
           />
@@ -316,12 +342,12 @@ export default function HomePage() {
               {
                 label: "Environmental",
                 text: "Reducing the methane footprint of our cities, one night at a time.",
-                img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=1170"
+                img: "/images/indian-thali.png"
               },
               {
                 label: "Cultural",
                 text: "Rekindling the Indian value of 'Prasad'—that food is sacred and never to be wasted.",
-                img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1170"
+                img: "/images/south-indian-dosa.png"
               }
             ].map((item, i) => (
               <div key={i} className="space-y-8">
@@ -455,8 +481,8 @@ export default function HomePage() {
               </div>
             </div>
             <ParallaxImage
-              src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&q=80&w=1170"
-              alt="Ramen bowl"
+              src="/images/hero-indian-food.png"
+              alt="Indian Biryani and Street Food"
               aspectRatio="portrait"
               className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
             />
