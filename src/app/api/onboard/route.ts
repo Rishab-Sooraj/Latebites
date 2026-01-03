@@ -6,7 +6,15 @@ import { generateVerificationEmail, generateVerificationToken } from '@/lib/emai
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Helper function to get Resend client (lazy initialization)
+function getResendClient() {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+        console.warn('⚠️ RESEND_API_KEY not configured - email sending will be skipped');
+        return null;
+    }
+    return new Resend(apiKey);
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -91,19 +99,26 @@ export async function POST(request: NextRequest) {
 
         // Send verification email
         try {
-            const emailHtml = generateVerificationEmail(restaurant_name, contact_person, verificationUrl);
+            const resend = getResendClient();
 
-            console.log('📧 Attempting to send email to:', email);
-            console.log('🔗 Verification URL:', verificationUrl);
+            if (!resend) {
+                console.warn('⚠️ Skipping email send - Resend not configured');
+                // Continue without sending email - data is still saved
+            } else {
+                const emailHtml = generateVerificationEmail(restaurant_name, contact_person, verificationUrl);
 
-            const emailResult = await resend.emails.send({
-                from: 'Latebites <hello@onboarding.latebites.in>',
-                to: email,
-                subject: 'Verify Your Email - Latebites Restaurant Onboarding',
-                html: emailHtml,
-            });
+                console.log('📧 Attempting to send email to:', email);
+                console.log('🔗 Verification URL:', verificationUrl);
 
-            console.log('✅ Email sent successfully!', emailResult);
+                const emailResult = await resend.emails.send({
+                    from: 'Latebites <hello@onboarding.latebites.in>',
+                    to: email,
+                    subject: 'Verify Your Email - Latebites Restaurant Onboarding',
+                    html: emailHtml,
+                });
+
+                console.log('✅ Email sent successfully!', emailResult);
+            }
         } catch (emailError) {
             console.error('❌ Email sending error:', emailError);
             // Don't fail the request if email fails - data is still saved
