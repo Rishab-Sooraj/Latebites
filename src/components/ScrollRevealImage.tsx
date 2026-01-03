@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useInView, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
 
 interface ScrollRevealImageProps {
@@ -17,25 +17,26 @@ export function ScrollRevealImage({
     alt,
     aspectRatio = "portrait",
     className = "",
-    parallaxIntensity = 0.1,
+    parallaxIntensity = 0.15,
 }: ScrollRevealImageProps) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const isInView = useInView(containerRef, {
-        once: false,
-        margin: "-20% 0px -20% 0px"
-    });
 
     const { scrollYProgress } = useScroll({
         target: containerRef,
-        offset: ["start end", "end start"],
+        offset: ["start end", "center center"],
     });
 
-    // Parallax effect
-    const y = useTransform(scrollYProgress, [0, 1], ["0%", `${parallaxIntensity * 100}%`]);
+    // Grayscale transitions from 100% to 0% as you scroll the image into view
+    const grayscale = useTransform(scrollYProgress, [0, 0.5, 1], [100, 50, 0]);
+    const brightness = useTransform(scrollYProgress, [0, 0.5, 1], [0.6, 0.8, 1]);
+    const scale = useTransform(scrollYProgress, [0, 1], [1.1, 1]);
+    const y = useTransform(scrollYProgress, [0, 1], ["5%", "-5%"]);
 
-    // 3D tilt based on scroll
-    const rotateX = useTransform(scrollYProgress, [0, 0.5, 1], [5, 0, -5]);
-    const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.95, 1, 0.95]);
+    // 3D rotation based on scroll
+    const rotateX = useTransform(scrollYProgress, [0, 0.5, 1], [8, 0, -2]);
+
+    // Overlay opacity fades out as you scroll
+    const overlayOpacity = useTransform(scrollYProgress, [0, 0.6, 1], [0.5, 0.2, 0]);
 
     const aspectClasses = {
         square: "aspect-square",
@@ -53,25 +54,24 @@ export function ScrollRevealImage({
                 transformStyle: "preserve-3d",
             }}
         >
+            {/* Image Container with 3D Transform */}
             <motion.div
-                className="absolute inset-0"
+                className="absolute inset-0 origin-center"
                 style={{
-                    y,
-                    rotateX,
                     scale,
-                    transformOrigin: "center center",
+                    rotateX,
+                    y,
                 }}
             >
-                {/* Grayscale to Color Transition */}
+                {/* The actual image with scroll-linked grayscale */}
                 <motion.div
                     className="relative w-full h-full"
-                    initial={{ filter: "grayscale(100%) brightness(0.8)" }}
-                    animate={{
-                        filter: isInView
-                            ? "grayscale(0%) brightness(1)"
-                            : "grayscale(100%) brightness(0.8)"
+                    style={{
+                        filter: useTransform(
+                            [grayscale, brightness],
+                            ([g, b]) => `grayscale(${g}%) brightness(${b})`
+                        ),
                     }}
-                    transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
                 >
                     <Image
                         src={src}
@@ -82,35 +82,36 @@ export function ScrollRevealImage({
                     />
                 </motion.div>
 
-                {/* Subtle Overlay that fades */}
+                {/* Dark overlay that fades out */}
                 <motion.div
-                    className="absolute inset-0 bg-black/30"
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: isInView ? 0 : 1 }}
-                    transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0 bg-black pointer-events-none"
+                    style={{ opacity: overlayOpacity }}
                 />
 
-                {/* Reveal Line Effect */}
+                {/* Reveal shine effect */}
                 <motion.div
-                    className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent"
-                    initial={{ y: "-100%" }}
-                    animate={{ y: isInView ? "200%" : "-100%" }}
-                    transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        background: "linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%)",
+                        opacity: useTransform(scrollYProgress, [0.3, 0.5, 0.7], [0, 1, 0]),
+                    }}
                 />
             </motion.div>
 
-            {/* Border glow on reveal */}
+            {/* Border glow effect on reveal */}
             <motion.div
-                className="absolute inset-0 pointer-events-none"
-                initial={{
-                    boxShadow: "inset 0 0 0 0 rgba(255,255,255,0)"
+                className="absolute inset-0 pointer-events-none rounded-sm"
+                style={{
+                    boxShadow: useTransform(
+                        scrollYProgress,
+                        [0, 0.5, 1],
+                        [
+                            "inset 0 0 0 0 rgba(255,255,255,0)",
+                            "inset 0 0 40px -20px rgba(255,255,255,0.3)",
+                            "inset 0 0 0 0 rgba(255,255,255,0)"
+                        ]
+                    ),
                 }}
-                animate={{
-                    boxShadow: isInView
-                        ? "inset 0 0 60px -30px rgba(255,255,255,0.3)"
-                        : "inset 0 0 0 0 rgba(255,255,255,0)"
-                }}
-                transition={{ duration: 1, delay: 0.5 }}
             />
         </motion.div>
     );
