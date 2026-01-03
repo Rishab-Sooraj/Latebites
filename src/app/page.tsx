@@ -5,9 +5,8 @@ import { motion } from "framer-motion";
 import { Instagram, Mail, Youtube } from "lucide-react";
 import { Section } from "@/components/cinematic/Section";
 import { RevealText } from "@/components/cinematic/RevealText";
-import { ParallaxImage } from "@/components/cinematic/ParallaxImage";
-import { use3DTilt } from "@/hooks/use3DTilt";
-import { ScrollFloatingElements } from "@/components/ScrollParallax";
+import { ScrollProgressIndicator } from "@/components/ScrollProgressIndicator";
+import { ScrollRevealImage } from "@/components/ScrollRevealImage";
 import Link from "next/link";
 
 import { Header } from "@/components/Header";
@@ -132,8 +131,9 @@ export default function HomePage() {
   return (
     <main className="bg-background selection:bg-primary selection:text-primary-foreground">
       <Header />
+      <ScrollProgressIndicator />
       {/* 1. HERO SECTION */}
-      <Section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <Section id="hero" className="relative h-screen flex items-center justify-center overflow-hidden">
         {/* Full-bleed Background with Ken Burns */}
         <motion.div
           className="absolute inset-0 z-0 ken-burns"
@@ -250,7 +250,7 @@ export default function HomePage() {
       </Section>
 
       {/* 2. THE PROBLEM */}
-      <Section className="bg-secondary/20">
+      <Section id="problem" className="bg-secondary/20">
         <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center px-4 sm:px-6">
           <div className="space-y-8 md:space-y-12">
             <RevealText
@@ -302,130 +302,24 @@ export default function HomePage() {
               className="rounded-sm grayscale hover:grayscale-0 transition-all duration-1000"
             />
           </div>
-          <ParallaxImage
+          <ScrollRevealImage
             src="/images/indian-thali.png"
             alt="Traditional Indian Thali"
             aspectRatio="portrait"
-            className="rounded-sm grayscale-reveal lift-shadow"
+            className="rounded-sm"
           />
         </div>
       </Section>
 
-        {/* 3. OUR BELIEF */}
-        <Section>
-          <div className="max-w-4xl mx-auto text-center space-y-16">
-            <RevealText
-              text="Rescue carries dignity. Discounts carry desperation."
-              tag="h2"
-              className="text-4xl md:text-7xl font-serif leading-tight"
-            />
-            <div className="grid md:grid-cols-3 gap-12 pt-12">
-              {[
-                {
-                  title: "Dignity",
-                  desc: "We respect the craft of every kitchen. Surplus is proof of hard work, not a mistake to be hidden.",
-                },
-                {
-                  title: "Transparency",
-                  desc: "Honesty over hype. We share what is left, exactly as it is, with those who intend to rescue it.",
-                },
-                {
-                  title: "Intention",
-                  desc: "Impact should feel calm. We don't rush the process; we enable a meaningful handover.",
-                },
-              ].map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 * i, duration: 1 }}
-                  viewport={{ once: true }}
-                  className="space-y-4"
-                >
-                  <h3 className="text-xl font-serif italic text-primary">{item.title}</h3>
-                  <p className="text-muted-foreground font-light leading-relaxed">{item.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </Section>
-
-        {/* 4. WHAT WE DO */}
-        <Section className="bg-primary text-primary-foreground overflow-hidden">
-          <div className="grid md:grid-cols-2 gap-24 items-center">
-            <ParallaxImage
-              src="https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=687"
-              alt="Handing over food"
-              aspectRatio="portrait"
-              className="rounded-sm opacity-80"
-            />
-            <div className="space-y-12">
-              <RevealText
-                text="End-of-day intentionality."
-                tag="h2"
-                className="text-4xl md:text-6xl font-serif"
-              />
-              <div className="space-y-8 text-xl font-light text-primary-foreground/80">
-                <RevealText text="We identify surplus as the kitchen closes." />
-                <RevealText text="We enable local pickup for those who care." />
-                <RevealText text="We ensure nothing goes into the dark." />
-              </div>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 1.5 }}
-                viewport={{ once: true }}
-                className="pt-8 border-t border-primary-foreground/20"
-              >
-                <p className="text-sm uppercase tracking-[0.3em] font-light">
-                  Pickup only. Limited quantity. Zero waste.
-                </p>
-              </motion.div>
-            </div>
-          </div>
-        </Section>
-
-        {/* 5. OUR IMPACT */}
-        <Section>
-          <div className="grid md:grid-cols-2 gap-16 items-start">
-            <div className="space-y-12 sticky top-24">
-              <RevealText
-                text="A shift in breathing."
-                tag="h2"
-                className="text-4xl md:text-6xl font-serif italic"
-              />
-              <p className="text-xl font-light leading-relaxed text-muted-foreground">
-                When we rescue food, we don't just save calories. We save the water, the soil, the labor, and the spirit that went into its creation.
-              </p>
-            </div>
-            <div className="space-y-24">
-              {[
-                {
-                  label: "Environmental",
-                  text: "Reducing the methane footprint of our cities, one night at a time.",
-                  img: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&q=80&w=1170"
-                },
-                {
-                  label: "Cultural",
-                  text: "Rekindling the Indian value of 'Prasad'—that food is sacred and never to be wasted.",
-                  img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1170"
-                }
-              ].map((item, i) => (
-                <div key={i} className="space-y-8">
-                  <ParallaxImage src={item.img} alt={item.label} aspectRatio="square" className="rounded-sm" />
-                  <div className="space-y-4">
-                    <span className="text-xs uppercase tracking-widest text-primary font-bold">{item.label}</span>
-                    <p className="text-2xl font-serif font-light">{item.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Section>
-
-        {/* 6. IMPACT STATS */}
-        <Section className="bg-primary text-primary-foreground min-h-[auto] py-32">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+      {/* 3. OUR BELIEF */}
+      <Section id="belief">
+        <div className="max-w-4xl mx-auto text-center space-y-16">
+          <RevealText
+            text="Rescue carries dignity. Discounts carry desperation."
+            tag="h2"
+            className="text-4xl md:text-7xl font-serif leading-tight"
+          />
+          <div className="grid md:grid-cols-3 gap-12 pt-12">
             {[
               { label: "Meals Rescued", value: "12,400+" },
               { label: "Partner Kitchens", value: "48" },
@@ -448,13 +342,13 @@ export default function HomePage() {
         </Section>
 
       {/* 4. WHAT WE DO */}
-      <Section className="bg-primary text-primary-foreground overflow-hidden">
+      <Section id="what-we-do" className="bg-primary text-primary-foreground overflow-hidden">
         <div className="grid md:grid-cols-2 gap-24 items-center">
-          <ParallaxImage
+          <ScrollRevealImage
             src="/images/paneer-curry.png"
             alt="Paneer Butter Masala"
             aspectRatio="portrait"
-            className="rounded-sm opacity-90 lift-shadow"
+            className="rounded-sm"
           />
           <div className="space-y-12">
             <RevealText
@@ -718,7 +612,7 @@ export default function HomePage() {
         </Section>
 
       {/* 5. OUR IMPACT */}
-      <Section>
+      <Section id="impact">
         <div className="grid md:grid-cols-2 gap-16 items-start">
           <div className="space-y-12 md:sticky md:top-24">
             <RevealText
@@ -743,7 +637,7 @@ export default function HomePage() {
               }
             ].map((item, i) => (
               <div key={i} className="space-y-8">
-                <ParallaxImage src={item.img} alt={item.label} aspectRatio="square" className="rounded-sm" />
+                <ScrollRevealImage src={item.img} alt={item.label} aspectRatio="square" className="rounded-sm" />
                 <div className="space-y-4">
                   <span className="text-xs uppercase tracking-widest text-primary font-bold">{item.label}</span>
                   <p className="text-2xl font-serif font-light">{item.text}</p>
@@ -755,7 +649,7 @@ export default function HomePage() {
       </Section>
 
       {/* 6. OUR VISION */}
-      <Section className="bg-secondary/10">
+      <Section id="vision" className="bg-secondary/10">
         <div className="max-w-3xl space-y-12">
           <RevealText
             text="Cities that breathe together."
@@ -872,11 +766,11 @@ export default function HomePage() {
                 </ul>
               </div>
             </div>
-            <ParallaxImage
+            <ScrollRevealImage
               src="/images/south-indian-dosa.png"
               alt="South Indian Dosa"
               aspectRatio="portrait"
-              className="rounded-sm grayscale-reveal lift-shadow"
+              className="rounded-sm"
             />
           </div>
         </div>
