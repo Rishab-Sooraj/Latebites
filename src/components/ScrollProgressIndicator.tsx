@@ -49,6 +49,10 @@ export function ScrollProgressIndicator() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
+    // Shadow for visibility on any background
+    const textShadow = "0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5), 0 0 2px rgba(255,255,255,0.3)";
+    const lineShadow = "0 0 8px rgba(0,0,0,0.8), 0 0 15px rgba(0,0,0,0.5)";
+
     return (
         <AnimatePresence>
             {isVisible && (
@@ -58,13 +62,18 @@ export function ScrollProgressIndicator() {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                     className="fixed left-6 md:left-10 top-1/2 -translate-y-1/2 z-50 hidden md:flex flex-col items-center gap-6"
-                    style={{ mixBlendMode: 'difference' }}
                 >
                     {/* Progress Line Background */}
-                    <div className="relative h-48 w-[1px] bg-white/20">
+                    <div
+                        className="relative h-48 w-[2px] bg-white/30 rounded-full"
+                        style={{ boxShadow: lineShadow }}
+                    >
                         <motion.div
-                            className="absolute top-0 left-0 w-full bg-white"
-                            style={{ height: lineHeight }}
+                            className="absolute top-0 left-0 w-full bg-white rounded-full"
+                            style={{
+                                height: lineHeight,
+                                boxShadow: "0 0 10px rgba(255,255,255,0.5)"
+                            }}
                         />
                     </div>
 
@@ -84,14 +93,16 @@ export function ScrollProgressIndicator() {
                                 transition={{ duration: 0.2 }}
                             >
                                 <span
-                                    className={`text-[10px] font-light tracking-widest transition-opacity duration-200 ${activeSection === index ? 'text-white' : 'text-white/40'
+                                    className={`text-[11px] font-medium tracking-widest transition-all duration-200 ${activeSection === index ? 'text-white' : 'text-white/50'
                                         }`}
+                                    style={{ textShadow }}
                                 >
                                     {section.number}
                                 </span>
 
                                 <motion.div
-                                    className="h-[1px] bg-white origin-left"
+                                    className="h-[2px] bg-white origin-left rounded-full"
+                                    style={{ boxShadow: "0 0 8px rgba(255,255,255,0.5)" }}
                                     initial={{ width: 0 }}
                                     animate={{
                                         width: activeSection === index ? 20 : 0,
@@ -101,7 +112,8 @@ export function ScrollProgressIndicator() {
                                 />
 
                                 <span
-                                    className="absolute left-full ml-4 text-[9px] uppercase tracking-[0.2em] text-white/60 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300"
+                                    className="absolute left-full ml-4 text-[9px] uppercase tracking-[0.2em] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 font-medium"
+                                    style={{ textShadow }}
                                 >
                                     {section.label}
                                 </span>
