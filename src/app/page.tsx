@@ -134,12 +134,15 @@ export default function HomePage() {
       <ScrollProgressIndicator />
       {/* 1. HERO SECTION */}
       <Section id="hero" className="relative h-screen flex items-center justify-center overflow-hidden">
-        {/* Full-bleed Background with Ken Burns */}
+        {/* Full-bleed Background with Cinematic Zoom-in */}
         <motion.div
-          className="absolute inset-0 z-0 ken-burns"
-          initial={{ scale: 1.2, filter: "blur(20px)" }}
-          animate={{ scale: 1.1, filter: "blur(0px)" }}
-          transition={{ duration: 2.5, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 z-0"
+          initial={{ scale: 1.0, filter: "blur(8px)" }}
+          animate={{ scale: 1.2, filter: "blur(0px)" }}
+          transition={{
+            scale: { duration: 12, ease: "linear" },
+            filter: { duration: 1.5, ease: [0.22, 1, 0.36, 1] }
+          }}
         >
           <div
             className="absolute inset-0 bg-cover bg-center"
