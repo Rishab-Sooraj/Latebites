@@ -98,7 +98,8 @@ export default function BrowsePage() {
     useEffect(() => {
         if (customer) {
             fetchOrders();
-        } else if (!authLoading && !user) {
+        } else if (!authLoading) {
+            // If auth is finished and we have no customer profile, stop loading
             setOrdersLoading(false);
         }
     }, [customer, user, authLoading, fetchOrders]);
@@ -160,7 +161,7 @@ export default function BrowsePage() {
                 setLocationError("Location request timed out. Please set your location manually.");
                 setShowLocationModal(true);
             }
-        }, 8000);
+        }, 5000);
 
         getCurrentLocation()
             .then((coords) => {
@@ -319,17 +320,16 @@ export default function BrowsePage() {
                                     className="flex items-center gap-5"
                                 >
                                     <div className="relative">
-                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-orange-500 to-amber-500 flex items-center justify-center text-white font-serif text-2xl shadow-2xl shadow-primary/20 transform rotate-3">
-                                            {customer?.name?.charAt(0).toUpperCase() || 'R'}
+                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-orange-500 to-amber-500 flex items-center justify-center text-white font-serif text-2xl shadow-2xl shadow-primary/20">
+                                            {customer?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'R'}
                                         </div>
                                         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg">
                                             <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
                                         </div>
                                     </div>
                                     <div>
-                                        <p className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground font-medium mb-1">Authenticated Rescuer</p>
                                         <h1 className="text-3xl md:text-4xl font-serif font-light tracking-tight">
-                                            Bonjour, <span className="italic">{customer?.name?.split(" ")[0] || "Rescuer"}</span>
+                                            Bonjour, <span className="italic">{customer?.name?.split(" ")[0] || user?.email?.split("@")[0].split(".")[0] || "Rescuer"}</span>
                                         </h1>
                                     </div>
                                 </motion.div>
@@ -355,11 +355,6 @@ export default function BrowsePage() {
                                         </div>
                                         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                                     </button>
-
-                                    <div className="flex items-center gap-3 px-6 py-3 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-xs font-medium text-emerald-700 tracking-wide">Live Updates Enabled</span>
-                                    </div>
                                 </motion.div>
                             </div>
 
@@ -458,7 +453,7 @@ export default function BrowsePage() {
                                         <Search className="w-5 h-5 text-muted-foreground/30 mr-4 group-focus-within:text-primary group-focus-within:scale-110 transition-all duration-300" />
                                         <input
                                             type="text"
-                                            placeholder="Crave something? Search restaurants or cuisines..."
+                                            placeholder="Crave something? Search restaurants..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="bg-transparent border-none focus:ring-0 focus:outline-none w-full text-base placeholder:text-muted-foreground/40 font-light"
@@ -626,7 +621,7 @@ export default function BrowsePage() {
                                                     
                                                     <div className="relative">
                                                         <div className="absolute inset-0 bg-primary/20 blur-xl group-hover:opacity-100 opacity-0 transition-opacity duration-500" />
-                                                        <div className="relative w-14 h-14 rounded-[20px] bg-black text-white flex items-center justify-center group-hover:bg-primary transition-all duration-500 group-hover:rotate-6">
+                                                        <div className="relative w-14 h-14 rounded-[20px] bg-black text-white flex items-center justify-center group-hover:bg-primary transition-all duration-500">
                                                             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                                                         </div>
                                                     </div>
