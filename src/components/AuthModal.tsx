@@ -44,22 +44,34 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setError("");
 
         try {
-            // Try to sign in with a dummy password to check if email exists
-            const { error } = await supabase.auth.signInWithPassword({
+            // Use signInWithOtp with shouldCreateUser: false to check if email exists
+            // This returns an error if the user doesn't exist
+            const { error } = await supabase.auth.signInWithOtp({
                 email,
-                password: "dummy-check-password-that-will-fail",
+                options: {
+                    shouldCreateUser: false,
+                },
             });
 
-            // If error is "Invalid login credentials", email exists
-            if (error?.message.includes("Invalid login credentials")) {
-                setStep("login");
-            } else if (error?.message.includes("Email not confirmed")) {
-                setStep("login");
+            // If there's no error, the email exists (OTP was sent, but we won't use it)
+            // If error says "Signups not allowed" or similar, email doesn't exist
+            if (error) {
+                console.log("Email check error:", error.message);
+                if (error.message.includes("Signups not allowed") ||
+                    error.message.includes("User not found") ||
+                    error.message.includes("user_not_found")) {
+                    // Email doesn't exist, go to signup
+                    setStep("signup");
+                } else {
+                    // Other error (maybe email exists but OTP failed), try login
+                    setStep("login");
+                }
             } else {
-                // Email doesn't exist, go to signup
-                setStep("signup");
+                // No error means email exists, go to login
+                setStep("login");
             }
         } catch (err) {
+            console.error("Error checking email:", err);
             // Default to signup if we can't determine
             setStep("signup");
         } finally {

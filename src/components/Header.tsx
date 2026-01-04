@@ -3,7 +3,7 @@
 import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { User, LogOut, ShoppingBag, LayoutDashboard, UserCircle } from "lucide-react";
+import { LogOut, ShoppingBag, LayoutDashboard, UserCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import AuthModal from "./AuthModal";
 
@@ -14,7 +14,6 @@ export function Header() {
   const { user, customer, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isAtTop, setIsAtTop] = useState(true);
   const [useDarkText, setUseDarkText] = useState(false); // false = white, true = black
   const dropdownRef = useRef<HTMLDivElement>(null);
 
