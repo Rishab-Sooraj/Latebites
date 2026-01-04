@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentLocation, formatDistance, type Coordinates } from "@/lib/location/geolocation";
-import { MapPin, Search, Clock, X, Navigation, Loader2, ArrowRight, ShoppingBag, Leaf, TrendingUp, Sparkles } from "lucide-react";
+import { MapPin, Search, Clock, X, Navigation, Loader2, ArrowRight, ShoppingBag, Leaf, TrendingUp, Sparkles, ReceiptText } from "lucide-react";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 
 import { Header } from "@/components/Header";
 import { LiveBackground } from "@/components/LiveBackground";
 import { RevealText } from "@/components/cinematic/RevealText";
-import { ImpactPartners } from "@/components/ImpactPartners";
 import { MyActivity } from "@/components/MyActivity";
 import "../premium-animations.css";
 
@@ -251,27 +250,62 @@ export default function BrowsePage() {
                                 <RevealText
                                     text={`Welcome back, ${customer?.name?.split(" ")[0] || "Rescuer"}.`}
                                     tag="h1"
-                                    className="text-4xl md:text-6xl lg:text-7xl font-serif font-light mb-6"
+                                    className="text-4xl md:text-6xl lg:text-7xl font-serif font-light mb-6 bg-gradient-to-r from-primary via-orange-500 to-amber-500 bg-clip-text text-transparent"
                                 />
-                                <p className="text-xl text-muted-foreground font-light leading-relaxed max-w-xl">
+                                <p className="text-xl text-muted-foreground font-light leading-relaxed max-w-xl mb-8">
                                     Your next meal is waiting to be rescued. Premium surplus from the best kitchens in {userLocation ? 'your area' : 'Coimbatore'}.
                                 </p>
+                                
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.5 }}
+                                    className="flex flex-wrap gap-4"
+                                >
+                                    <Link 
+                                        href="#browse-results" 
+                                        className="px-8 py-4 bg-primary text-primary-foreground text-[10px] uppercase tracking-[0.3em] font-medium hover:scale-105 transition-all shadow-xl shadow-primary/20 flex items-center gap-3"
+                                    >
+                                        Browse Bags <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                    <Link 
+                                        href="#my-activity" 
+                                        className="px-8 py-4 bg-background/50 backdrop-blur-md border border-primary/20 text-foreground text-[10px] uppercase tracking-[0.3em] font-medium hover:bg-primary/10 transition-all flex items-center gap-3"
+                                    >
+                                        My Rescues <ReceiptText className="w-3 h-3 text-primary" />
+                                    </Link>
+                                </motion.div>
                             </div>
 
-                            {/* Dashboard Shortcut Stats */}
-                            <div className="grid grid-cols-3 gap-8 md:gap-12 pb-2">
-                                {statsSummary.map((stat, i) => (
-                                    <motion.div
-                                        key={i}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.8 + (i * 0.1) }}
-                                        className="space-y-2"
-                                    >
-                                        <p className="text-2xl md:text-3xl font-serif font-light">{stat.value}</p>
-                                        <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{stat.label}</p>
-                                    </motion.div>
-                                ))}
+                            {/* Dashboard Shortcut Stats - Updated to be more colorful and less "lie-ish" */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 md:gap-12 pb-2">
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.8 }}
+                                    className="p-4 rounded-sm bg-gradient-to-br from-primary/10 to-transparent border-l-2 border-primary"
+                                >
+                                    <p className="text-2xl md:text-3xl font-serif font-light text-primary">0</p>
+                                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Bags Rescued</p>
+                                </motion.div>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.9 }}
+                                    className="p-4 rounded-sm bg-gradient-to-br from-orange-500/10 to-transparent border-l-2 border-orange-500"
+                                >
+                                    <p className="text-2xl md:text-3xl font-serif font-light text-orange-500">₹0</p>
+                                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Total Savings</p>
+                                </motion.div>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 1.0 }}
+                                    className="p-4 rounded-sm bg-gradient-to-br from-emerald-500/10 to-transparent border-l-2 border-emerald-500 hidden sm:block"
+                                >
+                                    <p className="text-2xl md:text-3xl font-serif font-light text-emerald-500">0 kg</p>
+                                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">CO₂ Saved</p>
+                                </motion.div>
                             </div>
                         </motion.div>
                     </div>
@@ -383,7 +417,7 @@ export default function BrowsePage() {
                                                 {/* Meta Info on Image */}
                                                 <div className="absolute bottom-4 left-6 right-6">
                                                     <div className="flex items-center gap-2 text-[9px] uppercase tracking-[0.2em] text-white/70 mb-1">
-                                                        <Clock className="w-3 h-3" />
+                                                        <Clock className="w-3 h-3 text-orange-400" />
                                                         <span>Pickup: {restaurant.rescue_bags[0] && formatPickupTime(restaurant.rescue_bags[0].pickup_start_time, restaurant.rescue_bags[0].pickup_end_time)}</span>
                                                     </div>
                                                     <h3 className="text-xl md:text-2xl font-serif text-white group-hover:translate-x-1 transition-transform duration-500">
@@ -393,7 +427,12 @@ export default function BrowsePage() {
                                             </div>
 
                                             {/* Card Content */}
-                                            <div className="p-6">
+                                            <div className="p-6 relative">
+                                                <div className="absolute top-0 right-6 -translate-y-1/2 flex gap-2">
+                                                    <div className="px-3 py-1 bg-emerald-500 text-white text-[8px] uppercase tracking-widest font-bold rounded-full shadow-lg">
+                                                        50% OFF
+                                                    </div>
+                                                </div>
                                                 <p className="text-xs text-muted-foreground font-light mb-6 line-clamp-1 italic">
                                                     {restaurant.cuisine_types?.join(" • ") || "Global Cuisines"}
                                                 </p>
@@ -401,9 +440,9 @@ export default function BrowsePage() {
                                                 <div className="flex items-center justify-between pt-4 border-t border-primary/5">
                                                     <div className="space-y-1">
                                                         <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Available</p>
-                                                        <p className="text-sm font-medium">{restaurant.rescue_bags.length} Rescue {restaurant.rescue_bags.length === 1 ? 'Bag' : 'Bags'}</p>
+                                                        <p className="text-sm font-medium text-primary">{restaurant.rescue_bags.length} Rescue {restaurant.rescue_bags.length === 1 ? 'Bag' : 'Bags'}</p>
                                                     </div>
-                                                    <div className="w-10 h-10 rounded-full border border-primary/20 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-500">
+                                                    <div className="w-10 h-10 rounded-full border border-primary/20 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-500 shadow-xl group-hover:shadow-primary/40">
                                                         <ArrowRight className="w-4 h-4 group-hover:text-primary-foreground group-hover:translate-x-0.5 transition-all" />
                                                     </div>
                                                 </div>
@@ -421,9 +460,6 @@ export default function BrowsePage() {
 
                 {/* 4. MY ACTIVITY SECTION */}
                 <MyActivity />
-
-                {/* 5. IMPACT & PARTNERS SECTION */}
-                <ImpactPartners />
             </main>
 
             {/* Location Modal - Premium Redesign */}

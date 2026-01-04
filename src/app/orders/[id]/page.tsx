@@ -5,13 +5,90 @@ import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { CheckCircle, MapPin, Clock, Phone, Mail, ShoppingBag, Leaf, ArrowRight } from "lucide-react";
+import { CheckCircle, MapPin, Clock, Phone, Mail, ShoppingBag, Leaf, ArrowRight, Timer, AlertCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Database } from "@/types/database";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
     rescue_bags: Database['public']['Tables']['rescue_bags']['Row'];
     restaurants: Database['public']['Tables']['restaurants']['Row'];
+};
+
+const CountdownTimer = ({ endTime, orderStatus }: { endTime: string, orderStatus: string }) => {
+    const [timeLeft, setTimeLeft] = useState<{ hours: number, minutes: number, seconds: number } | null>(null);
+    const [isExpired, setIsExpired] = useState(false);
+
+    useEffect(() => {
+        const calculateTimeLeft = () => {
+            const now = new Date();
+            const [hours, minutes, seconds] = endTime.split(':').map(Number);
+            const target = new Date();
+            target.setHours(hours, minutes, seconds || 0, 0);
+
+            const difference = target.getTime() - now.getTime();
+
+            if (difference <= 0) {
+                setIsExpired(true);
+                return null;
+            }
+
+            return {
+                hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                minutes: Math.floor((difference / 1000 / 60) % 60),
+                seconds: Math.floor((difference / 1000) % 60)
+            };
+        };
+
+        const timer = setInterval(() => {
+            const left = calculateTimeLeft();
+            setTimeLeft(left);
+        }, 1000);
+
+        setTimeLeft(calculateTimeLeft());
+
+        return () => clearInterval(timer);
+    }, [endTime]);
+
+    if (orderStatus !== 'pending' && orderStatus !== 'confirmed') return null;
+
+    return (
+        <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-6 rounded-sm text-white shadow-xl shadow-orange-500/20 mb-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-20">
+                <Timer className="w-24 h-24" />
+            </div>
+            <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="w-4 h-4" />
+                    <p className="text-[10px] uppercase tracking-[0.3em] font-medium">Time Remaining to Collect</p>
+                </div>
+                {isExpired ? (
+                    <div className="flex items-center gap-3">
+                        <AlertCircle className="w-8 h-8" />
+                        <h2 className="text-2xl font-serif">Pickup window has ended</h2>
+                    </div>
+                ) : timeLeft ? (
+                    <div className="flex items-end gap-4">
+                        <div className="text-center">
+                            <span className="text-4xl md:text-5xl font-serif">{String(timeLeft.hours).padStart(2, '0')}</span>
+                            <p className="text-[8px] uppercase tracking-widest opacity-80 mt-1">Hours</p>
+                        </div>
+                        <span className="text-4xl md:text-5xl font-serif mb-4">:</span>
+                        <div className="text-center">
+                            <span className="text-4xl md:text-5xl font-serif">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                            <p className="text-[8px] uppercase tracking-widest opacity-80 mt-1">Mins</p>
+                        </div>
+                        <span className="text-4xl md:text-5xl font-serif mb-4">:</span>
+                        <div className="text-center">
+                            <span className="text-4xl md:text-5xl font-serif">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                            <p className="text-[8px] uppercase tracking-widest opacity-80 mt-1">Secs</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="h-12 w-48 bg-white/20 animate-pulse rounded-sm" />
+                )}
+            </div>
+        </div>
+    );
 };
 
 export default function OrderConfirmationPage() {
@@ -50,10 +127,10 @@ export default function OrderConfirmationPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 flex items-center justify-center">
+            <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading order...</p>
+                    <div className="w-16 h-16 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground animate-pulse">Retrieving Reservation</p>
                 </div>
             </div>
         );
@@ -61,15 +138,15 @@ export default function OrderConfirmationPage() {
 
     if (!order) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-black flex items-center justify-center p-4">
                 <div className="text-center">
-                    <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
-                    <h2 className="text-2xl font-serif mb-2">Order not found</h2>
+                    <ShoppingBag className="w-16 h-16 mx-auto mb-6 text-muted-foreground/20" />
+                    <h2 className="text-2xl font-serif mb-6 text-white">Order not found</h2>
                     <Link
-                        href="/orders"
-                        className="inline-block px-6 py-3 bg-primary text-primary-foreground text-sm uppercase tracking-widest hover:opacity-90 transition-opacity rounded-sm mt-4"
+                        href="/browse"
+                        className="inline-block px-10 py-5 bg-primary text-primary-foreground text-[10px] uppercase tracking-[0.3em] font-medium hover:opacity-90 transition-opacity rounded-sm"
                     >
-                        View All Orders
+                        Back to Browse
                     </Link>
                 </div>
             </div>
@@ -77,175 +154,154 @@ export default function OrderConfirmationPage() {
     }
 
     return (
-        <main className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 pt-24 pb-12 px-4">
-            <div className="max-w-3xl mx-auto">
-                {/* Success Header */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center mb-12"
-                >
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-full mb-6">
-                        <CheckCircle className="w-12 h-12 text-primary" />
-                    </div>
-                    <h1 className="text-4xl md:text-5xl font-serif mb-4">
-                        Reservation Confirmed!
-                    </h1>
-                    <p className="text-lg text-muted-foreground">
-                        Your rescue bag is ready for pickup
-                    </p>
-                </motion.div>
+        <main className="min-h-screen bg-black text-white pt-32 pb-24 px-4 relative overflow-hidden">
+            {/* Ambient Background */}
+            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[150px] -z-10" />
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-orange-500/5 rounded-full blur-[150px] -z-10" />
 
-                {/* Order Details Card */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-white/80 backdrop-blur-sm rounded-lg border border-primary/10 overflow-hidden mb-6"
-                >
-                    {/* Order Header */}
-                    <div className="bg-primary/5 p-6 border-b border-primary/10">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground mb-1">Order ID</p>
-                                <p className="font-mono text-sm">{order.id.slice(0, 8)}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-sm text-muted-foreground mb-1">Status</p>
-                                <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full capitalize">
-                                    {order.status}
-                                </span>
-                            </div>
+            <div className="max-w-4xl mx-auto">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+                    <div>
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="flex items-center gap-3 mb-6"
+                        >
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">Successful Reservation</span>
+                        </motion.div>
+                        <motion.h1
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-4xl md:text-6xl font-serif leading-tight"
+                        >
+                            Dignity in Rescue.
+                        </motion.h1>
+                    </div>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="text-right"
+                    >
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Order Status</p>
+                        <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-medium uppercase tracking-widest rounded-sm">
+                            {order.status}
                         </div>
-                    </div>
+                    </motion.div>
+                </div>
 
-                    {/* Bag Details */}
-                    <div className="p-6 border-b border-primary/10">
-                        <h3 className="text-lg font-serif mb-4">Your Rescue Bag</h3>
-                        <div className="flex gap-4">
-                            <div className="w-24 h-24 bg-gradient-to-br from-cyan-100 to-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <ShoppingBag className="w-10 h-10 text-primary/40" />
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="font-medium mb-1">{order.rescue_bags.title}</h4>
-                                <p className="text-sm text-muted-foreground mb-2">
-                                    {order.restaurants.name}
-                                </p>
-                                <div className="flex items-center gap-4">
-                                    <span className="text-2xl font-bold text-primary">
-                                        ₹{order.total_price}
-                                    </span>
-                                    <span className="text-sm text-muted-foreground">
-                                        Quantity: {order.quantity}
-                                    </span>
+                <div className="grid md:grid-cols-5 gap-12">
+                    <div className="md:col-span-3 space-y-8">
+                        {/* Countdown Timer Component */}
+                        <CountdownTimer 
+                            endTime={order.rescue_bags.pickup_end_time} 
+                            orderStatus={order.status} 
+                        />
+
+                        {/* Order Details Card */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="bg-zinc-900/50 backdrop-blur-md border border-white/5 p-8 rounded-sm space-y-10"
+                        >
+                            <div className="flex gap-8">
+                                <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-orange-500/20 rounded-sm flex items-center justify-center flex-shrink-0 group relative overflow-hidden">
+                                    <ShoppingBag className="w-10 h-10 text-primary animate-pulse" />
+                                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-serif mb-2">{order.rescue_bags.title}</h3>
+                                    <p className="text-muted-foreground font-light italic mb-4">From {order.restaurants.name}</p>
+                                    <div className="flex items-center gap-6">
+                                        <div>
+                                            <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Total Paid</p>
+                                            <p className="text-2xl font-serif text-primary">₹{order.total_price}</p>
+                                        </div>
+                                        <div className="w-px h-8 bg-white/10" />
+                                        <div>
+                                            <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Quantity</p>
+                                            <p className="text-xl font-serif">{order.quantity}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Pickup Details */}
-                    <div className="p-6">
-                        <h3 className="text-lg font-serif mb-4">Pickup Information</h3>
-                        <div className="space-y-4">
-                            <div className="flex items-start gap-3">
-                                <Clock className="w-5 h-5 text-primary mt-0.5" />
-                                <div>
-                                    <p className="font-medium mb-1">Pickup Time</p>
-                                    <p className="text-sm text-muted-foreground">
+                            <div className="grid sm:grid-cols-2 gap-8 pt-10 border-t border-white/5">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 text-primary">
+                                        <Clock className="w-4 h-4" />
+                                        <p className="text-[10px] uppercase tracking-[0.2em] font-medium">Collection Window</p>
+                                    </div>
+                                    <p className="text-sm font-light leading-relaxed">
                                         Today, {order.rescue_bags.pickup_start_time.slice(0, 5)} - {order.rescue_bags.pickup_end_time.slice(0, 5)}
                                     </p>
                                 </div>
-                            </div>
-
-                            <div className="flex items-start gap-3">
-                                <MapPin className="w-5 h-5 text-primary mt-0.5" />
-                                <div>
-                                    <p className="font-medium mb-1">{order.restaurants.name}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {order.restaurants.address}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 text-primary">
+                                        <MapPin className="w-4 h-4" />
+                                        <p className="text-[10px] uppercase tracking-[0.2em] font-medium">Location</p>
+                                    </div>
+                                    <p className="text-sm font-light leading-relaxed">
+                                        {order.restaurants.name}<br />
+                                        <span className="text-muted-foreground opacity-60">
+                                            {order.restaurants.address_line1}, {order.restaurants.city}
+                                        </span>
                                     </p>
                                 </div>
                             </div>
+                        </motion.div>
+                    </div>
 
-                            <div className="flex items-start gap-3">
-                                <Phone className="w-5 h-5 text-primary mt-0.5" />
-                                <div>
-                                    <p className="font-medium mb-1">Restaurant Contact</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {order.restaurants.phone}
-                                    </p>
+                    <div className="md:col-span-2 space-y-8">
+                        {/* Restaurant Contact */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="bg-primary/5 border border-primary/10 p-8 rounded-sm"
+                        >
+                            <h4 className="text-[10px] uppercase tracking-[0.3em] text-primary mb-6">Need Assistance?</h4>
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-4 group cursor-pointer">
+                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors">
+                                        <Phone className="w-4 h-4 text-primary group-hover:text-primary-foreground" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-0.5">Call Restaurant</p>
+                                        <p className="text-sm font-light">{order.restaurants.phone}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 group cursor-pointer">
+                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors">
+                                        <Mail className="w-4 h-4 text-primary group-hover:text-primary-foreground" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-0.5">Email Support</p>
+                                        <p className="text-sm font-light">{order.restaurants.email}</p>
+                                    </div>
                                 </div>
                             </div>
+                        </motion.div>
+
+                        {/* Actions */}
+                        <div className="space-y-4">
+                            <Link
+                                href="/browse"
+                                className="w-full flex items-center justify-center gap-3 py-5 bg-white text-black text-[10px] uppercase tracking-[0.3em] font-semibold hover:bg-white/90 transition-all rounded-sm"
+                            >
+                                Continue Rescuing <ArrowRight className="w-3 h-3" />
+                            </Link>
+                            <Link
+                                href="/browse#my-activity"
+                                className="w-full flex items-center justify-center py-5 border border-white/10 hover:bg-white/5 text-[10px] uppercase tracking-[0.3em] transition-all rounded-sm"
+                            >
+                                View My Rescues
+                            </Link>
                         </div>
                     </div>
-
-                    {/* Payment Info */}
-                    <div className="bg-yellow-50/50 p-6 border-t border-primary/10">
-                        <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-lg">💰</span>
-                            </div>
-                            <div>
-                                <p className="font-medium mb-1">Payment Method</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Pay at pickup • Cash or UPI accepted
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-
-                {/* Impact Card */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="bg-gradient-to-br from-primary/10 to-teal-100/50 p-6 rounded-lg border border-primary/20 mb-6"
-                >
-                    <h3 className="text-lg font-serif mb-4 flex items-center gap-2">
-                        <Leaf className="w-5 h-5 text-primary" />
-                        Your Impact
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-white/50 rounded-lg">
-                            <p className="text-3xl font-bold text-primary mb-1">2.5kg</p>
-                            <p className="text-xs text-muted-foreground">Food saved from waste</p>
-                        </div>
-                        <div className="text-center p-4 bg-white/50 rounded-lg">
-                            <p className="text-3xl font-bold text-primary mb-1">3.2kg</p>
-                            <p className="text-xs text-muted-foreground">CO₂ emissions prevented</p>
-                        </div>
-                    </div>
-                </motion.div>
-
-                {/* Action Buttons */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="flex gap-4"
-                >
-                    <Link
-                        href="/browse"
-                        className="flex-1 py-4 bg-primary text-primary-foreground text-center text-sm uppercase tracking-widest hover:opacity-90 transition-opacity rounded-sm font-medium"
-                    >
-                        Browse More Bags
-                    </Link>
-                    <Link
-                        href="/orders"
-                        className="flex-1 py-4 border-2 border-primary text-primary text-center text-sm uppercase tracking-widest hover:bg-primary/5 transition-colors rounded-sm font-medium"
-                    >
-                        View All Orders
-                    </Link>
-                </motion.div>
-
-                {/* Help Text */}
-                <p className="text-center text-sm text-muted-foreground mt-8">
-                    Questions? Contact the restaurant directly or{" "}
-                    <Link href="/support" className="text-primary hover:underline">
-                        reach out to support
-                    </Link>
-                </p>
+                </div>
             </div>
         </main>
     );

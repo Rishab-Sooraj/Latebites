@@ -45,25 +45,33 @@ export function MyActivity() {
   if (!customer) return null;
 
   return (
-    <section id="my-activity" className="py-24 px-4 sm:px-6 lg:px-12 bg-background/50 backdrop-blur-sm">
+    <section id="my-activity" className="py-24 px-4 sm:px-6 lg:px-12 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-orange-500/5 rounded-full blur-[120px] -z-10" />
+      
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row gap-16">
           {/* Sidebar Tabs */}
           <div className="w-full md:w-64 space-y-4">
-            <h2 className="text-xs uppercase tracking-[0.4em] text-muted-foreground mb-8">Personal Hub</h2>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <h2 className="text-xs uppercase tracking-[0.4em] text-muted-foreground">Personal Hub</h2>
+            </div>
+            
             <button
               onClick={() => setActiveTab('orders')}
-              className={`w-full flex items-center gap-4 px-6 py-4 rounded-sm transition-all duration-300 ${activeTab === 'orders' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-primary/5'}`}
+              className={`w-full flex items-center gap-4 px-6 py-5 rounded-sm transition-all duration-500 group ${activeTab === 'orders' ? 'bg-primary text-primary-foreground shadow-2xl shadow-primary/20 scale-[1.02]' : 'hover:bg-primary/5 border border-transparent hover:border-primary/10'}`}
             >
-              <ShoppingBag className="w-4 h-4" />
-              <span className="text-[10px] uppercase tracking-widest font-medium">Recent Orders</span>
+              <ShoppingBag className={`w-4 h-4 ${activeTab === 'orders' ? '' : 'text-primary'}`} />
+              <span className="text-[10px] uppercase tracking-widest font-semibold">My Rescues</span>
             </button>
             <button
               onClick={() => setActiveTab('profile')}
-              className={`w-full flex items-center gap-4 px-6 py-4 rounded-sm transition-all duration-300 ${activeTab === 'profile' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-primary/5'}`}
+              className={`w-full flex items-center gap-4 px-6 py-5 rounded-sm transition-all duration-500 group ${activeTab === 'profile' ? 'bg-primary text-primary-foreground shadow-2xl shadow-primary/20 scale-[1.02]' : 'hover:bg-primary/5 border border-transparent hover:border-primary/10'}`}
             >
-              <User className="w-4 h-4" />
-              <span className="text-[10px] uppercase tracking-widest font-medium">Account Overview</span>
+              <User className={`w-4 h-4 ${activeTab === 'profile' ? '' : 'text-primary'}`} />
+              <span className="text-[10px] uppercase tracking-widest font-semibold">Account Hub</span>
             </button>
             
             <div className="pt-12 space-y-6 opacity-40 grayscale pointer-events-none">
