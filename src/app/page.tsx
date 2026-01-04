@@ -11,6 +11,7 @@ import { ScrollRevealImage } from "@/components/ScrollRevealImage";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase/client";
+import AuthModal from "@/components/AuthModal";
 
 import { Header } from "@/components/Header";
 import "./3d-effects.css";
@@ -21,6 +22,17 @@ function HomePageContent() {
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const supabase = createClient();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Auto-open auth modal if redirected with ?auth=customer param
+  useEffect(() => {
+    const authParam = searchParams.get('auth');
+    if (authParam === 'customer' && !user && !authLoading) {
+      setShowAuthModal(true);
+      // Clean up the URL
+      router.replace('/');
+    }
+  }, [searchParams, user, authLoading, router]);
 
   // Handle OAuth callback when Supabase redirects to homepage with ?code=
   useEffect(() => {
@@ -30,7 +42,7 @@ function HomePageContent() {
       supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
         if (error) {
           console.error('Error exchanging code for session:', error);
-          router.push('/login?error=auth_failed');
+          router.push('/?auth_error=true');
         } else {
           // Clear the URL and redirect to browse
           router.replace('/browse');
@@ -250,19 +262,35 @@ function HomePageContent() {
             transition={{ delay: 2.2, duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="pt-4 flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            <Link
-              href={user ? "/browse" : "/login?redirect=/browse"}
-              className="btn-premium group relative inline-flex items-center gap-2 px-10 py-5 bg-white text-black text-xs uppercase tracking-[0.3em] rounded-sm font-medium overflow-hidden"
-            >
-              <span className="relative z-10">Find Rescue Bags</span>
-              <motion.span
-                className="relative z-10"
-                animate={{ x: [0, 4, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
+            {user ? (
+              <Link
+                href="/browse"
+                className="btn-premium group relative inline-flex items-center gap-2 px-10 py-5 bg-white text-black text-xs uppercase tracking-[0.3em] rounded-sm font-medium overflow-hidden"
               >
-                →
-              </motion.span>
-            </Link>
+                <span className="relative z-10">Find Rescue Bags</span>
+                <motion.span
+                  className="relative z-10"
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  →
+                </motion.span>
+              </Link>
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="btn-premium group relative inline-flex items-center gap-2 px-10 py-5 bg-white text-black text-xs uppercase tracking-[0.3em] rounded-sm font-medium overflow-hidden"
+              >
+                <span className="relative z-10">Find Rescue Bags</span>
+                <motion.span
+                  className="relative z-10"
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  →
+                </motion.span>
+              </button>
+            )}
             <Link
               href="#onboard"
               className="group relative inline-flex items-center gap-2 px-10 py-5 border border-white/30 text-white text-xs uppercase tracking-[0.3em] rounded-sm font-light hover:bg-white/5 hover:border-white/60 transition-all duration-500"
@@ -822,6 +850,9 @@ function HomePageContent() {
           </motion.div>
         </div>
       </Section>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </main >
   );
 }

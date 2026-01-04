@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
         if (!code) {
             console.error('No code provided in OAuth callback')
-            return NextResponse.redirect(`${origin}/login?error=no_code`)
+            return NextResponse.redirect(`${origin}/?error=no_code`)
         }
 
         const cookieStore = await cookies()
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
         if (exchangeError) {
             console.error('Error exchanging code for session:', exchangeError)
-            return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+            return NextResponse.redirect(`${origin}/?error=auth_failed`)
         }
 
         // Get the authenticated user
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
         if (userError || !user) {
             console.error('Error getting user:', userError)
-            return NextResponse.redirect(`${origin}/login?error=user_fetch_failed`)
+            return NextResponse.redirect(`${origin}/?error=user_fetch_failed`)
         }
 
         // Check if profile exists in the selected role's table
@@ -91,6 +91,6 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error('Unexpected error in OAuth callback:', error)
         const { origin } = new URL(request.url)
-        return NextResponse.redirect(`${origin}/login?error=unexpected_error`)
+        return NextResponse.redirect(`${origin}/?error=unexpected_error`)
     }
 }
