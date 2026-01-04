@@ -182,8 +182,8 @@ function VerifyOTPContent() {
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className={`text-sm p-3 rounded-sm mb-4 ${error.includes("sent successfully")
-                                    ? "bg-primary/10 text-primary"
-                                    : "bg-destructive/10 text-destructive"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-destructive/10 text-destructive"
                                 }`}
                         >
                             {error}
@@ -221,7 +221,7 @@ function VerifyOTPContent() {
                 {/* Back Link */}
                 <div className="text-center mt-6">
                     <Link
-                        href={isSignup ? "/signup" : "/login"}
+                        href={isSignup ? "/signup" : "/"}
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
                         ← Change phone number

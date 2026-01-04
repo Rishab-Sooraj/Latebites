@@ -128,9 +128,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             console.log("✅ Login successful! Redirecting...");
             onClose();
 
-            // Redirect based on role
+            // Redirect based on role - use hard navigation to ensure auth state is picked up
             const redirectPath = role === "customer" ? "/browse" : "/restaurant/dashboard";
-            router.push(redirectPath);
+            window.location.href = redirectPath;
         } catch (err: any) {
             console.error("❌ Login failed:", err);
             setError(err.message || "Failed to sign in. Please try again.");
@@ -178,7 +178,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 }
 
                 onClose();
-                router.push("/browse");
+                // Use hard navigation to ensure auth state is picked up
+                window.location.href = "/browse";
             }
         } catch (err: any) {
             setError(err.message || "Failed to create account");

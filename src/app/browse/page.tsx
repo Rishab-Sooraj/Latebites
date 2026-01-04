@@ -38,7 +38,7 @@ export default function BrowsePage() {
     // Auth protection - redirect to login if not authenticated
     useEffect(() => {
         if (!authLoading && !user) {
-            router.push('/login?redirect=/browse');
+            router.push('/?auth=customer');
         }
     }, [authLoading, user, router]);
 
