@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Instagram, Mail, Youtube } from "lucide-react";
 import { Section } from "@/components/cinematic/Section";
@@ -8,12 +9,36 @@ import { RevealText } from "@/components/cinematic/RevealText";
 import { ScrollProgressIndicator } from "@/components/ScrollProgressIndicator";
 import { ScrollRevealImage } from "@/components/ScrollRevealImage";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { createClient } from "@/lib/supabase/client";
 
 import { Header } from "@/components/Header";
 import "./3d-effects.css";
 import "./premium-animations.css";
 
-export default function HomePage() {
+function HomePageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
+  const supabase = createClient();
+
+  // Handle OAuth callback when Supabase redirects to homepage with ?code=
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      // Exchange the code for a session
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+        if (error) {
+          console.error('Error exchanging code for session:', error);
+          router.push('/login?error=auth_failed');
+        } else {
+          // Clear the URL and redirect to browse
+          router.replace('/browse');
+        }
+      });
+    }
+  }, [searchParams, supabase.auth, router]);
+
   // Form state management
   const [formData, setFormData] = useState({
     restaurant_name: "",
@@ -134,14 +159,27 @@ export default function HomePage() {
       <ScrollProgressIndicator />
       {/* 1. HERO SECTION */}
       <Section id="hero" className="relative h-screen flex items-center justify-center overflow-hidden">
-        {/* Full-bleed Background with Cinematic Zoom-in */}
+        {/* Full-bleed Background with Cinematic Zoom-in - Ken Burns Effect on Landing */}
         <motion.div
           className="absolute inset-0 z-0"
-          initial={{ scale: 1.0, filter: "blur(8px)" }}
-          animate={{ scale: 1.2, filter: "blur(0px)" }}
+          initial={{
+            scale: 1.15,
+            filter: "blur(12px) brightness(0.8)"
+          }}
+          animate={{
+            scale: 1.3,
+            filter: "blur(0px) brightness(1)"
+          }}
           transition={{
-            scale: { duration: 12, ease: "linear" },
-            filter: { duration: 1.5, ease: [0.22, 1, 0.36, 1] }
+            scale: {
+              duration: 20,
+              ease: [0.25, 0.1, 0.25, 1] // Smooth ease-out for cinematic feel
+            },
+            filter: {
+              duration: 2.5,
+              ease: [0.22, 1, 0.36, 1],
+              delay: 0.3 // Slight delay for dramatic effect
+            }
           }}
         >
           <div
@@ -213,7 +251,7 @@ export default function HomePage() {
             className="pt-4 flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
             <Link
-              href="/browse"
+              href={user ? "/browse" : "/login?redirect=/browse"}
               className="btn-premium group relative inline-flex items-center gap-2 px-10 py-5 bg-white text-black text-xs uppercase tracking-[0.3em] rounded-sm font-medium overflow-hidden"
             >
               <span className="relative z-10">Find Rescue Bags</span>
@@ -785,5 +823,13 @@ export default function HomePage() {
         </div>
       </Section>
     </main >
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <HomePageContent />
+    </Suspense>
   );
 }

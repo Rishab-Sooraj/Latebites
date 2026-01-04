@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,7 +19,8 @@ type Restaurant = Database['public']['Tables']['restaurants']['Row'] & {
 type RescueBag = Database['public']['Tables']['rescue_bags']['Row'];
 
 export default function BrowsePage() {
-    const { customer } = useAuth();
+    const router = useRouter();
+    const { user, customer, loading: authLoading } = useAuth();
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
     const [loading, setLoading] = useState(true);
     const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
@@ -33,7 +35,17 @@ export default function BrowsePage() {
 
     const supabase = createClient();
 
+    // Auth protection - redirect to login if not authenticated
     useEffect(() => {
+        if (!authLoading && !user) {
+            router.push('/login?redirect=/browse');
+        }
+    }, [authLoading, user, router]);
+
+    useEffect(() => {
+        // Only fetch location data if user is authenticated
+        if (!user) return;
+
         getCurrentLocation()
             .then((coords) => {
                 setUserLocation(coords);
@@ -45,7 +57,7 @@ export default function BrowsePage() {
                 setLocationError(error.message);
                 fetchData(null);
             });
-    }, []);
+    }, [user]);
 
     // Initialize Google Maps Autocomplete
     useEffect(() => {
