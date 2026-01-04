@@ -15,6 +15,7 @@ export function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [useDarkText, setUseDarkText] = useState(false); // false = white, true = black
+  const [isAtTop, setIsAtTop] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { scrollY } = useScroll();
