@@ -822,7 +822,7 @@ function HomePageContent() {
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="mailto:hello@latebites.in"
+                href="mailto:support@latebites.in"
                 className="text-muted-foreground/60 hover:text-white transition-colors"
                 aria-label="Email"
               >

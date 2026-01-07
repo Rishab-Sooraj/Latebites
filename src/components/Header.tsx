@@ -101,19 +101,17 @@ export function Header() {
         transition={{ delay: 0.5, duration: 1 }}
         className="fixed top-0 left-0 w-full z-50 px-4 py-4 sm:px-6 sm:py-6 md:px-12 md:py-12 flex justify-between items-center pointer-events-none"
       >
-        <div className="flex flex-col items-center pointer-events-auto cursor-pointer hover:opacity-80 transition-all duration-300">
-          <Link href="/" className="flex flex-col items-center">
-            <img
-              src="/images/latebites-logo.jpg"
-              alt="Latebites Logo"
-              className={`w-8 h-8 md:w-10 md:h-10 object-contain mb-1 transition-all duration-300 ${useDarkText ? "mix-blend-multiply" : "invert mix-blend-screen"
-                }`}
-            />
-            <span className={`font-serif italic text-lg sm:text-xl md:text-2xl tracking-tighter ${textColor}`}>
-              Latebites
-            </span>
-          </Link>
-        </div>
+        <Link href="/#hero" className="flex items-center gap-2 pointer-events-auto cursor-pointer hover:opacity-80 transition-all duration-300">
+          <img
+            src="/images/latebites-logo.jpg"
+            alt="Latebites Logo"
+            className={`w-8 h-8 md:w-10 md:h-10 object-contain transition-all duration-300 ${useDarkText ? "mix-blend-multiply" : "invert mix-blend-screen"
+              }`}
+          />
+          <span className={`font-serif italic text-lg sm:text-xl md:text-2xl tracking-tighter ${textColor}`}>
+            Latebites
+          </span>
+        </Link>
 
         <div className="flex gap-4 sm:gap-6 md:gap-8 items-center pointer-events-auto">
           {user && customer ? (

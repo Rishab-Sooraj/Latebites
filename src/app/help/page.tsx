@@ -126,8 +126,8 @@ export default function HelpPage() {
                                         key={category}
                                         onClick={() => setSelectedCategory(category)}
                                         className={`px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${selectedCategory === category
-                                                ? "bg-foreground text-background"
-                                                : "border border-border hover:border-foreground/20"
+                                            ? "bg-foreground text-background"
+                                            : "border border-border hover:border-foreground/20"
                                             }`}
                                     >
                                         {category}
@@ -218,10 +218,10 @@ export default function HelpPage() {
                                         We'll respond within 24 hours
                                     </p>
                                     <a
-                                        href="mailto:support@latebites.com"
+                                        href="mailto:support@latebites.in"
                                         className="text-sm hover:opacity-70 transition-opacity"
                                     >
-                                        support@latebites.com
+                                        support@latebites.in
                                     </a>
                                 </div>
 
