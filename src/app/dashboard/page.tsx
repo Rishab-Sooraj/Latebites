@@ -3,10 +3,18 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ShoppingBag, Heart, TrendingUp, Leaf } from "lucide-react";
+import { ShoppingBag, Heart, TrendingUp, Leaf, Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
-    const { customer } = useAuth();
+    const { customer, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 pt-24 pb-12 px-4">

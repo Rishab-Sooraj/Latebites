@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { generateVerificationEmail, generateVerificationToken } from '@/lib/email-template';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Define Zod schema for validation
+const onboardingSchema = z.object({
+    restaurant_name: z.string().min(1, 'Restaurant name is required'),
+    contact_person: z.string().min(1, 'Contact person is required'),
+    email: z.string().email('Invalid email address'),
+    phone_number: z.string().min(10, 'Phone number must be at least 10 digits'),
+    city: z.string().min(1, 'City is required'),
+});
 
 // Helper function to get Resend client (lazy initialization)
 function getResendClient() {
@@ -31,24 +41,18 @@ export async function POST(request: NextRequest) {
         );
 
         const body = await request.json();
-        const { restaurant_name, contact_person, email, phone_number, city } = body;
 
-        // Validate required fields
-        if (!restaurant_name || !contact_person || !email || !phone_number || !city) {
+        // Validate input with Zod
+        const validationResult = onboardingSchema.safeParse(body);
+
+        if (!validationResult.success) {
             return NextResponse.json(
-                { error: 'All fields are required' },
+                { error: validationResult.error.errors[0].message },
                 { status: 400 }
             );
         }
 
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return NextResponse.json(
-                { error: 'Please enter a valid email address' },
-                { status: 400 }
-            );
-        }
+        const { restaurant_name, contact_person, email, phone_number, city } = validationResult.data;
 
         // Check for duplicate email
         const { data: existingEmail, error: checkError } = await supabaseAdmin
