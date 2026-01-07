@@ -54,7 +54,22 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    await supabase.auth.getUser()
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
+
+    // Protected routes
+    const protectedRoutes = ['/dashboard', '/profile', '/orders']
+    const isProtectedRoute = protectedRoutes.some((route) =>
+        request.nextUrl.pathname.startsWith(route)
+    )
+
+    if (isProtectedRoute && !user) {
+        const redirectUrl = request.nextUrl.clone()
+        redirectUrl.pathname = '/'
+        redirectUrl.searchParams.set('redirect', request.nextUrl.pathname)
+        return NextResponse.redirect(redirectUrl)
+    }
 
     return response
 }
