@@ -2,26 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Premium theme matching the web application's design system
-/// Colors: Deep earthy green + Orange accent (from design images)
+/// Colors: Vibrant Pink/Magenta (landing) + Deep earthy green (browse)
 /// Typography: Cormorant Garamond (serif) + Plus Jakarta Sans (sans-serif)
 class AppTheme {
-  // Color System - Matching web + mobile design images
+  // Color System - Matching mobile design reference
   static const Color background = Color(0xFFFAF9F7); // Warm off-white
   static const Color foreground = Color(0xFF262626); // Dark gray
   
-  // Primary - Deep earthy green
-  static const Color primary = Color(0xFF2D4A3E);
-  static const Color primaryForeground = Color(0xFFFAF9F7);
-  static const Color primaryLight = Color(0xFFE8EDE9);
+  // Primary - Vibrant Pink/Magenta (from reference image)
+  static const Color primary = Color(0xFFE91E63); // Hot Pink
+  static const Color primaryForeground = Color(0xFFFFFFFF);
+  static const Color primaryLight = Color(0xFFFCE4EC);
+  static const Color primaryDark = Color(0xFFC2185B);
+  
+  // Legacy Green (for restaurant cards, accents)
+  static const Color green = Color(0xFF2D4A3E);
+  static const Color greenLight = Color(0xFFE8EDE9);
   
   // Accent - Orange (for CTAs and highlights)
   static const Color orange = Color(0xFFFF6B35);
   static const Color orangeLight = Color(0xFFFFF5F2);
   static const Color orangeDark = Color(0xFFE55A28);
   
-  // Secondary - Light green
-  static const Color secondary = Color(0xFFE8EDE9);
-  static const Color secondaryForeground = Color(0xFF2D4A3E);
+  // Secondary - Light pink
+  static const Color secondary = Color(0xFFFCE4EC);
+  static const Color secondaryForeground = Color(0xFFE91E63);
   
   // Neutral
   static const Color muted = Color(0xFFF0EFED);

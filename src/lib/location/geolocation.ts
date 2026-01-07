@@ -37,9 +37,9 @@ export async function getCurrentLocation(): Promise<Coordinates> {
                 });
             },
             {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0,
+                enableHighAccuracy: false, // Use faster, less accurate location
+                timeout: 30000, // 30 seconds timeout
+                maximumAge: 60000, // Accept cached position up to 1 minute old
             }
         );
     });

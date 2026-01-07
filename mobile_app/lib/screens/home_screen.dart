@@ -384,11 +384,11 @@ class HomeScreen extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: AppTheme.spacingXl),
-          _buildBagCard('Small', 'Perfect for one', '50% off or more', 0),
+          _buildBagCard(context, 'Small', 'Perfect for one', '50% off or more', 0),
           const SizedBox(height: AppTheme.spacingMd),
-          _buildBagCard('Medium', 'Ideal for two', '50% off or more', 1),
+          _buildBagCard(context, 'Medium', 'Ideal for two', '50% off or more', 1),
           const SizedBox(height: AppTheme.spacingMd),
-          _buildBagCard('Large', 'Made for sharing', '50% off or more', 2),
+          _buildBagCard(context, 'Large', 'Made for sharing', '50% off or more', 2),
           const SizedBox(height: AppTheme.spacingXl),
           const RevealBody(
             text: 'Each calibrated to different appetites, different moments. But every bag carries the same guarantee: 50% off or more.',
@@ -398,7 +398,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
   
-  Widget _buildBagCard(String size, String description, String discount, int index) {
+  Widget _buildBagCard(BuildContext context, String size, String description, String discount, int index) {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       decoration: BoxDecoration(
@@ -469,17 +469,17 @@ class HomeScreen extends StatelessWidget {
             text: 'Latebites was born in Coimbatore from a shared observation by three friends. We believe technology should serve tradition, and innovation should protect dignity.',
           ),
           const SizedBox(height: AppTheme.spacing2xl),
-          _buildFounderCard('Rishab.S', 'Founder', 0),
+          _buildFounderCard(context, 'Rishab.S', 'Founder', 0),
           const SizedBox(height: AppTheme.spacingLg),
-          _buildFounderCard('Nimai Krishna', 'Founder', 1),
+          _buildFounderCard(context, 'Nimai Krishna', 'Founder', 1),
           const SizedBox(height: AppTheme.spacingLg),
-          _buildFounderCard('Nitishwar Murrgesh', 'Founder', 2),
+          _buildFounderCard(context, 'Nitishwar Murrgesh', 'Founder', 2),
         ],
       ),
     );
   }
   
-  Widget _buildFounderCard(String name, String role, int index) {
+  Widget _buildFounderCard(BuildContext context, String name, String role, int index) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

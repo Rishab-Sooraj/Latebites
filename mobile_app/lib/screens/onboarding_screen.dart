@@ -84,7 +84,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return AppTheme.border.withOpacity(0.2);
     }
     if (_fieldErrors[fieldName] != null) {
-      return AppTheme.destructive;
+      return AppTheme.error;
     }
     return Colors.green;
   }
@@ -286,13 +286,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Container(
                       padding: const EdgeInsets.all(AppTheme.spacingMd),
                       decoration: BoxDecoration(
-                        color: AppTheme.destructive.withOpacity(0.1),
-                        border: Border.all(color: AppTheme.destructive.withOpacity(0.2)),
+                        color: AppTheme.error.withOpacity(0.1),
+                        border: Border.all(color: AppTheme.error.withOpacity(0.2)),
                       ),
                       child: Text(
                         _errorMessage!,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.destructive,
+                              color: AppTheme.error,
                             ),
                       ),
                     )
@@ -366,14 +366,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             focusedBorder: UnderlineInputBorder(
               borderSide: BorderSide(
                 color: _fieldErrors[fieldName] != null
-                    ? AppTheme.destructive
+                    ? AppTheme.error
                     : AppTheme.primary,
                 width: 2,
               ),
             ),
             errorBorder: const UnderlineInputBorder(
               borderSide: BorderSide(
-                color: AppTheme.destructive,
+                color: AppTheme.error,
                 width: 2,
               ),
             ),
@@ -385,7 +385,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Text(
               _fieldErrors[fieldName]!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.destructive,
+                    color: AppTheme.error,
                   ),
             ),
           ),

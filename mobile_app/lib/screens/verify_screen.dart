@@ -77,7 +77,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     Icon(
                       _isSuccess ? Icons.check_circle_outline : Icons.error_outline,
                       size: 80,
-                      color: _isSuccess ? Colors.green : AppTheme.destructive,
+                      color: _isSuccess ? Colors.green : AppTheme.error,
                     )
                         .animate()
                         .fadeIn(duration: AppTheme.slowAnimation)

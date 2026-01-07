@@ -34,23 +34,6 @@ function HomePageContent() {
     }
   }, [searchParams, user, authLoading, router]);
 
-  // Handle OAuth callback when Supabase redirects to homepage with ?code=
-  useEffect(() => {
-    const code = searchParams.get('code');
-    if (code) {
-      // Exchange the code for a session
-      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
-        if (error) {
-          console.error('Error exchanging code for session:', error);
-          router.push('/?auth_error=true');
-        } else {
-          // Clear the URL and redirect to browse
-          router.replace('/browse');
-        }
-      });
-    }
-  }, [searchParams, supabase.auth, router]);
-
   // Form state management
   const [formData, setFormData] = useState({
     restaurant_name: "",
