@@ -14,8 +14,6 @@ import { createClient } from "@/lib/supabase/client";
 import AuthModal from "@/components/AuthModal";
 
 import { Header } from "@/components/Header";
-import "./3d-effects.css";
-import "./premium-animations.css";
 
 function HomePageContent() {
   const router = useRouter();

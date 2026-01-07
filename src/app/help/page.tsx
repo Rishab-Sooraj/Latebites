@@ -1,10 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Mail, Phone, MessageCircle, Search, HelpCircle, ArrowLeft, Sparkles, LifeBuoy, Zap, Shield, Headphones } from "lucide-react";
+import { ChevronDown, Mail, Phone, MessageCircle, Search, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
-import { Header } from "@/components/Header";
 
 interface FAQItem {
     question: string;
@@ -14,33 +13,48 @@ interface FAQItem {
 
 const faqs: FAQItem[] = [
     {
-        category: "Rescue Missions",
-        question: "How do I initiate a rescue mission?",
-        answer: "Browse active rescue bags in the 'Deployment' section, select your target bag, and commit to the rescue. You'll receive a digital manifest with precise pickup coordinates and timing.",
+        category: "Orders & Payments",
+        question: "How do I place an order for a rescue bag?",
+        answer: "Browse available rescue bags in the 'Browse' section, select the bag you want, and proceed to checkout. You'll receive a confirmation with pickup details once your order is confirmed.",
     },
     {
-        category: "Rescue Missions",
-        question: "What is a Rescue Bag?",
-        answer: "A rescue bag contains high-quality surplus food from artisanal kitchens that would otherwise be lost. By rescuing it, you're preventing waste and securing a premium meal at a 50% discount.",
+        category: "Orders & Payments",
+        question: "What payment methods do you accept?",
+        answer: "We accept all major credit/debit cards, UPI, and digital wallets. All payments are processed securely through our payment gateway.",
     },
     {
-        category: "Logistics",
-        question: "When should I arrive for pickup?",
-        answer: "Each mission has a strict pickup window, typically during the final hours of the kitchen's operation. Please arrive within this window to ensure a smooth handover.",
+        category: "Rescue Bags",
+        question: "What is a rescue bag?",
+        answer: "A rescue bag is surplus food from restaurants that would otherwise go to waste. You get quality food at a discounted price while helping reduce food waste!",
     },
     {
-        category: "Protocols",
-        question: "Can I cancel a committed rescue?",
-        answer: "Commitments can be rescinded up to 2 hours before the pickup window begins. This allows other rescuers to be deployed. Late cancellations disrupt the zero-waste ecosystem.",
+        category: "Rescue Bags",
+        question: "When can I pick up my rescue bag?",
+        answer: "Pickup times vary by restaurant. You'll see the available pickup window when browsing bags. Most pickups are during closing hours (8-10 PM).",
     },
     {
-        category: "Security",
-        question: "Is my data protected?",
-        answer: "Your identity and communication lines are protected by end-to-end encryption protocols. We only share necessary deployment data with restaurant partners.",
+        category: "Refunds & Cancellations",
+        question: "Can I cancel my order?",
+        answer: "You can cancel your order up to 2 hours before the pickup time for a full refund. After that, cancellations may not be eligible for refunds.",
+    },
+    {
+        category: "Refunds & Cancellations",
+        question: "How long do refunds take?",
+        answer: "Refunds are processed within 5-7 business days and will be credited to your original payment method.",
+    },
+    {
+        category: "Account & Profile",
+        question: "How do I update my profile information?",
+        answer: "Go to 'My Profile' from your dashboard to update your name, phone number, and other account details.",
+    },
+    {
+        category: "Technical Issues",
+        question: "The app is not working properly. What should I do?",
+        answer: "Try refreshing the page or clearing your browser cache. If the issue persists, contact our support team with details about the problem.",
     },
 ];
 
-const categories = ["All", "Rescue Missions", "Logistics", "Protocols", "Security"];
+const categories = ["All", "Orders & Payments", "Rescue Bags", "Refunds & Cancellations", "Account & Profile", "Technical Issues"];
 
 export default function HelpPage() {
     const [selectedCategory, setSelectedCategory] = useState("All");
@@ -55,219 +69,212 @@ export default function HelpPage() {
     });
 
     return (
-        <div className="relative min-h-screen bg-[#FEFCF9] selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
-            <Header />
+        <div className="min-h-screen bg-background">
+            {/* Hero Section - Minimalist */}
+            <section className="border-b border-border">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                        className="max-w-3xl mx-auto text-center"
+                    >
+                        <HelpCircle className="w-6 h-6 mx-auto mb-6 text-muted-foreground" />
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-light leading-tight mb-6">
+                            How can we help you?
+                        </h1>
+                        <p className="text-lg md:text-xl text-muted-foreground font-light leading-relaxed">
+                            Find answers to common questions or get in touch with our support team
+                        </p>
+                    </motion.div>
+                </div>
+            </section>
 
-            {/* Premium Dynamic Background */}
-            <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+                {/* Search Bar - Minimal */}
                 <motion.div
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.15, 0.25, 0.15] }}
-                    transition={{ duration: 25, repeat: Infinity }}
-                    className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] rounded-full bg-gradient-to-br from-primary/10 via-orange-400/5 to-transparent blur-[120px]"
-                />
-                <motion.div
-                    animate={{ scale: [1.2, 1, 1.2], opacity: [0.1, 0.2, 0.1] }}
-                    transition={{ duration: 30, repeat: Infinity }}
-                    className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] rounded-full bg-gradient-to-tl from-emerald-500/5 via-teal-400/5 to-transparent blur-[120px]"
-                />
-            </div>
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="max-w-2xl mx-auto mb-16"
+                >
+                    <div className="relative">
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <input
+                            type="text"
+                            placeholder="Search for help..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-12 pr-4 py-4 border border-border focus:outline-none focus:border-foreground/20 transition-colors bg-background text-foreground"
+                        />
+                    </div>
+                </motion.div>
 
-            <main className="pt-32 pb-24 relative px-4 sm:px-6 lg:px-12">
-                <div className="max-w-7xl mx-auto">
-                    {/* Page Header */}
-                    <div className="max-w-3xl mb-20">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
+                    {/* FAQ Section */}
+                    <div className="lg:col-span-2">
+                        {/* Category Filters - Minimal */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="space-y-6"
+                            transition={{ delay: 0.3 }}
+                            className="mb-12"
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center shadow-xl">
-                                    <LifeBuoy className="w-5 h-5" />
-                                </div>
-                                <p className="text-[10px] uppercase tracking-[0.4em] font-black text-primary">Latebites Concierge</p>
-                            </div>
-                            <h1 className="text-5xl md:text-7xl font-serif leading-tight">Protocol <span className="italic">Assistance</span></h1>
-                            <p className="text-muted-foreground font-light text-xl tracking-wide leading-relaxed">
-                                Access deployment guides, mission protocols, and direct communication lines with Latebites HQ.
-                            </p>
-                        </motion.div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
-                        {/* FAQ Section */}
-                        <div className="lg:col-span-8 space-y-12">
-                            {/* Search & Filter */}
-                            <div className="space-y-8">
-                                <div className="relative group">
-                                    <div className="absolute -inset-1 bg-primary/10 rounded-[32px] blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
-                                    <div className="relative bg-white border border-primary/5 rounded-[32px] shadow-xl shadow-black/[0.02] p-2 flex items-center">
-                                        <div className="flex-1 flex items-center px-6 py-4">
-                                            <Search className="w-5 h-5 text-muted-foreground/30 mr-4 group-focus-within:text-primary transition-colors" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search mission protocols..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="bg-transparent border-none focus:ring-0 focus:outline-none w-full text-lg placeholder:text-muted-foreground/40 font-light"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2">
-                                    {categories.map((category) => (
-                                        <button
-                                            key={category}
-                                            onClick={() => setSelectedCategory(category)}
-                                            className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
-                                                selectedCategory === category
-                                                ? "bg-black text-white shadow-xl shadow-black/10"
-                                                : "bg-white border border-primary/5 text-muted-foreground hover:border-primary/20"
+                            <div className="flex flex-wrap gap-3">
+                                {categories.map((category) => (
+                                    <button
+                                        key={category}
+                                        onClick={() => setSelectedCategory(category)}
+                                        className={`px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${selectedCategory === category
+                                            ? "bg-foreground text-background"
+                                            : "border border-border hover:border-foreground/20"
                                             }`}
-                                        >
-                                            {category}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* FAQ Accordion */}
-                            <div className="space-y-4">
-                                {filteredFAQs.map((faq, index) => (
-                                    <motion.div
-                                        key={index}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="bg-white rounded-[32px] border border-primary/5 overflow-hidden group hover:border-primary/20 transition-all duration-500"
                                     >
-                                        <button
-                                            onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
-                                            className="w-full p-8 text-left flex items-start justify-between gap-6"
-                                        >
-                                            <div className="flex-1">
-                                                <p className="text-[9px] uppercase tracking-[0.3em] font-black text-primary mb-3">{faq.category}</p>
-                                                <h3 className="text-xl font-serif group-hover:translate-x-1 transition-transform duration-500">{faq.question}</h3>
-                                            </div>
-                                            <div className={`w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center transition-all duration-500 ${expandedFAQ === index ? 'rotate-180 bg-black text-white' : ''}`}>
-                                                <ChevronDown className="w-5 h-5" />
-                                            </div>
-                                        </button>
-
-                                        <AnimatePresence>
-                                            {expandedFAQ === index && (
-                                                <motion.div
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: "auto", opacity: 1 }}
-                                                    exit={{ height: 0, opacity: 0 }}
-                                                    className="px-8 pb-8"
-                                                >
-                                                    <div className="h-px bg-gray-50 mb-6" />
-                                                    <p className="text-muted-foreground font-light leading-relaxed text-lg tracking-wide">
-                                                        {faq.answer}
-                                                    </p>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </motion.div>
+                                        {category}
+                                    </button>
                                 ))}
                             </div>
-                        </div>
+                        </motion.div>
 
-                        {/* Contact Section */}
-                        <div className="lg:col-span-4 space-y-8">
-                            <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.3 }}
-                                className="bg-black text-white rounded-[40px] p-10 shadow-2xl relative overflow-hidden group"
-                            >
-                                <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-4 -translate-y-4">
-                                    <Zap className="w-24 h-24" />
-                                </div>
-                                
-                                <div className="relative z-10 space-y-8">
-                                    <div>
-                                        <h2 className="text-3xl font-serif mb-2">Direct Intelligence</h2>
-                                        <p className="text-white/60 font-light text-sm tracking-wide">Escalate your inquiry to our support squadron.</p>
-                                    </div>
-
-                                    <div className="space-y-6">
-                                        <a href="mailto:support@latebites.in" className="flex items-center gap-5 group/link">
-                                            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover/link:bg-primary transition-colors">
-                                                <Mail className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[9px] uppercase tracking-[0.3em] font-black text-white/40">Secure Email</p>
-                                                <p className="text-sm font-bold">support@latebites.in</p>
-                                            </div>
-                                        </a>
-
-                                        <a href="tel:+911234567890" className="flex items-center gap-5 group/link">
-                                            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover/link:bg-primary transition-colors">
-                                                <Phone className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[9px] uppercase tracking-[0.3em] font-black text-white/40">Dispatch Hotline</p>
-                                                <p className="text-sm font-bold">+91 123 456 7890</p>
-                                            </div>
-                                        </a>
-
-                                        <a href="https://wa.me/911234567890" target="_blank" rel="noopener noreferrer" className="flex items-center gap-5 group/link">
-                                            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover/link:bg-primary transition-colors">
-                                                <MessageCircle className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[9px] uppercase tracking-[0.3em] font-black text-white/40">Instant Dispatch</p>
-                                                <p className="text-sm font-bold">Start WhatsApp Chat</p>
-                                            </div>
-                                        </a>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-white/10">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                            <p className="text-[10px] uppercase tracking-[0.2em] font-black text-white/60">Agents Online: Mon-Sat</p>
+                        {/* FAQ List - Minimal */}
+                        <div className="space-y-6">
+                            {filteredFAQs.map((faq, index) => (
+                                <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 + index * 0.05 }}
+                                    className="border-b border-border"
+                                >
+                                    <button
+                                        onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
+                                        className="w-full py-6 text-left flex items-start justify-between gap-4 hover:opacity-70 transition-opacity"
+                                    >
+                                        <div className="flex-1">
+                                            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                                                {faq.category}
+                                            </p>
+                                            <h3 className="text-lg md:text-xl font-serif font-light">
+                                                {faq.question}
+                                            </h3>
                                         </div>
-                                    </div>
-                                </div>
-                            </motion.div>
+                                        <motion.div
+                                            animate={{ rotate: expandedFAQ === index ? 180 : 0 }}
+                                            transition={{ duration: 0.3 }}
+                                        >
+                                            <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                                        </motion.div>
+                                    </button>
 
-                            {/* Trust Badge */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5 }}
-                                className="bg-white rounded-[32px] border border-primary/5 p-8 flex items-center gap-6"
-                            >
-                                <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center">
-                                    <Shield className="w-6 h-6 text-primary" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold text-gray-900">Encrypted Protection</p>
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Privacy is our baseline protocol</p>
-                                </div>
-                            </motion.div>
+                                    <AnimatePresence>
+                                        {expandedFAQ === index && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.3 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="pb-6 text-muted-foreground font-light leading-relaxed">
+                                                    {faq.answer}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.div>
+                            ))}
                         </div>
-                    </div>
-                </div>
-            </main>
 
-            {/* Footer */}
-            <footer className="py-12 px-10 border-t border-primary/5 bg-white/30 backdrop-blur-md">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-serif text-sm">L</div>
-                        <p className="text-[11px] uppercase tracking-[0.3em] font-black text-black">Latebites <span className="text-muted-foreground font-light ml-2">Manifesto 2024</span></p>
+                        {filteredFAQs.length === 0 && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="text-center py-16"
+                            >
+                                <p className="text-muted-foreground font-light">
+                                    No results found. Try a different search or category.
+                                </p>
+                            </motion.div>
+                        )}
                     </div>
-                    <div className="flex gap-8">
-                        <Link href="/orders" className="text-[10px] uppercase tracking-[0.2em] font-bold hover:text-primary transition-colors">Archive</Link>
-                        <Link href="/profile" className="text-[10px] uppercase tracking-[0.2em] font-bold hover:text-primary transition-colors">Security Manual</Link>
+
+                    {/* Contact Section - Minimal */}
+                    <div className="space-y-12">
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.5 }}
+                        >
+                            <h2 className="text-2xl md:text-3xl font-serif font-light mb-8">
+                                Still need help?
+                            </h2>
+
+                            <div className="space-y-8">
+                                {/* Email Support */}
+                                <div className="border-b border-border pb-6">
+                                    <Mail className="w-5 h-5 text-muted-foreground mb-3" />
+                                    <h3 className="text-lg font-serif font-light mb-2">Email Us</h3>
+                                    <p className="text-sm text-muted-foreground font-light mb-3">
+                                        We'll respond within 24 hours
+                                    </p>
+                                    <a
+                                        href="mailto:support@latebites.in"
+                                        className="text-sm hover:opacity-70 transition-opacity"
+                                    >
+                                        support@latebites.in
+                                    </a>
+                                </div>
+
+                                {/* Phone Support */}
+                                <div className="border-b border-border pb-6">
+                                    <Phone className="w-5 h-5 text-muted-foreground mb-3" />
+                                    <h3 className="text-lg font-serif font-light mb-2">Call Us</h3>
+                                    <p className="text-sm text-muted-foreground font-light mb-3">
+                                        Mon-Sat, 9 AM - 9 PM
+                                    </p>
+                                    <a
+                                        href="tel:+911234567890"
+                                        className="text-sm hover:opacity-70 transition-opacity"
+                                    >
+                                        +91 123 456 7890
+                                    </a>
+                                </div>
+
+                                {/* WhatsApp Support */}
+                                <div className="pb-6">
+                                    <MessageCircle className="w-5 h-5 text-muted-foreground mb-3" />
+                                    <h3 className="text-lg font-serif font-light mb-2">WhatsApp</h3>
+                                    <p className="text-sm text-muted-foreground font-light mb-3">
+                                        Chat with us instantly
+                                    </p>
+                                    <a
+                                        href="https://wa.me/911234567890"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm hover:opacity-70 transition-opacity"
+                                    >
+                                        Start Chat →
+                                    </a>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Back to Dashboard */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.6 }}
+                        >
+                            <Link
+                                href="/customer/dashboard"
+                                className="block border border-border hover:border-foreground/20 transition-colors p-6 text-center text-sm uppercase tracking-[0.2em]"
+                            >
+                                ← Back to Dashboard
+                            </Link>
+                        </motion.div>
                     </div>
-                    <p className="text-[10px] text-muted-foreground/60 tracking-widest uppercase">Secured by Latebites Intelligence</p>
                 </div>
-            </footer>
+            </div>
         </div>
     );
 }

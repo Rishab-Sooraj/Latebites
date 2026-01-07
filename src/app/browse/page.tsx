@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentLocation, formatDistance, type Coordinates } from "@/lib/location/geolocation";
-import { MapPin, Search, Clock, X, Navigation, Loader2, ArrowRight, ShoppingBag, Timer, ChevronRight, User, Utensils, Flame, Map, Filter, Bell, Heart, History } from "lucide-react";
+import { MapPin, Search, Clock, X, Navigation, Loader2, ArrowRight, ShoppingBag, Timer, ChevronRight, User, Utensils, Star, Flame, Map, Filter, Bell, Heart, History } from "lucide-react";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
@@ -60,6 +60,8 @@ export default function BrowsePage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
+    const [orders, setOrders] = useState<any[]>([]);
+    const [ordersLoading, setOrdersLoading] = useState(true);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
     const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -70,6 +72,37 @@ export default function BrowsePage() {
             router.push('/?auth=customer');
         }
     }, [authLoading, user, router]);
+
+    const fetchOrders = useCallback(async () => {
+        if (!customer?.id) {
+            setOrdersLoading(false);
+            return;
+        }
+        try {
+            const { data, error } = await supabase
+                .from("orders")
+                .select(`*, rescue_bags (*), restaurants (*)`)
+                .eq("customer_id", customer.id)
+                .order("created_at", { ascending: false })
+                .limit(3);
+
+            if (error) throw error;
+            setOrders(data || []);
+        } catch (error) {
+            console.error("Error fetching orders:", error);
+        } finally {
+            setOrdersLoading(false);
+        }
+    }, [customer?.id, supabase]);
+
+    useEffect(() => {
+        if (customer) {
+            fetchOrders();
+        } else if (!authLoading) {
+            // If auth is finished and we have no customer profile, stop loading
+            setOrdersLoading(false);
+        }
+    }, [customer, user, authLoading, fetchOrders]);
 
     const fetchNearbyRestaurants = useCallback(async (coords: Coordinates) => {
         setLoading(true);
@@ -93,6 +126,7 @@ export default function BrowsePage() {
             setRestaurants(data.restaurants || []);
         } catch (error: any) {
             console.error("Error fetching nearby restaurants:", error);
+            // Don't toast error if it's just no restaurants found
             if (!error.message.includes("Failed to fetch")) {
                 toast.error(error.message || "Failed to load restaurants");
             }
@@ -120,6 +154,7 @@ export default function BrowsePage() {
     useEffect(() => {
         if (!user || authLoading) return;
 
+        // Set a maximum wait time for location
         const locationTimeout = setTimeout(() => {
             if (loading && !userLocation) {
                 setLoading(false);
@@ -140,6 +175,7 @@ export default function BrowsePage() {
                 console.error("Location error:", error);
                 setLocationError(error.message);
                 setLoading(false);
+                // If it's the initial load and location fails, show modal
                 if (!userLocation) {
                     setShowLocationModal(true);
                 }
@@ -231,6 +267,16 @@ export default function BrowsePage() {
         return `${formatTime(start)} - ${formatTime(end)}`;
     };
 
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'pending': return 'bg-amber-500/20 text-amber-600 border-amber-500/30';
+            case 'confirmed': return 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30';
+            case 'completed': return 'bg-blue-500/20 text-blue-600 border-blue-500/30';
+            case 'cancelled': return 'bg-red-500/20 text-red-600 border-red-500/30';
+            default: return 'bg-primary/20 text-primary border-primary/30';
+        }
+    };
+
     return (
         <div className="relative min-h-screen bg-[#FEFCF9] selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
             <Toaster />
@@ -258,67 +304,174 @@ export default function BrowsePage() {
                     transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
                     className="absolute bottom-[-15%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-tl from-emerald-500/10 via-teal-400/8 to-transparent blur-[120px]"
                 />
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] mix-blend-overlay" />
             </div>
 
             <main className="pt-24 md:pt-32 pb-24 relative">
-                {/* Search & Filter Bar Section */}
-                <section className="px-4 sm:px-6 lg:px-12 mb-12 relative z-40">
+                {/* Dashboard Header */}
+                <section className="px-4 sm:px-6 lg:px-12 mb-10">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                            {/* Left: Identity & Location */}
+                            <div className="lg:col-span-7 space-y-8">
+                                <motion.div
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="flex items-center gap-5"
+                                >
+                                    <div className="relative">
+                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-orange-500 to-amber-500 flex items-center justify-center text-white font-serif text-2xl shadow-2xl shadow-primary/20">
+                                            {customer?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'R'}
+                                        </div>
+                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg">
+                                            <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h1 className="text-3xl md:text-4xl font-serif font-light tracking-tight">
+                                            Bonjour, <span className="italic">{customer?.name?.split(" ")[0] || user?.email?.split("@")[0].split(".")[0] || "Rescuer"}</span>
+                                        </h1>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="flex flex-wrap gap-3"
+                                >
+                                    <button
+                                        onClick={() => setShowLocationModal(true)}
+                                        className="group flex items-center gap-3 px-6 py-3 bg-white border border-primary/10 rounded-2xl hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
+                                    >
+                                        <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <MapPin className="w-4 h-4 text-primary" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-[9px] uppercase tracking-widest text-muted-foreground leading-none mb-1">Current Location</p>
+                                            <p className="text-sm font-medium truncate max-w-[180px]">
+                                                {locationName || "Detecting location..."}
+                                            </p>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                </motion.div>
+                            </div>
+
+                            {/* Right: Quick Stats/Orders Glass Card */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className="lg:col-span-5"
+                            >
+                                <div className="bg-white/40 backdrop-blur-2xl border border-white/40 rounded-[32px] p-6 shadow-2xl shadow-black/[0.03] relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-8 opacity-5 transform translate-x-4 -translate-y-4">
+                                        <ShoppingBag className="w-32 h-32" />
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between mb-6 relative z-10">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center text-white">
+                                                <History className="w-5 h-5" />
+                                            </div>
+                                            <h3 className="font-serif text-lg">Recent Rescues</h3>
+                                        </div>
+                                        <Link 
+                                            href="/orders" 
+                                            className="text-[10px] uppercase tracking-[0.2em] font-bold text-primary hover:tracking-[0.3em] transition-all flex items-center gap-2"
+                                        >
+                                            View Archive <ArrowRight className="w-3 h-3" />
+                                        </Link>
+                                    </div>
+
+                                    <div className="space-y-3 relative z-10">
+                                        {ordersLoading ? (
+                                            <div className="h-24 flex items-center justify-center">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Loading Activity</p>
+                                                </div>
+                                            </div>
+                                        ) : orders.length > 0 ? (
+                                            orders.slice(0, 2).map((order) => (
+                                                <Link
+                                                    key={order.id}
+                                                    href={`/orders/${order.id}`}
+                                                    className="flex items-center gap-4 p-3.5 rounded-2xl bg-white/60 hover:bg-white hover:shadow-lg transition-all duration-300 group/item"
+                                                >
+                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary/80 to-secondary/40 flex items-center justify-center overflow-hidden">
+                                                        {order.restaurants?.profile_image_url ? (
+                                                            <img src={order.restaurants.profile_image_url} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Utensils className="w-5 h-5 text-primary/40" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold truncate group-hover/item:text-primary transition-colors">{order.rescue_bags?.title}</p>
+                                                        <p className="text-[11px] text-muted-foreground truncate">{order.restaurants?.name}</p>
+                                                    </div>
+                                                    <div className="text-right flex flex-col items-end gap-1">
+                                                        <p className="text-sm font-bold">₹{order.total_price}</p>
+                                                        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${getStatusColor(order.status)}`}>
+                                                            {order.status}
+                                                        </span>
+                                                    </div>
+                                                </Link>
+                                            ))
+                                        ) : (
+                                            <div className="py-8 flex flex-col items-center justify-center text-center bg-white/30 rounded-2xl border border-dashed border-primary/20">
+                                                <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center mb-3">
+                                                    <ShoppingBag className="w-6 h-6 text-primary/20" />
+                                                </div>
+                                                <p className="text-xs text-muted-foreground font-light px-6">
+                                                    Your rescue journey hasn't started yet. <br />
+                                                    <span className="text-primary font-medium">Bags are waiting nearby!</span>
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Search & Filter Bar */}
+                <section className="px-4 sm:px-6 lg:px-12 mb-12 sticky top-20 z-40">
                     <div className="max-w-7xl mx-auto">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="space-y-6"
+                            transition={{ delay: 0.4 }}
+                            className="flex flex-col md:flex-row gap-4"
                         >
-                            <div className="flex flex-col md:flex-row items-end justify-between gap-6">
-                                <div className="space-y-2">
-                                    <p className="text-[10px] uppercase tracking-[0.4em] text-primary font-black ml-1">Bonjour, {customer?.name?.split(" ")[0] || "Rescuer"}</p>
-                                    <h1 className="text-4xl md:text-5xl font-serif leading-tight">What are we <span className="italic">rescuing</span> today?</h1>
-                                </div>
-                                <button
-                                    onClick={() => setShowLocationModal(true)}
-                                    className="group flex items-center gap-3 px-6 py-3 bg-white border border-primary/10 rounded-2xl hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
-                                >
-                                    <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <MapPin className="w-4 h-4 text-primary" />
+                            <div className="flex-1 relative group">
+                                <div className="absolute inset-0 bg-primary/20 blur-2xl opacity-0 group-focus-within:opacity-30 transition-opacity duration-500" />
+                                <div className="relative bg-white border border-primary/10 rounded-2xl shadow-xl shadow-black/5 p-2 flex items-center">
+                                    <div className="flex-1 flex items-center px-4 py-3">
+                                        <Search className="w-5 h-5 text-muted-foreground/30 mr-4 group-focus-within:text-primary group-focus-within:scale-110 transition-all duration-300" />
+                                        <input
+                                            type="text"
+                                            placeholder="Crave something? Search restaurants..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="bg-transparent border-none focus:ring-0 focus:outline-none w-full text-base placeholder:text-muted-foreground/40 font-light"
+                                        />
                                     </div>
-                                    <div className="text-left">
-                                        <p className="text-[9px] uppercase tracking-widest text-muted-foreground leading-none mb-1">Current Target</p>
-                                        <p className="text-sm font-medium truncate max-w-[180px]">
-                                            {locationName || "Detecting..."}
-                                        </p>
-                                    </div>
-                                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                                </button>
-                            </div>
-
-                            <div className="flex flex-col md:flex-row gap-4">
-                                <div className="flex-1 relative group">
-                                    <div className="absolute inset-0 bg-primary/20 blur-2xl opacity-0 group-focus-within:opacity-30 transition-opacity duration-500" />
-                                    <div className="relative bg-white border border-primary/10 rounded-2xl shadow-xl shadow-black/5 p-2 flex items-center">
-                                        <div className="flex-1 flex items-center px-4 py-3">
-                                            <Search className="w-5 h-5 text-muted-foreground/30 mr-4 group-focus-within:text-primary group-focus-within:scale-110 transition-all duration-300" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search restaurants, cuisines..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="bg-transparent border-none focus:ring-0 focus:outline-none w-full text-base placeholder:text-muted-foreground/40 font-light"
-                                            />
-                                        </div>
-                                        <div className="hidden md:flex items-center gap-4 pr-3">
-                                            <div className="h-10 w-px bg-primary/10" />
-                                            <div className="flex items-center gap-3 px-5 py-2.5 bg-black rounded-xl shadow-lg text-white">
-                                                <Flame className="w-4 h-4 text-orange-500" />
-                                                <span className="text-xs font-bold uppercase tracking-wider">{filteredRestaurants.length} Available</span>
-                                            </div>
+                                    <div className="hidden md:flex items-center gap-4 pr-3">
+                                        <div className="h-10 w-px bg-primary/10" />
+                                        <div className="flex items-center gap-3 px-5 py-2.5 bg-gradient-to-r from-primary to-orange-500 rounded-xl shadow-lg shadow-primary/20 text-white">
+                                            <Flame className="w-4 h-4" />
+                                            <span className="text-xs font-bold uppercase tracking-wider">{filteredRestaurants.length} Active Rescues</span>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <button className="md:w-14 h-14 bg-white border border-primary/10 rounded-2xl flex items-center justify-center hover:bg-black hover:text-white transition-all duration-300 shadow-lg shadow-black/5">
-                                    <Filter className="w-5 h-5" />
-                                </button>
                             </div>
+                            
+                            <button className="md:w-14 h-14 bg-white border border-primary/10 rounded-2xl flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300 shadow-lg shadow-black/5">
+                                <Filter className="w-5 h-5" />
+                            </button>
                         </motion.div>
                     </div>
                 </section>
@@ -372,24 +525,24 @@ export default function BrowsePage() {
                                             <Map className="w-10 h-10 text-primary/40" />
                                         </div>
                                     </div>
-                                    <h3 className="text-3xl md:text-4xl font-serif mb-4">A bit quiet here</h3>
+                                    <h3 className="text-3xl md:text-4xl font-serif mb-4">A bit quiet in this area</h3>
                                     <p className="text-muted-foreground font-light mb-12 max-w-lg mx-auto text-lg leading-relaxed">
-                                        We couldn't find any active rescue bags within <span className="text-primary font-medium">7km</span> of your location. Try re-scanning or changing target.
+                                        We couldn't find any active rescue bags within <span className="text-primary font-medium">7 kilometers</span> of your current location. Let's try another spot?
                                     </p>
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                         <button
                                             onClick={() => setShowLocationModal(true)}
-                                            className="inline-flex items-center justify-center gap-3 px-10 py-5 bg-black text-white text-[11px] uppercase tracking-[0.3em] font-bold rounded-2xl hover:bg-primary transition-all duration-500 active:scale-95"
+                                            className="inline-flex items-center justify-center gap-3 px-10 py-5 bg-black text-white text-[11px] uppercase tracking-[0.3em] font-bold rounded-2xl hover:bg-primary hover:shadow-2xl hover:shadow-primary/30 transition-all duration-500 active:scale-95"
                                         >
                                             <MapPin className="w-4 h-4" />
-                                            Change Target
+                                            Change Target Area
                                         </button>
                                         <button
                                             onClick={handleRefreshLocation}
                                             className="inline-flex items-center justify-center gap-3 px-10 py-5 bg-white border border-black/10 text-black text-[11px] uppercase tracking-[0.3em] font-bold rounded-2xl hover:bg-secondary transition-all duration-500"
                                         >
                                             <Navigation className="w-4 h-4" />
-                                            Re-scan
+                                            Re-scan Current
                                         </button>
                                     </div>
                                 </div>
@@ -407,24 +560,32 @@ export default function BrowsePage() {
                                             href={`/restaurant/${restaurant.id}`}
                                             className="group block bg-white rounded-[32px] border border-primary/5 hover:border-primary/20 transition-all duration-700 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:-translate-y-2 relative"
                                         >
+                                            {/* Card Image Wrapper */}
                                             <div className="aspect-[14/10] relative overflow-hidden">
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
+                                                
+                                                {/* Hover Zoom Image */}
                                                 <motion.img 
                                                     src={restaurant.cover_image_url || "/images/hero-indian-food.png"} 
                                                     alt={restaurant.name}
                                                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                                                 />
-                                                <div className="absolute top-5 left-5 z-20">
+
+                                                {/* Top Badges */}
+                                                <div className="absolute top-5 left-5 z-20 flex flex-col gap-2">
                                                     <div className="px-4 py-2 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-500 text-white text-[10px] uppercase tracking-[0.2em] font-black rounded-xl shadow-2xl">
                                                         50% OFF MIN.
                                                     </div>
                                                 </div>
+                                                
                                                 <div className="absolute top-5 right-5 z-20">
                                                     <div className="px-4 py-2 bg-white/95 backdrop-blur-md text-[11px] font-bold rounded-xl shadow-2xl flex items-center gap-2">
                                                         <Navigation className="w-3.5 h-3.5 text-primary" />
                                                         {formatDistance(restaurant.distance_km)}
                                                     </div>
                                                 </div>
+
+                                                {/* Restaurant Title Info Overlay */}
                                                 <div className="absolute bottom-6 left-6 right-6 z-20">
                                                     <h3 className="text-2xl md:text-3xl font-serif text-white mb-2 leading-tight group-hover:translate-x-2 transition-transform duration-500">
                                                         {restaurant.name}
@@ -438,6 +599,7 @@ export default function BrowsePage() {
                                                 </div>
                                             </div>
 
+                                            {/* Footer Content */}
                                             <div className="p-7">
                                                 <div className="flex items-center justify-between">
                                                     <div className="space-y-3">
@@ -448,14 +610,15 @@ export default function BrowsePage() {
                                                             </span>
                                                         </div>
                                                         <div className="flex -space-x-2">
-                                                            {[1, 2].map(i => (
+                                                            {[1, 2, 3].map(i => (
                                                                 <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-secondary flex items-center justify-center">
                                                                     <User className="w-3 h-3 text-muted-foreground" />
                                                                 </div>
                                                             ))}
-                                                            <span className="ml-4 text-[10px] text-muted-foreground font-medium self-center">+12 others rescued here</span>
+                                                            <span className="ml-4 text-[10px] text-muted-foreground font-medium self-center">+12 others rescued here today</span>
                                                         </div>
                                                     </div>
+                                                    
                                                     <div className="relative">
                                                         <div className="absolute inset-0 bg-primary/20 blur-xl group-hover:opacity-100 opacity-0 transition-opacity duration-500" />
                                                         <div className="relative w-14 h-14 rounded-[20px] bg-black text-white flex items-center justify-center group-hover:bg-primary transition-all duration-500">
@@ -473,7 +636,7 @@ export default function BrowsePage() {
                 </section>
             </main>
 
-            {/* Location Modal */}
+            {/* Location Modal - Premium Redesign */}
             <AnimatePresence>
                 {showLocationModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -491,6 +654,7 @@ export default function BrowsePage() {
                             transition={{ type: "spring", damping: 30, stiffness: 400 }}
                             className="relative w-full max-w-lg bg-white rounded-[40px] p-10 shadow-2xl overflow-hidden"
                         >
+                            {/* Decorative element */}
                             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary via-orange-500 to-emerald-500" />
                             
                             <div className="flex justify-between items-start mb-10">
@@ -501,7 +665,7 @@ export default function BrowsePage() {
                                         </div>
                                         <h3 className="text-3xl font-serif">Deployment Area</h3>
                                     </div>
-                                    <p className="text-muted-foreground font-light text-base tracking-wide">Enter coordinates to find active rescues.</p>
+                                    <p className="text-muted-foreground font-light text-base tracking-wide">Enter your coordinates to find active rescues.</p>
                                 </div>
                                 <button
                                     onClick={() => setShowLocationModal(false)}
@@ -541,7 +705,7 @@ export default function BrowsePage() {
                                         <div className="w-full border-t border-secondary"></div>
                                     </div>
                                     <div className="relative flex justify-center">
-                                        <span className="bg-white px-6 text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-black">Scanning frequency</span>
+                                        <span className="bg-white px-6 text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-black">Scanning Frequency</span>
                                     </div>
                                 </div>
 
@@ -558,6 +722,10 @@ export default function BrowsePage() {
                                     )}
                                     <span>Sync Current Location</span>
                                 </button>
+                                
+                                <p className="text-[10px] text-center text-muted-foreground/60 uppercase tracking-widest leading-relaxed">
+                                    We use your location only to surface the most relevant rescues within a 7km radius. Your privacy is paramount.
+                                </p>
                             </div>
                         </motion.div>
                     </div>
@@ -575,7 +743,7 @@ export default function BrowsePage() {
                         <Link href="/help" className="text-[10px] uppercase tracking-[0.2em] font-bold hover:text-primary transition-colors">Concierge</Link>
                         <Link href="/profile" className="text-[10px] uppercase tracking-[0.2em] font-bold hover:text-primary transition-colors">Privacy Protocol</Link>
                     </div>
-                    <p className="text-[10px] text-muted-foreground/60 tracking-widest uppercase">Encrypted & Secured</p>
+                    <p className="text-[10px] text-muted-foreground/60 tracking-widest">ENCRYPTED & SECURED</p>
                 </div>
             </footer>
         </div>
