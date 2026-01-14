@@ -153,9 +153,8 @@ class _LandingScreenState extends State<LandingScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFFFF5722), // Deep Orange
-              Color(0xFFE91E63), // Pink
-              Color(0xFFFF4081), // Pink accent
+              Color(0xFF0A2540), // Navy blue
+              Color(0xFF051829), // Darker navy
             ],
           ),
         ),
@@ -514,10 +513,10 @@ class _LandingScreenState extends State<LandingScreen>
             child: ElevatedButton(
               onPressed: _isLoading ? null : _handleAuth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5722),
+                backgroundColor: const Color(0xFFFF6B35),
                 foregroundColor: Colors.white,
                 elevation: 4,
-                shadowColor: const Color(0xFFFF5722).withOpacity(0.4),
+                shadowColor: const Color(0xFFFF6B35).withOpacity(0.4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

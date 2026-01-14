@@ -194,10 +194,40 @@ export default function OrderConfirmationPage() {
                 <div className="grid md:grid-cols-5 gap-12">
                     <div className="md:col-span-3 space-y-8">
                         {/* Countdown Timer Component */}
-                        <CountdownTimer 
-                            endTime={order.rescue_bags.pickup_end_time} 
-                            orderStatus={order.status} 
+                        <CountdownTimer
+                            endTime={order.rescue_bags.pickup_end_time}
+                            orderStatus={order.status}
                         />
+
+                        {/* Pickup OTP Card */}
+                        {(order.status === 'pending' || order.status === 'confirmed' || order.status === 'ready') && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.15 }}
+                                className="bg-gradient-to-br from-emerald-900/50 to-teal-900/50 backdrop-blur-md border border-emerald-500/20 p-8 rounded-sm mb-8"
+                            >
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                    </div>
+                                    <p className="text-[10px] uppercase tracking-[0.3em] text-emerald-400 font-medium">Your Pickup Code</p>
+                                </div>
+                                <div className="flex items-center justify-center gap-3">
+                                    {order.pickup_otp?.split('').map((digit, index) => (
+                                        <div
+                                            key={index}
+                                            className="w-16 h-20 bg-black/40 border border-emerald-500/30 rounded-sm flex items-center justify-center"
+                                        >
+                                            <span className="text-4xl font-mono font-bold text-emerald-400">{digit}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-center text-muted-foreground text-sm mt-6 font-light">
+                                    Share this code with the restaurant to confirm your pickup
+                                </p>
+                            </motion.div>
+                        )}
 
                         {/* Order Details Card */}
                         <motion.div

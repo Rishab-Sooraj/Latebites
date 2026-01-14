@@ -175,8 +175,8 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFFF5722),
-            Color(0xFFE91E63),
+            Color(0xFF0A2540),
+            Color(0xFF051829),
           ],
         ),
       ),
@@ -254,8 +254,8 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF4CAF50),
-            Color(0xFF2E7D32),
+            Color(0xFF1E3A5F),
+            Color(0xFF0A2540),
           ],
         ),
       ),
@@ -333,8 +333,8 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF9C27B0),
-            Color(0xFF673AB7),
+            Color(0xFFFF6B35),
+            Color(0xFFE55A28),
           ],
         ),
       ),
