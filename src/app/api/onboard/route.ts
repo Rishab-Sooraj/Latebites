@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
-import { generateVerificationEmail, generateVerificationToken } from '@/lib/email-template';
+import { sendEmail, SENDERS } from '@/lib/email';
+import { getOnboardingConfirmationEmail } from '@/lib/email-templates';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-// Helper function to get Resend client (lazy initialization)
-function getResendClient() {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-        console.warn('⚠️ RESEND_API_KEY not configured - email sending will be skipped');
-        return null;
-    }
-    return new Resend(apiKey);
-}
 
 export async function POST(request: NextRequest) {
     try {
@@ -68,11 +58,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate verification token
-        const verificationToken = generateVerificationToken();
-        const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify?token=${verificationToken}`;
-
-        // Insert data into Supabase with verified: false
+        // Insert data into Supabase
         const { data, error } = await supabaseAdmin
             .from('Resturant Onboarding')
             .insert([
@@ -82,8 +68,7 @@ export async function POST(request: NextRequest) {
                     email,
                     phone_number,
                     city,
-                    verified: false,
-                    verification_token: verificationToken,
+                    status: 'pending', // Default status
                     created_at: new Date().toISOString(),
                 },
             ])
@@ -97,37 +82,28 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Send verification email
+        // Send confirmation email via ZeptoMail
         try {
-            const resend = getResendClient();
+            const emailHtml = getOnboardingConfirmationEmail(restaurant_name, contact_person);
 
-            if (!resend) {
-                console.warn('⚠️ Skipping email send - Resend not configured');
-                // Continue without sending email - data is still saved
-            } else {
-                const emailHtml = generateVerificationEmail(restaurant_name, contact_person, verificationUrl);
+            const emailResult = await sendEmail({
+                to: [{ email, name: contact_person }],
+                from: SENDERS.onboarding,
+                subject: 'Application Received - Latebites',
+                htmlBody: emailHtml,
+            });
 
-                console.log('📧 Attempting to send email to:', email);
-                console.log('🔗 Verification URL:', verificationUrl);
-
-                const emailResult = await resend.emails.send({
-                    from: 'Latebites <hello@onboarding.latebites.in>',
-                    to: email,
-                    subject: 'Verify Your Email - Latebites Restaurant Onboarding',
-                    html: emailHtml,
-                });
-
-                console.log('✅ Email sent successfully!', emailResult);
+            if (!emailResult.success) {
+                console.error('Failed to send onboarding email:', emailResult.error);
             }
         } catch (emailError) {
-            console.error('❌ Email sending error:', emailError);
+            console.error('Email sending error:', emailError);
             // Don't fail the request if email fails - data is still saved
-            // You can manually verify or resend later
         }
 
         return NextResponse.json(
             {
-                message: 'Thank you! Please check your email to verify your address. We\'ll contact you once verified.',
+                message: 'Thank you! Your application has been received.',
                 data
             },
             { status: 200 }
