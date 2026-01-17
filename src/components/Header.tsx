@@ -3,7 +3,7 @@
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, ShoppingBag, LayoutDashboard, UserCircle } from "lucide-react";
+import { LogOut, ShoppingBag, UserCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import AuthModal from "./AuthModal";
 
@@ -123,17 +123,6 @@ export function Header() {
                       <ShoppingBag className="w-4 h-4" />
                       Browse
                     </Link>
-
-                    {customer.role === "restaurant" && (
-                      <Link
-                        href="/restaurant/dashboard"
-                        className="flex items-center gap-2 px-4 py-2 hover:bg-secondary/50 transition-colors text-sm"
-                        onClick={() => setShowDropdown(false)}
-                      >
-                        <LayoutDashboard className="w-4 h-4" />
-                        Dashboard
-                      </Link>
-                    )}
 
                     <button
                       onClick={() => {
