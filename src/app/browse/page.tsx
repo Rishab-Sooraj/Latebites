@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentLocation, formatDistance, type Coordinates } from "@/lib/location/geolocation";
-import { MapPin, Search, Clock, X, Navigation, Loader2, ArrowRight, ChevronRight, Utensils, Map, SlidersHorizontal, Package, Heart } from "lucide-react";
+import { MapPin, Search, Clock, X, Navigation, Loader2, ChevronRight, Map, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
+import Image from "next/image";
 
 import { Header } from "@/components/Header";
 
@@ -331,116 +332,142 @@ export default function BrowsePage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#FAFAFA]">
-            <Toaster position="top-center" toastOptions={{ className: 'text-sm' }} />
+        <div className="min-h-screen bg-[#F8F7F4]">
+            <Toaster position="top-center" toastOptions={{ className: 'text-sm font-medium' }} />
             <Header />
 
-            <main className="pt-20 pb-24">
-                {/* Hero Section - Calm, Premium */}
-                <section className="relative overflow-hidden bg-gradient-to-b from-stone-50 to-white">
-                    <div className="absolute inset-0 opacity-[0.03]">
-                        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #000 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-                    </div>
+            <main className="pt-16">
+                {/* Hero Section - Ultra Premium */}
+                <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
+                    {/* Background with subtle texture */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#1C1917] via-[#1C1917] to-[#292524]" />
                     
-                    <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-                        <div className="max-w-3xl mx-auto text-center space-y-8">
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="space-y-4"
-                            >
-                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif text-stone-900 leading-[1.1] tracking-tight">
-                                    Good food doesn't
-                                    <br />
-                                    <span className="italic">end early.</span>
-                                </h1>
-                                <p className="text-lg md:text-xl text-stone-500 max-w-lg mx-auto font-light leading-relaxed">
-                                    Surprise bags from nearby restaurants.
-                                    <br className="hidden sm:block" />
-                                    Pick up before closing.
-                                </p>
-                            </motion.div>
+                    {/* Elegant grain overlay */}
+                    <div className="absolute inset-0 opacity-[0.4]" style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                    }} />
 
-                            {/* Search Bar */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 }}
-                                className="max-w-xl mx-auto"
-                            >
-                                <div className={`relative bg-white rounded-2xl border border-stone-200 shadow-sm transition-all duration-300 ${isSearchFocused ? 'shadow-lg border-stone-300' : 'hover:border-stone-300'}`}>
-                                    <div className="flex items-center">
-                                        <div className="flex-1 flex items-center px-5 py-4">
-                                            <Search className="w-5 h-5 text-stone-400 mr-3 flex-shrink-0" />
-                                            <input
-                                                ref={mainSearchRef}
-                                                type="text"
-                                                placeholder="Search restaurants or cuisines..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                onFocus={() => setIsSearchFocused(true)}
-                                                onBlur={() => setIsSearchFocused(false)}
-                                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-stone-900 placeholder:text-stone-400 text-base"
-                                            />
-                                            {searchQuery && (
-                                                <button 
-                                                    onClick={() => setSearchQuery('')}
-                                                    className="p-1 hover:bg-stone-100 rounded-full transition-colors ml-2"
-                                                >
-                                                    <X className="w-4 h-4 text-stone-400" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
+                    {/* Soft radial glow */}
+                    <div className="absolute inset-0">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-900/20 rounded-full blur-[120px]" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="relative z-10 w-full max-w-5xl mx-auto px-6 py-20 text-center">
+                        {/* Location pill */}
+                        <motion.button
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.2 }}
+                            onClick={() => setShowLocationModal(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 mb-10 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group"
+                        >
+                            <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-sm text-white/70 group-hover:text-white/90 transition-colors">
+                                {locationName || "Set location"}
+                            </span>
+                            <ChevronDown className="w-3.5 h-3.5 text-white/40" />
+                        </motion.button>
+
+                        {/* Main headline */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.3 }}
+                            className="mb-8"
+                        >
+                            <h1 className="text-[clamp(2.5rem,8vw,5.5rem)] font-light text-white leading-[1.05] tracking-[-0.03em]">
+                                Good food doesn't
+                                <br />
+                                <span className="font-serif italic text-amber-100/90">end early.</span>
+                            </h1>
+                        </motion.div>
+
+                        {/* Subline */}
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.5 }}
+                            className="text-lg md:text-xl text-white/50 font-light max-w-md mx-auto mb-12 leading-relaxed"
+                        >
+                            Mystery bags from nearby restaurants.
+                            <br />
+                            Pick up before closing.
+                        </motion.p>
+
+                        {/* Search Bar - Premium */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.6 }}
+                            className="max-w-lg mx-auto"
+                        >
+                            <div className={`relative bg-white/[0.08] backdrop-blur-xl rounded-2xl border transition-all duration-500 ${
+                                isSearchFocused 
+                                    ? 'border-white/30 shadow-2xl shadow-black/20' 
+                                    : 'border-white/10 hover:border-white/20'
+                            }`}>
+                                <div className="flex items-center px-5 py-4">
+                                    <Search className="w-5 h-5 text-white/40 mr-4" />
+                                    <input
+                                        ref={mainSearchRef}
+                                        type="text"
+                                        placeholder="Search restaurants or cuisines..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onFocus={() => setIsSearchFocused(true)}
+                                        onBlur={() => setIsSearchFocused(false)}
+                                        className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-white placeholder:text-white/30 text-base font-light"
+                                    />
+                                    {searchQuery && (
+                                        <button 
+                                            onClick={() => setSearchQuery('')}
+                                            className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+                                        >
+                                            <X className="w-4 h-4 text-white/40" />
+                                        </button>
+                                    )}
                                 </div>
-                            </motion.div>
+                            </div>
+                        </motion.div>
 
-                            {/* Location */}
-                            <motion.button
+                        {/* Availability indicator */}
+                        {totalBagsAvailable > 0 && (
+                            <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                transition={{ delay: 0.2 }}
-                                onClick={() => setShowLocationModal(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-stone-900 transition-colors group"
+                                transition={{ duration: 0.8, delay: 0.8 }}
+                                className="mt-8 flex items-center justify-center gap-2"
                             >
-                                <MapPin className="w-4 h-4 text-stone-400 group-hover:text-stone-600" />
-                                <span className="text-sm font-medium truncate max-w-[200px]">
-                                    {locationName || "Set your location"}
-                                </span>
-                                <ChevronRight className="w-4 h-4 text-stone-400 group-hover:translate-x-0.5 transition-transform" />
-                            </motion.button>
-
-                            {totalBagsAvailable > 0 && (
-                                <motion.p
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.3 }}
-                                    className="text-sm text-stone-400"
-                                >
+                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                                <span className="text-sm text-white/40 font-light">
                                     {totalBagsAvailable} {totalBagsAvailable === 1 ? 'bag' : 'bags'} available tonight
-                                </motion.p>
-                            )}
-                        </div>
+                                </span>
+                            </motion.div>
+                        )}
                     </div>
+
+                    {/* Bottom fade */}
+                    <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#F8F7F4] to-transparent" />
                 </section>
 
-                {/* Filters */}
-                <section className="px-4 sm:px-6 lg:px-8 py-4 bg-white border-b border-stone-100 sticky top-16 z-30">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {/* Filters Bar */}
+                <section className="sticky top-16 z-30 bg-[#F8F7F4]/95 backdrop-blur-lg border-b border-stone-200/60">
+                    <div className="max-w-6xl mx-auto px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
                                 {[
                                     { key: 'all', label: 'All' },
                                     { key: 'nearby', label: 'Nearby' },
-                                    { key: 'tonight', label: 'Available Tonight' },
+                                    { key: 'tonight', label: 'Tonight' },
                                 ].map((filter) => (
                                     <button
                                         key={filter.key}
                                         onClick={() => setActiveFilter(filter.key as any)}
-                                        className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                                        className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                                             activeFilter === filter.key
                                                 ? 'bg-stone-900 text-white'
-                                                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                                                : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100'
                                         }`}
                                     >
                                         {filter.label}
@@ -448,64 +475,60 @@ export default function BrowsePage() {
                                 ))}
                             </div>
                             
-                            <div className="flex items-center gap-3">
-                                <span className="hidden md:inline text-sm text-stone-500">
-                                    {sortedRestaurants.length} {sortedRestaurants.length === 1 ? 'result' : 'results'}
-                                </span>
-                                <button className="p-2 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors">
-                                    <SlidersHorizontal className="w-4 h-4 text-stone-600" />
-                                </button>
-                            </div>
+                            <span className="text-sm text-stone-400">
+                                {sortedRestaurants.length} {sortedRestaurants.length === 1 ? 'result' : 'results'}
+                            </span>
                         </div>
                     </div>
                 </section>
 
                 {/* Restaurant Grid */}
-                <section className="px-4 sm:px-6 lg:px-8 py-8">
+                <section className="px-6 py-12">
                     <div className="max-w-6xl mx-auto">
                         {loading ? (
-                            <div className="py-20 flex flex-col items-center justify-center">
-                                <div className="relative">
-                                    <div className="w-12 h-12 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin" />
+                            <div className="py-32 flex flex-col items-center justify-center">
+                                <div className="relative w-12 h-12">
+                                    <div className="absolute inset-0 border-2 border-stone-200 rounded-full" />
+                                    <div className="absolute inset-0 border-2 border-stone-900 border-t-transparent rounded-full animate-spin" />
                                 </div>
-                                <p className="mt-6 text-stone-500 text-sm">Finding nearby options...</p>
+                                <p className="mt-6 text-stone-400 text-sm font-light">Finding mystery bags near you...</p>
                             </div>
                         ) : sortedRestaurants.length === 0 ? (
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="py-16 text-center"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="py-24 text-center"
                             >
-                                <div className="w-20 h-20 mx-auto mb-6 bg-stone-100 rounded-full flex items-center justify-center">
-                                    <Map className="w-8 h-8 text-stone-400" />
+                                <div className="w-20 h-20 mx-auto mb-8 bg-stone-100 rounded-full flex items-center justify-center">
+                                    <Map className="w-8 h-8 text-stone-300" />
                                 </div>
-                                <h3 className="text-xl font-medium text-stone-900 mb-2">Nothing available right now</h3>
-                                <p className="text-stone-500 mb-8 max-w-sm mx-auto text-sm">
+                                <h3 className="text-xl font-medium text-stone-800 mb-3">Nothing available right now</h3>
+                                <p className="text-stone-400 mb-10 max-w-sm mx-auto font-light">
                                     {searchQuery 
                                         ? `No results for "${searchQuery}".`
-                                        : "No surprise bags within 7km. Check back closer to closing time."
+                                        : "No mystery bags within 7km. Check back closer to closing time."
                                     }
                                 </p>
                                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                                     {searchQuery ? (
                                         <button
                                             onClick={() => setSearchQuery('')}
-                                            className="px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-sm font-medium rounded-lg transition-colors"
+                                            className="px-6 py-3 bg-stone-900 text-white text-sm font-medium rounded-full hover:bg-stone-800 transition-colors"
                                         >
-                                            Clear Search
+                                            Clear search
                                         </button>
                                     ) : (
                                         <>
                                             <button
                                                 onClick={() => setShowLocationModal(true)}
-                                                className="px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                className="px-6 py-3 bg-stone-900 text-white text-sm font-medium rounded-full hover:bg-stone-800 transition-colors inline-flex items-center gap-2"
                                             >
                                                 <MapPin className="w-4 h-4" />
-                                                Change Location
+                                                Change location
                                             </button>
                                             <button
                                                 onClick={handleRefreshLocation}
-                                                className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-lg transition-colors"
+                                                className="px-6 py-3 bg-stone-100 text-stone-700 text-sm font-medium rounded-full hover:bg-stone-200 transition-colors"
                                             >
                                                 Refresh
                                             </button>
@@ -514,7 +537,7 @@ export default function BrowsePage() {
                                 </div>
                             </motion.div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {sortedRestaurants.map((restaurant, index) => {
                                     const totalQuantity = restaurant.rescue_bags.reduce((sum, bag) => sum + bag.quantity_available, 0);
                                     const firstBag = restaurant.rescue_bags[0];
@@ -524,46 +547,49 @@ export default function BrowsePage() {
                                             key={restaurant.id}
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.04, duration: 0.4 }}
+                                            transition={{ delay: index * 0.06, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
                                         >
                                             <Link
                                                 href={`/restaurant/${restaurant.id}`}
-                                                className="group block bg-white rounded-xl overflow-hidden border border-stone-200 hover:border-stone-300 hover:shadow-md transition-all duration-300"
+                                                className="group block bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
                                             >
-                                                {/* Image */}
-                                                <div className="relative aspect-[16/10] overflow-hidden bg-stone-100">
+                                                {/* Image Container */}
+                                                <div className="relative aspect-[4/3] overflow-hidden">
                                                     <img
                                                         src={restaurant.cover_image_url || "/images/hero-indian-food.png"}
                                                         alt={restaurant.name}
-                                                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                                     />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
                                                     
-                                                    {/* Badge - Surprise Bag */}
-                                                    <div className="absolute top-3 left-3">
-                                                        <div className="px-2.5 py-1 bg-white/95 backdrop-blur-sm text-stone-800 text-xs font-medium rounded-md shadow-sm">
-                                                            Surprise Bag
+                                                    {/* Gradient overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
+                                                    
+                                                    {/* Mystery Bag Tag */}
+                                                    <div className="absolute top-4 left-4">
+                                                        <div className="px-3 py-1.5 bg-white text-stone-900 text-xs font-semibold tracking-wide rounded-full shadow-lg">
+                                                            Mystery Bag
                                                         </div>
                                                     </div>
 
-                                                    {/* Favorite */}
-                                                    <button 
-                                                        className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        onClick={(e) => { e.preventDefault(); }}
-                                                    >
-                                                        <Heart className="w-4 h-4 text-stone-400" />
-                                                    </button>
+                                                    {/* Quantity indicator */}
+                                                    {totalQuantity <= 3 && (
+                                                        <div className="absolute top-4 right-4">
+                                                            <div className="px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-full shadow-lg">
+                                                                {totalQuantity} left
+                                                            </div>
+                                                        </div>
+                                                    )}
 
-                                                    {/* Pickup Time - Prominent */}
-                                                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                                                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-stone-900/90 backdrop-blur-sm rounded-md">
-                                                            <Clock className="w-3.5 h-3.5 text-white/80" />
-                                                            <span className="text-white text-xs font-medium">
+                                                    {/* Pickup Time - Bottom of image */}
+                                                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                                                        <div className="flex items-center gap-2 px-3 py-2 bg-black/70 backdrop-blur-sm rounded-xl">
+                                                            <Clock className="w-4 h-4 text-amber-400" />
+                                                            <span className="text-white text-sm font-medium">
                                                                 {firstBag && formatPickupTime(firstBag.pickup_start_time, firstBag.pickup_end_time)}
                                                             </span>
                                                         </div>
-                                                        <div className="px-2.5 py-1.5 bg-white/95 backdrop-blur-sm rounded-md">
-                                                            <span className="text-stone-600 text-xs font-medium">
+                                                        <div className="px-3 py-2 bg-white/90 backdrop-blur-sm rounded-xl">
+                                                            <span className="text-stone-700 text-sm font-medium">
                                                                 {formatDistance(restaurant.distance_km)}
                                                             </span>
                                                         </div>
@@ -571,29 +597,25 @@ export default function BrowsePage() {
                                                 </div>
 
                                                 {/* Content */}
-                                                <div className="p-4">
-                                                    <div className="mb-3">
-                                                        <h3 className="font-semibold text-stone-900 group-hover:text-stone-700 transition-colors line-clamp-1 mb-1">
-                                                            {restaurant.name}
-                                                        </h3>
-                                                        <p className="text-sm text-stone-500 line-clamp-1">
-                                                            {restaurant.cuisine_types?.slice(0, 3).join(" · ") || "Multi-cuisine"}
-                                                        </p>
-                                                    </div>
+                                                <div className="p-5">
+                                                    <h3 className="text-lg font-semibold text-stone-900 mb-1 group-hover:text-stone-700 transition-colors">
+                                                        {restaurant.name}
+                                                    </h3>
+                                                    <p className="text-sm text-stone-400 mb-4">
+                                                        {restaurant.cuisine_types?.slice(0, 3).join(" · ") || "Multi-cuisine"}
+                                                    </p>
 
-                                                    <div className="flex items-center justify-between pt-3 border-t border-stone-100">
-                                                        <div className="flex items-baseline gap-1.5">
-                                                            {firstBag && (
-                                                                <>
-                                                                    <span className="text-xs text-stone-400">Worth {formatPrice(firstBag.original_price)}+</span>
-                                                                    <span className="text-stone-300 mx-1">·</span>
-                                                                    <span className="text-sm font-semibold text-stone-900">Pay {formatPrice(firstBag.discounted_price)}</span>
-                                                                </>
-                                                            )}
+                                                    {/* Price Section */}
+                                                    <div className="flex items-end justify-between pt-4 border-t border-stone-100">
+                                                        <div>
+                                                            <p className="text-xs text-stone-400 mb-0.5">Worth {formatPrice(firstBag?.original_price || 0)}+</p>
+                                                            <p className="text-xl font-semibold text-stone-900">
+                                                                {formatPrice(firstBag?.discounted_price || 0)}
+                                                            </p>
                                                         </div>
-                                                        <div className="flex items-center gap-1 text-stone-500 text-xs">
-                                                            <Package className="w-3.5 h-3.5" />
-                                                            <span>{totalQuantity} left</span>
+                                                        <div className="flex items-center gap-1.5 text-stone-400 group-hover:text-stone-600 transition-colors">
+                                                            <span className="text-sm font-medium">View</span>
+                                                            <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -615,32 +637,33 @@ export default function BrowsePage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                             onClick={() => setShowLocationModal(false)}
                         />
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+                            transition={{ type: "spring", duration: 0.5 }}
+                            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
                         >
-                            <div className="p-6">
-                                <div className="flex items-center justify-between mb-6">
+                            <div className="p-8">
+                                <div className="flex items-center justify-between mb-8">
                                     <div>
-                                        <h2 className="text-lg font-semibold text-stone-900">Set your location</h2>
-                                        <p className="text-sm text-stone-500 mt-0.5">Find surprise bags near you</p>
+                                        <h2 className="text-xl font-semibold text-stone-900">Set location</h2>
+                                        <p className="text-sm text-stone-400 mt-1">Find mystery bags near you</p>
                                     </div>
                                     <button
                                         onClick={() => setShowLocationModal(false)}
-                                        className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center transition-colors"
+                                        className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center transition-colors"
                                     >
-                                        <X className="w-4 h-4 text-stone-500" />
+                                        <X className="w-5 h-5 text-stone-500" />
                                     </button>
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="space-y-5">
                                     <div className="relative">
-                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
                                         <input
                                             ref={searchInputRef}
                                             type="text"
@@ -649,62 +672,60 @@ export default function BrowsePage() {
                                             onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
                                             placeholder="Search for your location..."
                                             autoFocus
-                                            className="w-full pl-11 pr-4 py-3 bg-stone-50 border border-stone-200 focus:border-stone-400 focus:ring-2 focus:ring-stone-100 rounded-xl text-stone-900 placeholder-stone-400 transition-all text-sm"
+                                            className="w-full pl-12 pr-4 py-4 bg-stone-50 border-0 focus:ring-2 focus:ring-stone-200 rounded-2xl text-stone-900 placeholder-stone-400 transition-all"
                                         />
                                         {locationLoading && (
-                                            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 animate-spin" />
+                                            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 animate-spin" />
                                         )}
                                     </div>
 
                                     {locationError && (
-                                        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-4 py-3 rounded-xl">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                        <div className="flex items-center gap-3 text-red-600 text-sm bg-red-50 px-4 py-3 rounded-2xl">
+                                            <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
                                             {locationError}
                                         </div>
                                     )}
 
                                     {placeSuggestions.length > 0 && (
-                                        <div className="bg-white border border-stone-200 rounded-xl shadow-lg max-h-56 overflow-auto">
-                                            {placeSuggestions.map((suggestion) => (
+                                        <div className="bg-white border border-stone-200 rounded-2xl shadow-lg max-h-56 overflow-auto">
+                                            {placeSuggestions.map((suggestion, i) => (
                                                 <button
                                                     key={suggestion.place_id}
                                                     type="button"
                                                     onClick={() => handleSelectSuggestion(suggestion.place_id, suggestion.description)}
-                                                    className="w-full px-4 py-3 text-left hover:bg-stone-50 transition-colors flex items-start gap-3 border-b border-stone-100 last:border-b-0"
+                                                    className={`w-full px-4 py-4 text-left hover:bg-stone-50 transition-colors flex items-start gap-3 ${
+                                                        i !== placeSuggestions.length - 1 ? 'border-b border-stone-100' : ''
+                                                    }`}
                                                 >
                                                     <MapPin className="w-4 h-4 text-stone-400 mt-0.5 flex-shrink-0" />
                                                     <div>
-                                                        <p className="text-stone-900 text-sm font-medium">{suggestion.structured_formatting.main_text}</p>
-                                                        <p className="text-stone-500 text-xs">{suggestion.structured_formatting.secondary_text}</p>
+                                                        <p className="text-stone-900 font-medium">{suggestion.structured_formatting.main_text}</p>
+                                                        <p className="text-stone-400 text-sm">{suggestion.structured_formatting.secondary_text}</p>
                                                     </div>
                                                 </button>
                                             ))}
                                         </div>
                                     )}
 
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-4 py-2">
                                         <div className="flex-1 h-px bg-stone-200" />
-                                        <span className="text-xs text-stone-400">or</span>
+                                        <span className="text-xs text-stone-400 uppercase tracking-wider">or</span>
                                         <div className="flex-1 h-px bg-stone-200" />
                                     </div>
 
                                     <button
                                         onClick={handleRefreshLocation}
                                         disabled={locationLoading}
-                                        className="w-full flex items-center justify-center gap-2 py-3 bg-stone-900 hover:bg-stone-800 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                                        className="w-full flex items-center justify-center gap-3 py-4 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-2xl transition-all disabled:opacity-50"
                                     >
                                         {locationLoading ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <Loader2 className="w-5 h-5 animate-spin" />
                                         ) : (
-                                            <Navigation className="w-4 h-4" />
+                                            <Navigation className="w-5 h-5" />
                                         )}
-                                        Use Current Location
+                                        Use current location
                                     </button>
                                 </div>
-
-                                <p className="text-center text-stone-400 text-xs mt-4">
-                                    We'll show options within 7km of your location
-                                </p>
                             </div>
                         </motion.div>
                     </div>
@@ -712,16 +733,14 @@ export default function BrowsePage() {
             </AnimatePresence>
 
             {/* Footer */}
-            <footer className="bg-white border-t border-stone-100">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <footer className="bg-white border-t border-stone-200/60">
+                <div className="max-w-6xl mx-auto px-6 py-10">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="font-serif text-lg text-stone-900 italic">Latebites</span>
-                        </div>
-                        <div className="flex items-center gap-6 text-sm text-stone-500">
-                            <Link href="/help" className="hover:text-stone-900 transition-colors">Help</Link>
-                            <Link href="/profile" className="hover:text-stone-900 transition-colors">Privacy</Link>
-                            <span className="text-stone-400">© 2024</span>
+                        <span className="text-lg font-light text-stone-800 tracking-tight">Latebites</span>
+                        <div className="flex items-center gap-8 text-sm text-stone-400">
+                            <Link href="/help" className="hover:text-stone-600 transition-colors">Help</Link>
+                            <Link href="/profile" className="hover:text-stone-600 transition-colors">Privacy</Link>
+                            <span>© 2024</span>
                         </div>
                     </div>
                 </div>
