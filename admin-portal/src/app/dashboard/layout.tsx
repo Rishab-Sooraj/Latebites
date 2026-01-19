@@ -20,7 +20,8 @@ import {
     Hash,
     AlertCircle,
     Loader2,
-    Package
+    Package,
+    FileText
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -49,6 +50,7 @@ const getNavItems = (role: string) => {
         { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { href: '/dashboard/restaurants', icon: Store, label: 'Restaurants' },
         { href: '/dashboard/customers', icon: Users, label: 'Customers' },
+        { href: '/dashboard/onboarding', icon: FileText, label: 'Onboarding' },
     ];
 
     // Only super_admin can manage admins

@@ -60,11 +60,15 @@ export default function BrowsePage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
+    const [manualSearch, setManualSearch] = useState("");
+    const [placeSuggestions, setPlaceSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
     const [ordersLoading, setOrdersLoading] = useState(true);
+    const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+    const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
+    const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
     const supabase = createClient();
 
     useEffect(() => {
@@ -184,51 +188,126 @@ export default function BrowsePage() {
         return () => clearTimeout(locationTimeout);
     }, [user, authLoading, fetchNearbyRestaurants]);
 
+    // Load Google Maps script once on mount
     useEffect(() => {
-        if (showLocationModal && searchInputRef.current && !autocompleteRef.current) {
-            const loadGoogleMaps = () => {
-                if (window.google && window.google.maps) {
-                    initAutocomplete();
-                    return;
-                }
-                const script = document.createElement('script');
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
-                script.async = true;
-                script.defer = true;
-                script.onload = () => initAutocomplete();
-                document.head.appendChild(script);
-            };
-
-            const initAutocomplete = () => {
-                if (searchInputRef.current && window.google) {
-                    autocompleteRef.current = new google.maps.places.Autocomplete(
-                        searchInputRef.current,
-                        {
-                            componentRestrictions: { country: "in" },
-                            fields: ["geometry", "formatted_address", "name"],
-                        }
-                    );
-
-                    autocompleteRef.current.addListener("place_changed", () => {
-                        const place = autocompleteRef.current?.getPlace();
-                        if (place?.geometry?.location) {
-                            const coords: Coordinates = {
-                                latitude: place.geometry.location.lat(),
-                                longitude: place.geometry.location.lng(),
-                            };
-                            setUserLocation(coords);
-                            setLocationName(place.formatted_address || place.name || "");
-                            setLocationError("");
-                            fetchNearbyRestaurants(coords);
-                            setShowLocationModal(false);
-                            toast.success("Location updated!");
-                        }
-                    });
-                }
-            };
-            loadGoogleMaps();
+        if (typeof window !== 'undefined' && !window.google) {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+            script.async = true;
+            script.defer = true;
+            script.onload = () => setGoogleMapsLoaded(true);
+            document.head.appendChild(script);
+        } else if (window.google) {
+            setGoogleMapsLoaded(true);
         }
-    }, [showLocationModal, fetchNearbyRestaurants]);
+    }, []);
+
+    // Initialize Places services when Google Maps loads
+    useEffect(() => {
+        if (googleMapsLoaded && !autocompleteServiceRef.current) {
+            autocompleteServiceRef.current = new google.maps.places.AutocompleteService();
+            // Create a dummy div for PlacesService (required)
+            const dummyDiv = document.createElement('div');
+            placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv);
+        }
+    }, [googleMapsLoaded]);
+
+    // Handle search input changes - get autocomplete suggestions
+    const handleSearchInputChange = (value: string) => {
+        setManualSearch(value);
+
+        if (!value.trim() || !autocompleteServiceRef.current) {
+            setPlaceSuggestions([]);
+            return;
+        }
+
+        autocompleteServiceRef.current.getPlacePredictions(
+            {
+                input: value + ", Coimbatore",
+                componentRestrictions: { country: "in" },
+                types: ["geocode", "establishment"],
+                // Bias results towards Coimbatore
+                locationBias: {
+                    center: { lat: 11.0168, lng: 76.9558 },
+                    radius: 30000, // 30km radius around Coimbatore
+                },
+            },
+            (predictions, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+                    setPlaceSuggestions(predictions.slice(0, 5)); // Max 5 suggestions
+                } else {
+                    setPlaceSuggestions([]);
+                }
+            }
+        );
+    };
+
+    // Handle selecting a place suggestion
+    const handleSelectSuggestion = (placeId: string, description: string) => {
+        if (!placesServiceRef.current) return;
+
+        setLocationLoading(true);
+        setPlaceSuggestions([]);
+
+        placesServiceRef.current.getDetails(
+            { placeId, fields: ["geometry", "formatted_address", "name"] },
+            (place, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+                    const coords: Coordinates = {
+                        latitude: place.geometry.location.lat(),
+                        longitude: place.geometry.location.lng(),
+                    };
+                    setUserLocation(coords);
+                    setLocationName(place.formatted_address || place.name || description);
+                    setLocationError("");
+                    fetchNearbyRestaurants(coords);
+                    setShowLocationModal(false);
+                    setManualSearch("");
+                    toast.success("Location updated!");
+                } else {
+                    setLocationError("Could not get location details. Try again.");
+                }
+                setLocationLoading(false);
+            }
+        );
+    };
+
+    const handleManualSearch = async () => {
+        if (!manualSearch.trim() || !googleMapsLoaded) return;
+
+        setLocationLoading(true);
+        setPlaceSuggestions([]);
+        try {
+            const geocoder = new google.maps.Geocoder();
+            const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+                geocoder.geocode({ address: manualSearch + ", India" }, (results, status) => {
+                    if (status === "OK" && results) {
+                        resolve(results);
+                    } else {
+                        reject(new Error("Location not found"));
+                    }
+                });
+            });
+
+            if (result[0]?.geometry?.location) {
+                const coords: Coordinates = {
+                    latitude: result[0].geometry.location.lat(),
+                    longitude: result[0].geometry.location.lng(),
+                };
+                setUserLocation(coords);
+                setLocationName(result[0].formatted_address || manualSearch);
+                setLocationError("");
+                await fetchNearbyRestaurants(coords);
+                setShowLocationModal(false);
+                setManualSearch("");
+                toast.success("Location updated!");
+            }
+        } catch (error) {
+            setLocationError("Could not find that location. Try a different search.");
+        } finally {
+            setLocationLoading(false);
+        }
+    };
 
     const handleRefreshLocation = async () => {
         setLocationLoading(true);
@@ -285,9 +364,9 @@ export default function BrowsePage() {
             {/* Premium Dynamic Background */}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
                 <motion.div
-                    animate={{ 
-                        scale: [1, 1.3, 1], 
-                        x: [0, 50, 0], 
+                    animate={{
+                        scale: [1, 1.3, 1],
+                        x: [0, 50, 0],
                         y: [0, 30, 0],
                         opacity: [0.3, 0.5, 0.3]
                     }}
@@ -295,9 +374,9 @@ export default function BrowsePage() {
                     className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-gradient-to-br from-primary/15 via-orange-400/10 to-transparent blur-[120px]"
                 />
                 <motion.div
-                    animate={{ 
-                        scale: [1.2, 1, 1.2], 
-                        x: [0, -60, 0], 
+                    animate={{
+                        scale: [1.2, 1, 1.2],
+                        x: [0, -60, 0],
                         y: [0, -40, 0],
                         opacity: [0.2, 0.4, 0.2]
                     }}
@@ -369,7 +448,7 @@ export default function BrowsePage() {
                                     <div className="absolute top-0 right-0 p-8 opacity-5 transform translate-x-4 -translate-y-4">
                                         <ShoppingBag className="w-32 h-32" />
                                     </div>
-                                    
+
                                     <div className="flex items-center justify-between mb-6 relative z-10">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center text-white">
@@ -377,8 +456,8 @@ export default function BrowsePage() {
                                             </div>
                                             <h3 className="font-serif text-lg">Recent Rescues</h3>
                                         </div>
-                                        <Link 
-                                            href="/orders" 
+                                        <Link
+                                            href="/orders"
                                             className="text-[10px] uppercase tracking-[0.2em] font-bold text-primary hover:tracking-[0.3em] transition-all flex items-center gap-2"
                                         >
                                             View Archive <ArrowRight className="w-3 h-3" />
@@ -468,7 +547,7 @@ export default function BrowsePage() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <button className="md:w-14 h-14 bg-white border border-primary/10 rounded-2xl flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300 shadow-lg shadow-black/5">
                                 <Filter className="w-5 h-5" />
                             </button>
@@ -563,10 +642,10 @@ export default function BrowsePage() {
                                             {/* Card Image Wrapper */}
                                             <div className="aspect-[14/10] relative overflow-hidden">
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
-                                                
+
                                                 {/* Hover Zoom Image */}
-                                                <motion.img 
-                                                    src={restaurant.cover_image_url || "/images/hero-indian-food.png"} 
+                                                <motion.img
+                                                    src={restaurant.cover_image_url || "/images/hero-indian-food.png"}
                                                     alt={restaurant.name}
                                                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                                                 />
@@ -577,7 +656,7 @@ export default function BrowsePage() {
                                                         50% OFF MIN.
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="absolute top-5 right-5 z-20">
                                                     <div className="px-4 py-2 bg-white/95 backdrop-blur-md text-[11px] font-bold rounded-xl shadow-2xl flex items-center gap-2">
                                                         <Navigation className="w-3.5 h-3.5 text-primary" />
@@ -618,7 +697,7 @@ export default function BrowsePage() {
                                                             <span className="ml-4 text-[10px] text-muted-foreground font-medium self-center">+12 others rescued here today</span>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     <div className="relative">
                                                         <div className="absolute inset-0 bg-primary/20 blur-xl group-hover:opacity-100 opacity-0 transition-opacity duration-500" />
                                                         <div className="relative w-14 h-14 rounded-[20px] bg-black text-white flex items-center justify-center group-hover:bg-primary transition-all duration-500">
@@ -636,7 +715,7 @@ export default function BrowsePage() {
                 </section>
             </main>
 
-            {/* Location Modal - Premium Redesign */}
+            {/* Location Modal - Same Design as Admin Page */}
             <AnimatePresence>
                 {showLocationModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -644,89 +723,101 @@ export default function BrowsePage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
                             onClick={() => setShowLocationModal(false)}
                         />
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 40 }}
-                            transition={{ type: "spring", damping: 30, stiffness: 400 }}
-                            className="relative w-full max-w-lg bg-white rounded-[40px] p-10 shadow-2xl overflow-hidden"
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="relative w-full max-w-xl bg-zinc-950 rounded-2xl shadow-2xl border border-zinc-800 p-6"
                         >
-                            {/* Decorative element */}
-                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary via-orange-500 to-emerald-500" />
-                            
-                            <div className="flex justify-between items-start mb-10">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                            <MapPin className="w-4 h-4 text-primary" />
-                                        </div>
-                                        <h3 className="text-3xl font-serif">Deployment Area</h3>
-                                    </div>
-                                    <p className="text-muted-foreground font-light text-base tracking-wide">Enter your coordinates to find active rescues.</p>
-                                </div>
-                                <button
-                                    onClick={() => setShowLocationModal(false)}
-                                    className="w-12 h-12 rounded-2xl bg-secondary/50 hover:bg-black hover:text-white flex items-center justify-center transition-all duration-300"
-                                >
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setShowLocationModal(false)}
+                                className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-all"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
 
-                            {locationError && (
-                                <motion.div 
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    className="mb-8 p-5 bg-red-500/5 border border-red-500/20 text-red-600 text-sm font-medium rounded-2xl flex gap-3 items-center"
-                                >
-                                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                                    {locationError}
-                                </motion.div>
-                            )}
-
-                            <div className="space-y-6">
-                                <div className="relative group">
-                                    <div className="absolute -inset-1 bg-primary/20 rounded-2xl blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
+                            {/* Location Input Section */}
+                            <div className="relative">
+                                <div className="space-y-2 mb-4">
+                                    <label className="text-xs uppercase tracking-widest text-zinc-500">
+                                        Your Location <span className="text-primary">(Coimbatore only)</span>
+                                    </label>
                                     <div className="relative">
-                                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/30 group-focus-within:text-primary transition-colors" />
+                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                                         <input
                                             ref={searchInputRef}
                                             type="text"
-                                            placeholder="Where should we look?"
-                                            className="w-full pl-14 pr-6 py-5 bg-secondary/30 border-none rounded-2xl focus:ring-0 focus:outline-none transition-all text-base placeholder:text-muted-foreground/40 font-light"
+                                            value={manualSearch}
+                                            onChange={(e) => handleSearchInputChange(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
+                                            placeholder="Search for location in Coimbatore..."
+                                            autoFocus
+                                            className="w-full pl-12 pr-4 py-4 bg-zinc-800/50 border border-zinc-700 focus:border-primary/50 rounded-lg text-white placeholder-zinc-600 focus:outline-none transition-colors"
                                         />
+                                        {locationLoading && (
+                                            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin" />
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="relative py-4">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <div className="w-full border-t border-secondary"></div>
+                                {/* Error Message */}
+                                {locationError && (
+                                    <div className="mb-4 flex items-center gap-2 text-red-400 text-sm">
+                                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                                        <span>{locationError}</span>
                                     </div>
-                                    <div className="relative flex justify-center">
-                                        <span className="bg-white px-6 text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-black">Scanning Frequency</span>
-                                    </div>
-                                </div>
+                                )}
 
-                                <button
-                                    onClick={handleRefreshLocation}
-                                    disabled={locationLoading}
-                                    className="w-full flex items-center justify-center gap-4 py-6 bg-black text-white text-[11px] uppercase tracking-[0.4em] font-black rounded-2xl hover:bg-primary hover:shadow-2xl hover:shadow-primary/40 transition-all duration-500 disabled:opacity-50 relative group overflow-hidden"
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                                    {locationLoading ? (
-                                        <Loader2 className="w-6 h-6 animate-spin" />
-                                    ) : (
-                                        <Navigation className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                                    )}
-                                    <span>Sync Current Location</span>
-                                </button>
-                                
-                                <p className="text-[10px] text-center text-muted-foreground/60 uppercase tracking-widest leading-relaxed">
-                                    We use your location only to surface the most relevant rescues within a 7km radius. Your privacy is paramount.
-                                </p>
+                                {/* Suggestions Dropdown */}
+                                {placeSuggestions.length > 0 && (
+                                    <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl max-h-64 overflow-auto">
+                                        {placeSuggestions.map((suggestion) => (
+                                            <button
+                                                key={suggestion.place_id}
+                                                type="button"
+                                                onClick={() => handleSelectSuggestion(suggestion.place_id, suggestion.description)}
+                                                className="w-full px-4 py-3 text-left hover:bg-zinc-800 transition-colors flex items-start gap-3 border-b border-zinc-800 last:border-b-0"
+                                            >
+                                                <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                                                <div>
+                                                    <p className="text-white text-sm font-medium">{suggestion.structured_formatting.main_text}</p>
+                                                    <p className="text-zinc-500 text-xs">{suggestion.structured_formatting.secondary_text}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Divider */}
+                            <div className="flex items-center gap-4 my-5">
+                                <div className="flex-1 h-px bg-zinc-800"></div>
+                                <span className="text-xs uppercase tracking-widest text-zinc-600">or</span>
+                                <div className="flex-1 h-px bg-zinc-800"></div>
+                            </div>
+
+                            {/* GPS Button */}
+                            <button
+                                onClick={handleRefreshLocation}
+                                disabled={locationLoading}
+                                className="w-full flex items-center justify-center gap-3 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-lg transition-all disabled:opacity-50"
+                            >
+                                {locationLoading ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <Navigation className="w-5 h-5" />
+                                )}
+                                <span>Use Current Location</span>
+                            </button>
+
+                            <p className="text-center text-zinc-600 text-xs mt-4">
+                                We show rescue bags within 7km of your location
+                            </p>
                         </motion.div>
                     </div>
                 )}

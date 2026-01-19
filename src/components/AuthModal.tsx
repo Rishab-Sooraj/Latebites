@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { X, Mail, Lock, User, Phone, ArrowRight } from "lucide-react";
+import { X, Mail, Lock, User, Phone, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type AuthStep = "email" | "login" | "signup";
@@ -21,10 +21,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const role = "customer"; // Restaurant login moved to separate portal
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // Reset state when modal closes
     useEffect(() => {
@@ -32,9 +35,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             setStep("email");
             setEmail("");
             setPassword("");
+            setConfirmPassword("");
             setName("");
             setPhone("");
             setError("");
+            setShowPassword(false);
+            setShowConfirmPassword(false);
         }
     }, [isOpen]);
 
@@ -156,6 +162,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         if (password.length < 6) {
             setError("Password must be at least 6 characters");
+            setLoading(false);
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
             setLoading(false);
             return;
         }
@@ -432,16 +444,55 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                             <Lock className="w-3 h-3 inline mr-1" />
                                             Password
                                         </label>
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            placeholder="••••••••"
-                                            required
-                                            minLength={6}
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                onFocus={() => setShowPassword(true)}
+                                                placeholder="••••••••"
+                                                required
+                                                minLength={6}
+                                                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                            >
+                                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            </button>
+                                        </div>
                                         <p className="text-xs text-gray-500 mt-1">At least 6 characters</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs uppercase tracking-wider text-gray-600 block mb-2">
+                                            <Lock className="w-3 h-3 inline mr-1" />
+                                            Confirm Password
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                onFocus={() => { setShowPassword(false); }}
+                                                placeholder="••••••••"
+                                                required
+                                                minLength={6}
+                                                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                            >
+                                                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            </button>
+                                        </div>
+                                        {password && confirmPassword && password !== confirmPassword && (
+                                            <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                                        )}
                                     </div>
 
                                     {error && (
@@ -452,7 +503,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
                                     <button
                                         type="submit"
-                                        disabled={loading || !name || phone.length !== 10 || password.length < 6}
+                                        disabled={loading || !name || phone.length !== 10 || password.length < 6 || password !== confirmPassword}
                                         className="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
                                         {loading ? "Creating account..." : "Create Account"}
