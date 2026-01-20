@@ -61,9 +61,6 @@ flutter:
   
   assets:
     - .env
-    - assets/logo.png
-    - assets/logo_white.png
-    - assets/splash_bg.png
   
   # Fonts are loaded via Google Fonts package, no local assets needed
   # fonts:

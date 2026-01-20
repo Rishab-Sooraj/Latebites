@@ -32,20 +32,7 @@ interface Restaurant {
     is_active: boolean;
     created_at: string;
     updated_at: string;
-    distance_km?: number;
-}
-
-// Haversine formula to calculate distance between two points
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    distance_km: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -112,55 +99,36 @@ export async function POST(request: NextRequest) {
             }
         );
 
-        // Fetch all active, verified restaurants directly (more reliable than RPC)
-        const { data: restaurants, error } = await supabase
-            .from('restaurants')
-            .select('*')
-            .eq('is_active', true)
-            .eq('verified', true);
+        // Call the RPC function to get nearby restaurants
+        const { data: restaurants, error } = await supabase.rpc('get_nearby_restaurants', {
+            user_lat: latitude,
+            user_lon: longitude,
+            radius_km: radius,
+        });
 
         if (error) {
             console.error('Database error:', error);
             return NextResponse.json(
-                { error: 'Failed to fetch restaurants' },
+                { error: 'Failed to fetch nearby restaurants' },
                 { status: 500 }
             );
         }
 
-        // Calculate distance and filter by radius
-        const nearbyRestaurants = (restaurants || [])
-            .map(r => ({
-                ...r,
-                distance_km: calculateDistance(latitude, longitude, r.latitude, r.longitude)
-            }))
-            .filter(r => r.distance_km <= radius)
-            .sort((a, b) => a.distance_km - b.distance_km);
-
         // Fetch rescue bags for the returned restaurants
-        const restaurantIds = nearbyRestaurants.map(r => r.id);
+        const restaurantIds = (restaurants as Restaurant[]).map(r => r.id);
 
         let rescueBags: Record<string, any[]> = {};
-        const today = new Date().toISOString().split('T')[0];
 
         if (restaurantIds.length > 0) {
-            // Try fetching with available_date filter first
-            let { data: bags, error: bagsError } = await supabase
+            const { data: bags, error: bagsError } = await supabase
                 .from('rescue_bags')
                 .select('*')
                 .in('restaurant_id', restaurantIds)
                 .eq('is_active', true)
-                .gte('quantity_available', 1);
+                .gte('quantity_available', 1)
+                .eq('available_date', new Date().toISOString().split('T')[0]);
 
-            // If no error, filter further
             if (!bagsError && bags) {
-                // Filter by today's date if available_date exists, otherwise include all active bags
-                bags = bags.filter(bag => {
-                    if (bag.available_date) {
-                        return bag.available_date === today;
-                    }
-                    return true; // Include bags without available_date
-                });
-
                 // Group bags by restaurant_id
                 rescueBags = bags.reduce((acc: Record<string, any[]>, bag) => {
                     const restaurantId = bag.restaurant_id;
@@ -174,7 +142,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Combine restaurants with their rescue bags
-        const restaurantsWithBags = nearbyRestaurants.map(restaurant => ({
+        const restaurantsWithBags = (restaurants as Restaurant[]).map(restaurant => ({
             ...restaurant,
             rescue_bags: rescueBags[restaurant.id] || [],
         }));

@@ -1,11 +1,13 @@
 "use client";
 
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, ShoppingBag, UserCircle } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { LogOut, ShoppingBag, LayoutDashboard, UserCircle, History, User, HelpCircle, ArrowRight, Utensils, Loader2, Sparkles, Settings } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import AuthModal from "./AuthModal";
+import { ProfileModal } from "./ProfileModal";
+import { createClient } from "@/lib/supabase/client";
 
 // Sections with dark backgrounds where we need WHITE text
 const darkSections = ["hero", "what-we-do", "vetting", "closing"];
@@ -14,16 +16,49 @@ export function Header() {
   const { user, customer, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [useDarkText, setUseDarkText] = useState(false); // false = white, true = black
   const [isAtTop, setIsAtTop] = useState(true);
+  const [recentRescues, setRecentRescues] = useState<any[]>([]);
+  const [loadingRescues, setLoadingRescues] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
 
   const { scrollY } = useScroll();
 
-  // Transform scroll position to opacity and translateY
-  const opacity = useTransform(scrollY, [0, 200], [1, 0]);
-  const translateY = useTransform(scrollY, [0, 200], [0, -20]);
-  const scale = useTransform(scrollY, [0, 200], [1, 0.9]);
+  // Transform scroll position for premium effects
+  const headerBgOpacity = useTransform(scrollY, [0, 100], [0, 1]);
+  const headerBlur = useTransform(scrollY, [0, 100], [0, 20]);
+  const headerBorder = useTransform(scrollY, [0, 100], [0, 1]);
+  const opacity = useTransform(scrollY, [0, 200], [1, 0.95]);
+  const translateY = useTransform(scrollY, [0, 200], [0, -5]);
+  const scale = useTransform(scrollY, [0, 200], [1, 0.98]);
+
+  const fetchRecentRescues = useCallback(async () => {
+    if (!customer?.id) return;
+    setLoadingRescues(true);
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`*, rescue_bags (*), restaurants (*)`)
+        .eq("customer_id", customer.id)
+        .order("created_at", { ascending: false })
+        .limit(2);
+
+      if (error) throw error;
+      setRecentRescues(data || []);
+    } catch (error) {
+      console.error("Error fetching recent rescues in header:", error);
+    } finally {
+      setLoadingRescues(false);
+    }
+  }, [customer?.id, supabase]);
+
+  useEffect(() => {
+    if (showDropdown && user && customer) {
+      fetchRecentRescues();
+    }
+  }, [showDropdown, user, customer, fetchRecentRescues]);
 
   useEffect(() => {
     const sections = [
@@ -37,8 +72,7 @@ export function Header() {
         const element = document.getElementById(sectionId);
         if (element) {
           const { top, bottom } = element.getBoundingClientRect();
-          // If the section is currently in the viewport (near the top)
-          if (top <= 50 && bottom > 50) {
+          if (top <= 80 && bottom > 80) {
             setUseDarkText(!darkSections.includes(sectionId));
           }
         }
@@ -46,11 +80,10 @@ export function Header() {
     };
 
     window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Initial check
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -68,72 +101,184 @@ export function Header() {
       <motion.header
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5, duration: 1 }}
-        className="fixed top-0 left-0 w-full z-50 px-4 py-4 sm:px-6 sm:py-6 md:px-12 md:py-12 flex justify-between items-center pointer-events-none"
+        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+        className="fixed top-0 left-0 w-full z-50 px-6 py-4 md:px-12 md:py-6 flex justify-between items-center pointer-events-none"
       >
-        {/* Logo Section */}
-        <div className="flex flex-col items-center pointer-events-auto cursor-pointer hover:opacity-80 transition-all duration-300">
-          <Link href="/" className="flex flex-col items-center">
-            <img
-              src="/images/latebites-logo.jpg"
-              alt="Latebites Logo"
-              className={`w-8 h-8 md:w-10 md:h-10 object-contain mb-1 transition-all duration-300 ${useDarkText ? "mix-blend-multiply" : "invert mix-blend-screen"
-                }`}
-            />
-            <span className={`font-serif italic text-lg sm:text-xl md:text-2xl tracking-tighter ${textColor}`}>
-              Latebites
+        {/* Natural Logo Placement */}
+        <Link href="/#hero" className="flex items-center gap-3 pointer-events-auto group">
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
+            <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white shadow-2xl shadow-black/10 flex items-center justify-center p-1.5 overflow-hidden ring-1 ring-black/5">
+                <img
+                    src="/images/latebites-logo.jpg"
+                    alt="Latebites Logo"
+                    className="w-full h-full object-cover rounded-xl transition-transform duration-700 group-hover:scale-110"
+                />
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <span className={`font-serif italic text-xl md:text-2xl tracking-tighter leading-none ${textColor} transition-colors duration-500`}>
+                Latebites
             </span>
-          </Link>
-        </div>
+            <span className={`text-[8px] uppercase tracking-[0.4em] font-black opacity-40 ${textColor} transition-colors duration-500`}>
+                Manifesto
+            </span>
+          </div>
+        </Link>
 
-        {/* Navigation & Auth */}
-        <div className="flex gap-4 sm:gap-6 md:gap-8 items-center pointer-events-auto">
+        <div className="flex gap-6 items-center pointer-events-auto">
           {user && customer ? (
             <div className="relative" ref={dropdownRef}>
-              <motion.button
-                onClick={() => setShowDropdown(!showDropdown)}
-                style={{ opacity, y: translateY, scale }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-lg"
-                aria-label="User menu"
-              >
-                <div className="text-sm font-medium">
-                  {customer.name?.charAt(0).toUpperCase() || "R"}
-                </div>
-              </motion.button>
+                <motion.button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  style={{ opacity, y: translateY, scale }}
+                  className="group relative flex items-center gap-2 p-1 pr-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full hover:bg-white/20 transition-all duration-300 shadow-xl"
+                  aria-label="User menu"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0B1E0F] via-[#001220] to-[#0B1E0F] text-[#F7F4EB] flex items-center justify-center shadow-lg overflow-hidden border border-white/40 group-hover:scale-105 transition-transform">
+                    <span className="text-xs font-black">
+                      {customer.name?.charAt(0).toUpperCase() || "R"}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] uppercase tracking-widest font-bold ${textColor} transition-colors`}>Menu</span>
+                </motion.button>
 
-              <AnimatePresence>
-                {showDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-48 bg-background border border-border shadow-xl rounded-sm overflow-hidden"
-                  >
-                    <div className="px-4 py-3 border-b border-border bg-secondary/20">
-                      <p className="text-xs font-medium truncate">{customer.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{customer.email}</p>
+                <AnimatePresence>
+                  {showDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 15, scale: 0.95, filter: "blur(10px)" }}
+                      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                      exit={{ opacity: 0, y: 15, scale: 0.95, filter: "blur(10px)" }}
+                      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                      className="absolute right-0 mt-4 w-80 bg-[#F7F4EB] rounded-[40px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.2)] border border-[#0B1E0F]/5 overflow-hidden z-[60]"
+                    >
+                      {/* Header Info */}
+                      <div className="p-8 bg-gradient-to-br from-[#001220]/5 to-[#0B1E0F]/5 border-b border-[#0B1E0F]/5">
+                        <div className="flex items-center gap-5">
+                          <div className="relative">
+                              <div className="w-14 h-14 rounded-[22px] bg-gradient-to-br from-[#0B1E0F] via-[#001220] to-[#0B1E0F] text-[#F7F4EB] flex items-center justify-center font-serif text-2xl shadow-xl">
+                                  {customer.name?.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-lg border border-[#0B1E0F]/5">
+                                  <Sparkles className="w-2.5 h-2.5 text-[#0B1E0F] fill-[#0B1E0F]" />
+                              </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-base font-bold text-[#0B1E0F] truncate">{customer.name}</p>
+                            <p className="text-[10px] text-[#0B1E0F]/40 uppercase tracking-widest truncate">{customer.email}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-3 space-y-1">
+                        {/* Recent Rescues Section - Redesigned */}
+                        <div className="p-5 rounded-[32px] bg-[#001220]/5 mb-2">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <History className="w-3.5 h-3.5 text-[#0B1E0F]" />
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0B1E0F]/40">Recent Rescues</p>
+                            </div>
+                            <Link href="/orders" onClick={() => setShowDropdown(false)} className="text-[9px] font-black text-[#0B1E0F] hover:opacity-80 transition-opacity flex items-center gap-1">
+                              ARCHIVE <ArrowRight className="w-2.5 h-2.5" />
+                            </Link>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            {loadingRescues ? (
+                              <div className="flex items-center justify-center py-4">
+                                <Loader2 className="w-4 h-4 text-[#0B1E0F] animate-spin" />
+                              </div>
+                            ) : recentRescues.length > 0 ? (
+                              recentRescues.map((order) => (
+                                <Link 
+                                  key={order.id} 
+                                  href={`/orders/${order.id}`}
+                                  onClick={() => setShowDropdown(false)}
+                                  className="flex items-center gap-3 p-2 rounded-2xl bg-white hover:shadow-md transition-all group/order"
+                                >
+                                  <div className="w-10 h-10 rounded-xl bg-[#F7F4EB] flex items-center justify-center group-hover/order:bg-[#0B1E0F]/5 transition-colors">
+                                    <Utensils className="w-4 h-4 text-[#0B1E0F]/40 group-hover/order:text-[#0B1E0F] transition-colors" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[11px] font-bold truncate text-[#0B1E0F]">{order.rescue_bags?.title}</p>
+                                    <p className="text-[9px] text-[#0B1E0F]/40 truncate">{order.restaurants?.name}</p>
+                                  </div>
+                                  <div className="text-right">
+                                      <p className="text-[10px] font-black text-[#0B1E0F]">₹{order.total_price}</p>
+                                  </div>
+                                </Link>
+                              ))
+                            ) : (
+                              <div className="text-center py-4 space-y-2">
+                                  <ShoppingBag className="w-6 h-6 text-[#0B1E0F]/10 mx-auto" />
+                                  <p className="text-[10px] text-[#0B1E0F]/40 italic leading-tight">No rescues recorded yet</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Main Navigation */}
+                        <div className="grid grid-cols-1 gap-1">
+                          <button
+                            onClick={() => {
+                              setShowDropdown(false);
+                              setShowProfileModal(true);
+                            }}
+                            className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#001220]/5 transition-all rounded-[24px] group"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="w-8 h-8 rounded-xl bg-[#0B1E0F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                  <Settings className="w-4 h-4 text-[#0B1E0F]" />
+                              </div>
+                              <span className="text-sm font-bold text-[#0B1E0F]">Account Details</span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-[#0B1E0F]/20 group-hover:translate-x-1 transition-all" />
+                          </button>
+
+                          <Link
+                            href="/orders"
+                            onClick={() => setShowDropdown(false)}
+                            className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#001220]/5 transition-all rounded-[24px] group"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="w-8 h-8 rounded-xl bg-[#0B1E0F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                  <History className="w-4 h-4 text-[#0B1E0F]" />
+                              </div>
+                              <span className="text-sm font-bold text-[#0B1E0F]">Past Orders</span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-[#0B1E0F]/20 group-hover:translate-x-1 transition-all" />
+                          </Link>
+
+                          <Link
+                            href="/help"
+                            onClick={() => setShowDropdown(false)}
+                            className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#001220]/5 transition-all rounded-[24px] group"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="w-8 h-8 rounded-xl bg-[#0B1E0F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                  <HelpCircle className="w-4 h-4 text-[#0B1E0F]" />
+                              </div>
+                              <span className="text-sm font-bold text-[#0B1E0F]">Get Help</span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-[#0B1E0F]/20 group-hover:translate-x-1 transition-all" />
+                          </Link>
+                        </div>
+
+                      <div className="h-px bg-gray-100 mx-6 my-2" />
+
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          signOut();
+                        }}
+                        className="w-full flex items-center gap-4 px-6 py-4 hover:bg-red-50 transition-all text-sm text-red-600 rounded-[24px] font-bold group"
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                            <LogOut className="w-4 h-4" />
+                        </div>
+                        Sign Out Protocol
+                      </button>
                     </div>
-
-                    <Link
-                      href="/browse"
-                      className="flex items-center gap-2 px-4 py-2 hover:bg-secondary/50 transition-colors text-sm"
-                      onClick={() => setShowDropdown(false)}
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                      Browse
-                    </Link>
-
-                    <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        signOut();
-                      }}
-                      className="w-full flex items-center gap-2 px-4 py-2 hover:bg-red-500/10 text-red-500 transition-colors text-sm text-left"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Sign Out
-                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -142,17 +287,35 @@ export function Header() {
             <motion.button
               onClick={() => setShowAuthModal(true)}
               style={{ opacity, y: translateY, scale }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-lg"
-              aria-label="Sign in or sign up"
+              className="px-8 py-3 bg-white text-black text-[10px] uppercase tracking-[0.4em] font-black rounded-full shadow-2xl hover:bg-primary hover:text-white transition-all duration-500"
             >
-              <UserCircle className="w-6 h-6" />
+              Access Portal
             </motion.button>
           )}
         </div>
       </motion.header>
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </>
   );
+}
+
+function ChevronRight({ className }: { className?: string }) {
+    return (
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className={className}
+        >
+            <path d="m9 18 6-6-6-6"/>
+        </svg>
+    );
 }

@@ -218,7 +218,6 @@ export interface Database {
                     pickup_time: string
                     payment_method: 'pay_at_pickup' | 'online'
                     payment_status: 'pending' | 'paid' | 'refunded'
-                    pickup_otp: string
                     qr_code: string | null
                     cancellation_reason: string | null
                     created_at: string
@@ -235,7 +234,6 @@ export interface Database {
                     pickup_time: string
                     payment_method?: 'pay_at_pickup' | 'online'
                     payment_status?: 'pending' | 'paid' | 'refunded'
-                    pickup_otp?: string
                     qr_code?: string | null
                     cancellation_reason?: string | null
                     created_at?: string
@@ -252,7 +250,6 @@ export interface Database {
                     pickup_time?: string
                     payment_method?: 'pay_at_pickup' | 'online'
                     payment_status?: 'pending' | 'paid' | 'refunded'
-                    pickup_otp?: string
                     qr_code?: string | null
                     cancellation_reason?: string | null
                     created_at?: string

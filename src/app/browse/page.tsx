@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentLocation, formatDistance, type Coordinates } from "@/lib/location/geolocation";
-import { MapPin, Search, Clock, X, Navigation, Loader2, ChevronRight, Map, ChevronDown, Sparkles } from "lucide-react";
+import { MapPin, Search, Clock, X, Navigation, Loader2, ArrowRight, ShoppingBag, Timer, ChevronRight, User, Utensils, Flame, Map, Filter, Bell, Heart, History } from "lucide-react";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 
 import { Header } from "@/components/Header";
+import "../premium-animations.css";
 
 interface Restaurant {
     id: string;
@@ -59,17 +60,9 @@ export default function BrowsePage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
-    const [manualSearch, setManualSearch] = useState("");
-    const [placeSuggestions, setPlaceSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
-    const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
-    const [activeFilter, setActiveFilter] = useState<'all' | 'nearby' | 'tonight'>('all');
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
-    const [locationFetched, setLocationFetched] = useState(false);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const mainSearchRef = useRef<HTMLInputElement>(null);
-    const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
-    const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
     const supabase = createClient();
 
     useEffect(() => {
@@ -116,25 +109,8 @@ export default function BrowsePage() {
             );
             const data = await response.json();
             if (data.results && data.results[0]) {
-                const addressComponents = data.results[0].address_components;
-                let locality = '';
-                let city = '';
-                let state = '';
-                
-                for (const component of addressComponents) {
-                    if (component.types.includes('sublocality_level_1') || component.types.includes('sublocality')) {
-                        locality = component.long_name;
-                    }
-                    if (component.types.includes('locality')) {
-                        city = component.long_name;
-                    }
-                    if (component.types.includes('administrative_area_level_1')) {
-                        state = component.short_name;
-                    }
-                }
-                
-                const locationParts = [locality, city, state].filter(Boolean);
-                setLocationName(locationParts.slice(0, 2).join(', '));
+                const parts = data.results[0].formatted_address.split(',');
+                setLocationName(parts.slice(0, 2).join(','));
             }
         } catch (error) {
             console.error("Reverse geocode error:", error);
@@ -142,138 +118,81 @@ export default function BrowsePage() {
     };
 
     useEffect(() => {
-        if (!user || authLoading || locationFetched) return;
+        if (!user || authLoading) return;
 
-        setLocationFetched(true);
+        const locationTimeout = setTimeout(() => {
+            if (loading && !userLocation) {
+                setLoading(false);
+                setLocationError("Location request timed out. Please set your location manually.");
+                setShowLocationModal(true);
+            }
+        }, 5000);
 
         getCurrentLocation()
             .then((coords) => {
+                clearTimeout(locationTimeout);
                 setUserLocation(coords);
                 fetchNearbyRestaurants(coords);
                 reverseGeocode(coords);
             })
             .catch((error) => {
+                clearTimeout(locationTimeout);
                 console.error("Location error:", error);
                 setLocationError(error.message);
                 setLoading(false);
-                setShowLocationModal(true);
-            });
-    }, [user, authLoading, fetchNearbyRestaurants, locationFetched]);
-
-    useEffect(() => {
-        if (typeof window !== 'undefined' && !window.google) {
-            const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
-            script.async = true;
-            script.defer = true;
-            script.onload = () => setGoogleMapsLoaded(true);
-            document.head.appendChild(script);
-        } else if (window.google) {
-            setGoogleMapsLoaded(true);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (googleMapsLoaded && !autocompleteServiceRef.current) {
-            autocompleteServiceRef.current = new google.maps.places.AutocompleteService();
-            const dummyDiv = document.createElement('div');
-            placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv);
-        }
-    }, [googleMapsLoaded]);
-
-    const handleSearchInputChange = (value: string) => {
-        setManualSearch(value);
-
-        if (!value.trim() || !autocompleteServiceRef.current) {
-            setPlaceSuggestions([]);
-            return;
-        }
-
-        autocompleteServiceRef.current.getPlacePredictions(
-            {
-                input: value + ", Coimbatore",
-                componentRestrictions: { country: "in" },
-                types: ["geocode", "establishment"],
-                locationBias: {
-                    center: { lat: 11.0168, lng: 76.9558 },
-                    radius: 30000,
-                },
-            },
-            (predictions, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                    setPlaceSuggestions(predictions.slice(0, 5));
-                } else {
-                    setPlaceSuggestions([]);
+                if (!userLocation) {
+                    setShowLocationModal(true);
                 }
-            }
-        );
-    };
-
-    const handleSelectSuggestion = (placeId: string, description: string) => {
-        if (!placesServiceRef.current) return;
-
-        setLocationLoading(true);
-        setPlaceSuggestions([]);
-
-        placesServiceRef.current.getDetails(
-            { placeId, fields: ["geometry", "formatted_address", "name"] },
-            (place, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
-                    const coords: Coordinates = {
-                        latitude: place.geometry.location.lat(),
-                        longitude: place.geometry.location.lng(),
-                    };
-                    setUserLocation(coords);
-                    setLocationName(place.formatted_address || place.name || description);
-                    setLocationError("");
-                    fetchNearbyRestaurants(coords);
-                    setShowLocationModal(false);
-                    setManualSearch("");
-                    toast.success("Location updated");
-                } else {
-                    setLocationError("Could not get location details. Try again.");
-                }
-                setLocationLoading(false);
-            }
-        );
-    };
-
-    const handleManualSearch = async () => {
-        if (!manualSearch.trim() || !googleMapsLoaded) return;
-
-        setLocationLoading(true);
-        setPlaceSuggestions([]);
-        try {
-            const geocoder = new google.maps.Geocoder();
-            const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
-                geocoder.geocode({ address: manualSearch + ", India" }, (results, status) => {
-                    if (status === "OK" && results) {
-                        resolve(results);
-                    } else {
-                        reject(new Error("Location not found"));
-                    }
-                });
             });
 
-            if (result[0]?.geometry?.location) {
-                const coords: Coordinates = {
-                    latitude: result[0].geometry.location.lat(),
-                    longitude: result[0].geometry.location.lng(),
-                };
-                setUserLocation(coords);
-                setLocationName(result[0].formatted_address || manualSearch);
-                setLocationError("");
-                await fetchNearbyRestaurants(coords);
-                setShowLocationModal(false);
-                setManualSearch("");
-                toast.success("Location updated");
-            }
-        } catch (error) {
-            setLocationError("Could not find that location. Try a different search.");
-        } finally {
-            setLocationLoading(false);
+        return () => clearTimeout(locationTimeout);
+    }, [user, authLoading, fetchNearbyRestaurants]);
+
+    useEffect(() => {
+        if (showLocationModal && searchInputRef.current && !autocompleteRef.current) {
+            const loadGoogleMaps = () => {
+                if (window.google && window.google.maps) {
+                    initAutocomplete();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+                script.async = true;
+                script.defer = true;
+                script.onload = () => initAutocomplete();
+                document.head.appendChild(script);
+            };
+
+            const initAutocomplete = () => {
+                if (searchInputRef.current && window.google) {
+                    autocompleteRef.current = new google.maps.places.Autocomplete(
+                        searchInputRef.current,
+                        {
+                            componentRestrictions: { country: "in" },
+                            fields: ["geometry", "formatted_address", "name"],
+                        }
+                    );
+
+                    autocompleteRef.current.addListener("place_changed", () => {
+                        const place = autocompleteRef.current?.getPlace();
+                        if (place?.geometry?.location) {
+                            const coords: Coordinates = {
+                                latitude: place.geometry.location.lat(),
+                                longitude: place.geometry.location.lng(),
+                            };
+                            setUserLocation(coords);
+                            setLocationName(place.formatted_address || place.name || "");
+                            setLocationError("");
+                            fetchNearbyRestaurants(coords);
+                            setShowLocationModal(false);
+                            toast.success("Location updated!");
+                        }
+                    });
+                }
+            };
+            loadGoogleMaps();
         }
-    };
+    }, [showLocationModal, fetchNearbyRestaurants]);
 
     const handleRefreshLocation = async () => {
         setLocationLoading(true);
@@ -284,7 +203,7 @@ export default function BrowsePage() {
             await fetchNearbyRestaurants(coords);
             await reverseGeocode(coords);
             setShowLocationModal(false);
-            toast.success("Location updated");
+            toast.success("Location fetched successfully!");
         } catch (error: any) {
             console.error("Location error:", error);
             let errorMessage = error.message || "Failed to get location";
@@ -297,20 +216,9 @@ export default function BrowsePage() {
         }
     };
 
-    const filteredRestaurants = restaurants.filter((restaurant) => {
-        const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            restaurant.cuisine_types?.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-        if (activeFilter === 'nearby') {
-            return matchesSearch && restaurant.distance_km <= 3;
-        }
-        return matchesSearch;
-    });
-
-    const sortedRestaurants = [...filteredRestaurants].sort((a, b) => {
-        if (activeFilter === 'nearby') return a.distance_km - b.distance_km;
-        return 0;
-    });
+    const filteredRestaurants = restaurants.filter((restaurant) =>
+        restaurant.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const formatPickupTime = (start: string, end: string) => {
         const formatTime = (time: string) => {
@@ -323,429 +231,361 @@ export default function BrowsePage() {
         return `${formatTime(start)} - ${formatTime(end)}`;
     };
 
-    const totalBagsAvailable = restaurants.reduce((acc, r) => 
-        acc + r.rescue_bags.reduce((sum, bag) => sum + bag.quantity_available, 0), 0
-    );
-
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(price);
-    };
-
     return (
-        <div className="min-h-screen bg-gradient-to-b from-orange-50/50 via-white to-amber-50/30">
-            <Toaster position="top-center" toastOptions={{ className: 'text-sm font-medium' }} />
+        <div className="relative min-h-screen bg-[#F7F4EB] selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
+            <Toaster />
             <Header />
 
-            <main className="pt-16">
-                {/* Hero Section - Vibrant & Premium */}
-                <section className="relative min-h-[65vh] flex items-center justify-center overflow-hidden">
-                    {/* Warm gradient background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-amber-500 to-yellow-500" />
-                    
-                    {/* Decorative blobs */}
-                    <div className="absolute inset-0 overflow-hidden">
-                        <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-                        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-red-500/20 rounded-full blur-3xl" />
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-300/20 rounded-full blur-[100px]" />
-                    </div>
+            {/* Premium Dynamic Background - Using Navy and Green */}
+            <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+                <motion.div
+                    animate={{ 
+                        scale: [1, 1.2, 1], 
+                        x: [0, 30, 0], 
+                        y: [0, 20, 0],
+                        opacity: [0.1, 0.2, 0.1]
+                    }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute top-[-5%] left-[-5%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-[#0B1E0F]/20 via-[#001220]/10 to-transparent blur-[100px]"
+                />
+                <motion.div
+                    animate={{ 
+                        scale: [1.1, 1, 1.1], 
+                        x: [0, -40, 0], 
+                        y: [0, -30, 0],
+                        opacity: [0.05, 0.15, 0.05]
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-gradient-to-tl from-[#001220]/15 via-[#0B1E0F]/10 to-transparent blur-[100px]"
+                />
+            </div>
 
-                    {/* Subtle pattern */}
-                    <div className="absolute inset-0 opacity-10" style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                    }} />
-
-                    {/* Content */}
-                    <div className="relative z-10 w-full max-w-4xl mx-auto px-6 py-16 text-center">
-                        {/* Location pill - auto detected */}
-                        <motion.button
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5 }}
-                            onClick={() => setShowLocationModal(true)}
-                            className="inline-flex items-center gap-2.5 px-5 py-2.5 mb-8 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 rounded-full transition-all group shadow-lg"
-                        >
-                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                            <MapPin className="w-4 h-4 text-white" />
-                            <span className="text-sm font-medium text-white">
-                                {locationName || "Detecting location..."}
-                            </span>
-                            <ChevronDown className="w-4 h-4 text-white/70 group-hover:translate-y-0.5 transition-transform" />
-                        </motion.button>
-
-                        {/* Main headline */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.7, delay: 0.1 }}
-                            className="mb-6"
-                        >
-                            <h1 className="text-[clamp(2.5rem,7vw,4.5rem)] font-bold text-white leading-[1.1] tracking-tight">
-                                Good food doesn't
-                                <br />
-                                <span className="font-serif italic font-normal text-yellow-100">end early.</span>
-                            </h1>
-                        </motion.div>
-
-                        {/* Subline */}
-                        <motion.p
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.7, delay: 0.2 }}
-                            className="text-lg md:text-xl text-white/80 font-medium max-w-lg mx-auto mb-10 leading-relaxed"
-                        >
-                            Mystery bags from nearby restaurants.
-                            <br />
-                            Pick up before closing.
-                        </motion.p>
-
-                        {/* Search Bar */}
+            <main className="pt-24 md:pt-32 pb-24 relative">
+                {/* Hero Section with Dark Green and Navy */}
+                <section className="px-4 sm:px-6 lg:px-12 mb-16 relative z-40">
+                    <div className="max-w-7xl mx-auto">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.7, delay: 0.3 }}
-                            className="max-w-xl mx-auto"
+                            className="relative overflow-hidden rounded-[48px] bg-[#0B1E0F] p-8 md:p-16 text-[#F7F4EB] shadow-2xl shadow-[#001220]/20"
                         >
-                            <div className={`relative bg-white rounded-2xl shadow-2xl transition-all duration-300 ${
-                                isSearchFocused ? 'shadow-2xl shadow-orange-900/30 scale-[1.02]' : 'shadow-xl'
-                            }`}>
-                                <div className="flex items-center px-5 py-4">
-                                    <Search className="w-5 h-5 text-orange-400 mr-4" />
-                                    <input
-                                        ref={mainSearchRef}
-                                        type="text"
-                                        placeholder="Search restaurants or cuisines..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        onFocus={() => setIsSearchFocused(true)}
-                                        onBlur={() => setIsSearchFocused(false)}
-                                        className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-gray-800 placeholder:text-gray-400 text-base font-medium"
-                                    />
-                                    {searchQuery && (
-                                        <button 
-                                            onClick={() => setSearchQuery('')}
-                                            className="p-1.5 hover:bg-orange-50 rounded-full transition-colors"
+                            {/* Decorative Pattern Overlay */}
+                            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F7F4EB 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }} />
+                            <div className="absolute inset-0 bg-gradient-to-br from-[#001220]/80 via-transparent to-transparent pointer-events-none" />
+
+                            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
+                                <div className="space-y-6 max-w-2xl text-center md:text-left">
+                                    <div className="flex items-center justify-center md:justify-start gap-3">
+                                        <div className="h-[1px] w-8 bg-[#F7F4EB]/30" />
+                                        <p className="text-[10px] uppercase tracking-[0.4em] font-light text-[#F7F4EB]/60">Welcome back, {customer?.name?.split(" ")[0] || "Rescuer"}</p>
+                                    </div>
+                                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif leading-[1.1]">
+                                        What are we <span className="italic text-[#E9E5D9]">rescuing</span> today?
+                                    </h1>
+                                    <p className="text-lg text-[#F7F4EB]/70 font-light max-w-lg mx-auto md:mx-0">
+                                        Mystery bags from nearby kitchens. High quality, zero waste, perfectly premium.
+                                    </p>
+                                    
+                                    <div className="pt-4">
+                                        <button
+                                            onClick={() => setShowLocationModal(true)}
+                                            className="group inline-flex items-center gap-4 px-8 py-4 bg-[#F7F4EB] text-[#0B1E0F] rounded-2xl hover:bg-white transition-all duration-300 shadow-xl shadow-black/20"
                                         >
-                                            <X className="w-4 h-4 text-gray-400" />
+                                            <div className="w-10 h-10 rounded-xl bg-[#0B1E0F]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <MapPin className="w-5 h-5 text-[#0B1E0F]" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-[9px] uppercase tracking-widest text-[#0B1E0F]/60 leading-none mb-1">Current Target</p>
+                                                <p className="text-base font-medium truncate max-w-[200px]">
+                                                    {locationName || "Detecting Location..."}
+                                                </p>
+                                            </div>
+                                            <ChevronRight className="w-5 h-5 text-[#0B1E0F]/40 group-hover:translate-x-1 transition-transform" />
                                         </button>
-                                    )}
+                                    </div>
+                                </div>
+
+                                <div className="hidden lg:block relative">
+                                    <div className="w-80 h-80 rounded-[40px] bg-[#001220] border border-[#F7F4EB]/10 flex items-center justify-center relative overflow-hidden group">
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-[#0B1E0F] to-transparent opacity-50" />
+                                        <ShoppingBag className="w-32 h-32 text-[#F7F4EB]/20 animate-pulse" />
+                                        <div className="absolute bottom-6 left-6 right-6 p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
+                                            <p className="text-[10px] uppercase tracking-widest text-white/60 mb-1">Live Updates</p>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                                <span className="text-sm font-medium">{filteredRestaurants.length} Mystery Bags Found</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
-
-                        {/* Availability indicator */}
-                        {totalBagsAvailable > 0 && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0.7, delay: 0.5 }}
-                                className="mt-8 inline-flex items-center gap-2.5 px-5 py-2.5 bg-white/20 backdrop-blur-sm rounded-full"
-                            >
-                                <Sparkles className="w-4 h-4 text-yellow-200" />
-                                <span className="text-sm font-semibold text-white">
-                                    {totalBagsAvailable} {totalBagsAvailable === 1 ? 'bag' : 'bags'} available tonight
-                                </span>
-                            </motion.div>
-                        )}
-                    </div>
-
-                    {/* Wave divider */}
-                    <div className="absolute bottom-0 left-0 right-0">
-                        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
-                            <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="url(#gradient)" />
-                            <defs>
-                                <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop stopColor="#FFF7ED" stopOpacity="0.5" />
-                                    <stop offset="1" stopColor="white" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
                     </div>
                 </section>
 
-                {/* Filters Bar */}
-                <section className="sticky top-16 z-30 bg-white/80 backdrop-blur-xl border-b border-orange-100">
-                    <div className="max-w-6xl mx-auto px-6 py-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                                {[
-                                    { key: 'all', label: 'All', color: 'orange' },
-                                    { key: 'nearby', label: 'Nearby', color: 'emerald' },
-                                    { key: 'tonight', label: 'Tonight', color: 'purple' },
-                                ].map((filter) => (
-                                    <button
-                                        key={filter.key}
-                                        onClick={() => setActiveFilter(filter.key as any)}
-                                        className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap ${
-                                            activeFilter === filter.key
-                                                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-200'
-                                                : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'
-                                        }`}
-                                    >
-                                        {filter.label}
-                                    </button>
-                                ))}
+                {/* Search Bar Section */}
+                <section className="px-4 sm:px-6 lg:px-12 mb-16 relative z-40">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-1 relative group">
+                                <div className="absolute inset-0 bg-[#0B1E0F]/10 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
+                                <div className="relative bg-white border border-[#0B1E0F]/10 rounded-3xl shadow-2xl shadow-[#001220]/5 p-2 flex items-center">
+                                    <div className="flex-1 flex items-center px-6 py-4">
+                                        <Search className="w-6 h-6 text-[#0B1E0F]/20 mr-4 group-focus-within:text-[#0B1E0F] group-focus-within:scale-110 transition-all duration-300" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search restaurants, cuisines..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="bg-transparent border-none focus:ring-0 focus:outline-none w-full text-lg placeholder:text-[#0B1E0F]/30 font-light"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                             
-                            <span className="text-sm font-medium text-gray-400 hidden sm:inline">
-                                {sortedRestaurants.length} {sortedRestaurants.length === 1 ? 'result' : 'results'}
-                            </span>
+                            <button className="h-[76px] px-8 bg-[#001220] text-[#F7F4EB] rounded-3xl flex items-center justify-center hover:bg-[#0B1E0F] transition-all duration-300 shadow-xl shadow-[#001220]/10">
+                                <Filter className="w-6 h-6 mr-3" />
+                                <span className="text-sm font-bold uppercase tracking-widest">Filters</span>
+                            </button>
                         </div>
                     </div>
                 </section>
 
-                {/* Restaurant Grid */}
-                <section className="px-6 py-10">
-                    <div className="max-w-6xl mx-auto">
-                        {loading ? (
-                            <div className="py-32 flex flex-col items-center justify-center">
-                                <div className="relative w-16 h-16">
-                                    <div className="absolute inset-0 border-4 border-orange-100 rounded-full" />
-                                    <div className="absolute inset-0 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                                </div>
-                                <p className="mt-6 text-gray-500 font-medium">Finding mystery bags near you...</p>
-                            </div>
-                        ) : sortedRestaurants.length === 0 ? (
+                {/* Main Content Grid */}
+                <section className="px-4 sm:px-6 lg:px-12">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="flex items-center justify-between mb-12">
                             <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="py-20 text-center"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="flex items-center gap-4"
                             >
-                                <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-orange-100 to-amber-100 rounded-full flex items-center justify-center">
-                                    <Map className="w-10 h-10 text-orange-400" />
+                                <div className="w-2 h-10 bg-[#0B1E0F] rounded-full shadow-[0_0_20px_rgba(11,30,15,0.3)]" />
+                                <h2 className="text-3xl md:text-4xl font-serif">Curated Collections</h2>
+                            </motion.div>
+                            <div className="flex gap-4">
+                                <button className="px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-[#F7F4EB] bg-[#001220] rounded-full hover:bg-[#0B1E0F] transition-colors">Distance</button>
+                                <button className="px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-[#0B1E0F]/60 hover:text-[#0B1E0F] transition-colors">Popularity</button>
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div className="py-40 flex flex-col items-center justify-center">
+                                <div className="relative mb-12">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                        className="w-32 h-32 rounded-full border-[2px] border-[#0B1E0F]/5 border-t-[#0B1E0F] shadow-2xl"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <Utensils className="w-10 h-10 text-[#0B1E0F] animate-pulse" />
+                                    </div>
                                 </div>
-                                <h3 className="text-2xl font-bold text-gray-800 mb-3">Nothing available right now</h3>
-                                <p className="text-gray-500 mb-10 max-w-sm mx-auto">
-                                    {searchQuery 
-                                        ? `No results for "${searchQuery}".`
-                                        : "No mystery bags within 7km. Check back closer to closing time."
-                                    }
+                                <h3 className="text-2xl font-serif mb-3">Assembling your menu...</h3>
+                                <p className="text-base text-[#0B1E0F]/50 font-light tracking-wide max-w-xs text-center">
+                                    Connecting with premium local kitchens to find the finest mystery bags.
                                 </p>
-                                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                                    {searchQuery ? (
+                            </div>
+                        ) : filteredRestaurants.length === 0 ? (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="relative py-32 rounded-[64px] overflow-hidden border border-[#0B1E0F]/10 bg-white shadow-3xl shadow-[#001220]/5"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#0B1E0F]/20 to-transparent" />
+                                <div className="relative z-10 text-center px-6">
+                                    <div className="w-32 h-32 mx-auto mb-10 relative">
+                                        <div className="absolute inset-0 bg-[#0B1E0F]/5 rounded-full animate-ping opacity-20" />
+                                        <div className="relative w-full h-full rounded-full bg-gradient-to-br from-[#0B1E0F]/5 to-[#001220]/5 flex items-center justify-center border border-[#0B1E0F]/10">
+                                            <Map className="w-12 h-12 text-[#0B1E0F]/30" />
+                                        </div>
+                                    </div>
+                                    <h3 className="text-4xl md:text-5xl font-serif mb-6">A bit quiet here</h3>
+                                    <p className="text-[#0B1E0F]/50 font-light mb-12 max-w-lg mx-auto text-xl leading-relaxed">
+                                        No active mystery bags within <span className="text-[#0B1E0F] font-medium">7km</span>. Try a different area or re-scan.
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row gap-6 justify-center">
                                         <button
-                                            onClick={() => setSearchQuery('')}
-                                            className="px-8 py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-full hover:shadow-lg hover:shadow-orange-200 transition-all"
+                                            onClick={() => setShowLocationModal(true)}
+                                            className="inline-flex items-center justify-center gap-4 px-12 py-6 bg-[#001220] text-[#F7F4EB] text-[12px] uppercase tracking-[0.4em] font-bold rounded-2xl hover:bg-[#0B1E0F] transition-all duration-500 active:scale-95 shadow-2xl shadow-[#001220]/20"
                                         >
-                                            Clear search
+                                            <MapPin className="w-5 h-5" />
+                                            Change Target
                                         </button>
-                                    ) : (
-                                        <>
-                                            <button
-                                                onClick={() => setShowLocationModal(true)}
-                                                className="px-8 py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-full hover:shadow-lg hover:shadow-orange-200 transition-all inline-flex items-center gap-2"
-                                            >
-                                                <MapPin className="w-4 h-4" />
-                                                Change location
-                                            </button>
-                                            <button
-                                                onClick={handleRefreshLocation}
-                                                className="px-8 py-3.5 bg-gray-100 text-gray-700 font-semibold rounded-full hover:bg-gray-200 transition-colors"
-                                            >
-                                                Refresh
-                                            </button>
-                                        </>
-                                    )}
+                                        <button
+                                            onClick={handleRefreshLocation}
+                                            className="inline-flex items-center justify-center gap-4 px-12 py-6 bg-white border border-[#0B1E0F]/10 text-[#0B1E0F] text-[12px] uppercase tracking-[0.4em] font-bold rounded-2xl hover:bg-[#F7F4EB] transition-all duration-500"
+                                        >
+                                            <Navigation className="w-5 h-5" />
+                                            Re-scan
+                                        </button>
+                                    </div>
                                 </div>
                             </motion.div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {sortedRestaurants.map((restaurant, index) => {
-                                    const totalQuantity = restaurant.rescue_bags.reduce((sum, bag) => sum + bag.quantity_available, 0);
-                                    const firstBag = restaurant.rescue_bags[0];
-                                    
-                                    return (
-                                        <motion.div
-                                            key={restaurant.id}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.05, duration: 0.4 }}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                                {filteredRestaurants.map((restaurant, index) => (
+                                    <motion.div
+                                        key={restaurant.id}
+                                        initial={{ opacity: 0, y: 40 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.1 * (index % 6), duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                                    >
+                                        <Link
+                                            href={`/restaurant/${restaurant.id}`}
+                                            className="group block bg-white rounded-[40px] border border-[#0B1E0F]/5 hover:border-[#0B1E0F]/20 transition-all duration-700 overflow-hidden hover:shadow-[0_50px_100px_-20px_rgba(11,30,15,0.15)] hover:-translate-y-3 relative"
                                         >
-                                            <Link
-                                                href={`/restaurant/${restaurant.id}`}
-                                                className="group block bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-orange-100 transition-all duration-500 border border-orange-50"
-                                            >
-                                                {/* Image Container */}
-                                                <div className="relative aspect-[4/3] overflow-hidden">
-                                                    <img
-                                                        src={restaurant.cover_image_url || "/images/hero-indian-food.png"}
-                                                        alt={restaurant.name}
-                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                                    />
-                                                    
-                                                    {/* Gradient overlay */}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                                                    
-                                                    {/* Mystery Bag Tag */}
-                                                    <div className="absolute top-4 left-4">
-                                                        <div className="px-3.5 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold tracking-wide rounded-full shadow-lg flex items-center gap-1.5">
-                                                            <Sparkles className="w-3 h-3" />
-                                                            Mystery Bag
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Quantity indicator */}
-                                                    {totalQuantity <= 3 && (
-                                                        <div className="absolute top-4 right-4">
-                                                            <div className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">
-                                                                Only {totalQuantity} left!
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Pickup Time & Distance */}
-                                                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-2">
-                                                        <div className="flex items-center gap-2 px-3.5 py-2 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg">
-                                                            <Clock className="w-4 h-4 text-orange-500" />
-                                                            <span className="text-gray-800 text-sm font-semibold">
-                                                                {firstBag && formatPickupTime(firstBag.pickup_start_time, firstBag.pickup_end_time)}
-                                                            </span>
-                                                        </div>
-                                                        <div className="px-3.5 py-2 bg-emerald-500 text-white rounded-xl shadow-lg">
-                                                            <span className="text-sm font-bold">
-                                                                {formatDistance(restaurant.distance_km)}
-                                                            </span>
-                                                        </div>
+                                            <div className="aspect-[14/11] relative overflow-hidden">
+                                                <div className="absolute inset-0 bg-gradient-to-t from-[#0B1E0F]/90 via-[#0B1E0F]/20 to-transparent z-10" />
+                                                <motion.img 
+                                                    src={restaurant.cover_image_url || "/images/hero-indian-food.png"} 
+                                                    alt={restaurant.name}
+                                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                                />
+                                                <div className="absolute top-6 left-6 z-20">
+                                                    <div className="px-5 py-2.5 bg-gradient-to-r from-[#0B1E0F] to-[#001220] text-[#F7F4EB] text-[11px] uppercase tracking-[0.3em] font-bold rounded-2xl shadow-2xl border border-white/10">
+                                                        Premium Selection
                                                     </div>
                                                 </div>
-
-                                                {/* Content */}
-                                                <div className="p-5">
-                                                    <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-orange-600 transition-colors">
+                                                <div className="absolute top-6 right-6 z-20">
+                                                    <div className="px-5 py-2.5 bg-white/95 backdrop-blur-md text-[#0B1E0F] text-[12px] font-bold rounded-2xl shadow-2xl flex items-center gap-3">
+                                                        <Navigation className="w-4 h-4 text-[#0B1E0F]" />
+                                                        {formatDistance(restaurant.distance_km)}
+                                                    </div>
+                                                </div>
+                                                <div className="absolute bottom-8 left-8 right-8 z-20">
+                                                    <h3 className="text-3xl md:text-4xl font-serif text-[#F7F4EB] mb-3 leading-tight group-hover:translate-x-2 transition-transform duration-500">
                                                         {restaurant.name}
                                                     </h3>
-                                                    <p className="text-sm text-gray-500 mb-4 font-medium">
-                                                        {restaurant.cuisine_types?.slice(0, 3).join(" · ") || "Multi-cuisine"}
-                                                    </p>
+                                                    <div className="flex items-center gap-3 text-[#F7F4EB]/70">
+                                                        <Utensils className="w-4 h-4" />
+                                                        <p className="text-sm font-light tracking-widest italic">
+                                                            {restaurant.cuisine_types?.slice(0, 2).join(" • ") || "Artisanal Kitchen"}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                                    {/* Price Section */}
-                                                    <div className="flex items-end justify-between pt-4 border-t border-orange-50">
-                                                        <div>
-                                                            <p className="text-xs text-gray-400 font-medium mb-0.5">Worth {formatPrice(firstBag?.original_price || 0)}+</p>
-                                                            <p className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-                                                                {formatPrice(firstBag?.discounted_price || 0)}
-                                                            </p>
+                                            <div className="p-8">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center gap-3 px-4 py-2 bg-[#F7F4EB] border border-[#0B1E0F]/5 rounded-2xl w-fit">
+                                                            <Clock className="w-4 h-4 text-[#0B1E0F]" />
+                                                            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0B1E0F]">
+                                                                {restaurant.rescue_bags[0] && formatPickupTime(restaurant.rescue_bags[0].pickup_start_time, restaurant.rescue_bags[0].pickup_end_time)}
+                                                            </span>
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 px-4 py-2 bg-orange-50 text-orange-600 rounded-full group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                                                            <span className="text-sm font-semibold">View</span>
-                                                            <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                                                        <div className="flex -space-x-3">
+                                                            {[1, 2, 3].map(i => (
+                                                                <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-[#E9E5D9] flex items-center justify-center">
+                                                                    <User className="w-4 h-4 text-[#0B1E0F]/40" />
+                                                                </div>
+                                                            ))}
+                                                            <span className="ml-5 text-[11px] text-[#0B1E0F]/40 font-medium self-center">+24 people rescued here</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="relative group/btn">
+                                                        <div className="absolute inset-0 bg-[#0B1E0F]/20 blur-2xl group-hover/btn:opacity-100 opacity-0 transition-opacity duration-500" />
+                                                        <div className="relative w-16 h-16 rounded-[24px] bg-[#001220] text-[#F7F4EB] flex items-center justify-center group-hover:bg-[#0B1E0F] transition-all duration-500 shadow-xl shadow-[#001220]/20">
+                                                            <ArrowRight className="w-7 h-7 group-hover:translate-x-1 transition-transform" />
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </Link>
-                                        </motion.div>
-                                    );
-                                })}
+                                            </div>
+                                        </Link>
+                                    </motion.div>
+                                ))}
                             </div>
                         )}
                     </div>
                 </section>
             </main>
 
-            {/* Location Modal */}
+            {/* Location Modal - Redesigned with Navy/Green */}
             <AnimatePresence>
                 {showLocationModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                            className="absolute inset-0 bg-[#001220]/80 backdrop-blur-2xl"
                             onClick={() => setShowLocationModal(false)}
                         />
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            initial={{ opacity: 0, scale: 0.9, y: 40 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            transition={{ type: "spring", duration: 0.5 }}
-                            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+                            exit={{ opacity: 0, scale: 0.9, y: 40 }}
+                            transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                            className="relative w-full max-w-xl bg-[#F7F4EB] rounded-[56px] p-12 shadow-[0_100px_150px_-30px_rgba(0,0,0,0.5)] overflow-hidden"
                         >
-                            {/* Orange gradient header */}
-                            <div className="h-2 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500" />
+                            <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-[#0B1E0F] via-[#001220] to-[#0B1E0F]" />
                             
-                            <div className="p-8">
-                                <div className="flex items-center justify-between mb-8">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-gray-900">Set your location</h2>
-                                        <p className="text-sm text-gray-500 mt-1">Find mystery bags near you</p>
+                            <div className="flex justify-between items-start mb-12">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="w-10 h-10 rounded-2xl bg-[#0B1E0F]/10 flex items-center justify-center">
+                                            <MapPin className="w-5 h-5 text-[#0B1E0F]" />
+                                        </div>
+                                        <h3 className="text-4xl font-serif text-[#0B1E0F]">Deployment Area</h3>
                                     </div>
-                                    <button
-                                        onClick={() => setShowLocationModal(false)}
-                                        className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                                    >
-                                        <X className="w-5 h-5 text-gray-500" />
-                                    </button>
+                                    <p className="text-[#0B1E0F]/60 font-light text-lg tracking-wide">Enter coordinates to find active mystery bags.</p>
                                 </div>
+                                <button
+                                    onClick={() => setShowLocationModal(false)}
+                                    className="w-14 h-14 rounded-[24px] bg-[#E9E5D9] hover:bg-[#001220] hover:text-[#F7F4EB] flex items-center justify-center transition-all duration-300 shadow-inner"
+                                >
+                                    <X className="w-7 h-7" />
+                                </button>
+                            </div>
 
-                                <div className="space-y-5">
+                            {locationError && (
+                                <motion.div 
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="mb-10 p-6 bg-red-500/5 border border-red-500/10 text-red-700 text-sm font-medium rounded-3xl flex gap-4 items-center"
+                                >
+                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                                    {locationError}
+                                </motion.div>
+                            )}
+
+                            <div className="space-y-8">
+                                <div className="relative group">
+                                    <div className="absolute -inset-1.5 bg-[#0B1E0F]/10 rounded-[32px] blur-xl opacity-0 group-focus-within:opacity-100 transition duration-700" />
                                     <div className="relative">
-                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+                                        <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-7 h-7 text-[#0B1E0F]/20 group-focus-within:text-[#0B1E0F] transition-colors" />
                                         <input
                                             ref={searchInputRef}
                                             type="text"
-                                            value={manualSearch}
-                                            onChange={(e) => handleSearchInputChange(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
-                                            placeholder="Search for your location..."
-                                            autoFocus
-                                            className="w-full pl-12 pr-4 py-4 bg-orange-50 border-2 border-transparent focus:border-orange-300 focus:bg-white rounded-2xl text-gray-900 placeholder-gray-400 transition-all font-medium"
+                                            placeholder="Where should we look?"
+                                            className="w-full pl-18 pr-8 py-7 bg-white border border-[#0B1E0F]/5 rounded-[30px] focus:ring-0 focus:outline-none transition-all text-lg placeholder:text-[#0B1E0F]/20 font-light shadow-inner"
                                         />
-                                        {locationLoading && (
-                                            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400 animate-spin" />
-                                        )}
                                     </div>
-
-                                    {locationError && (
-                                        <div className="flex items-center gap-3 text-red-600 text-sm bg-red-50 px-4 py-3 rounded-2xl font-medium">
-                                            <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-                                            {locationError}
-                                        </div>
-                                    )}
-
-                                    {placeSuggestions.length > 0 && (
-                                        <div className="bg-white border-2 border-orange-100 rounded-2xl shadow-lg max-h-56 overflow-auto">
-                                            {placeSuggestions.map((suggestion, i) => (
-                                                <button
-                                                    key={suggestion.place_id}
-                                                    type="button"
-                                                    onClick={() => handleSelectSuggestion(suggestion.place_id, suggestion.description)}
-                                                    className={`w-full px-4 py-4 text-left hover:bg-orange-50 transition-colors flex items-start gap-3 ${
-                                                        i !== placeSuggestions.length - 1 ? 'border-b border-orange-50' : ''
-                                                    }`}
-                                                >
-                                                    <MapPin className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
-                                                    <div>
-                                                        <p className="text-gray-900 font-semibold">{suggestion.structured_formatting.main_text}</p>
-                                                        <p className="text-gray-400 text-sm">{suggestion.structured_formatting.secondary_text}</p>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    <div className="flex items-center gap-4 py-2">
-                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-orange-200 to-transparent" />
-                                        <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">or</span>
-                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-orange-200 to-transparent" />
-                                    </div>
-
-                                    <button
-                                        onClick={handleRefreshLocation}
-                                        disabled={locationLoading}
-                                        className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-2xl transition-all disabled:opacity-50 shadow-lg shadow-orange-200"
-                                    >
-                                        {locationLoading ? (
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                        ) : (
-                                            <Navigation className="w-5 h-5" />
-                                        )}
-                                        Use current location
-                                    </button>
                                 </div>
+
+                                <div className="relative py-6">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-[#0B1E0F]/5"></div>
+                                    </div>
+                                    <div className="relative flex justify-center">
+                                        <span className="bg-[#F7F4EB] px-8 text-[11px] uppercase tracking-[0.5em] text-[#0B1E0F]/40 font-black">Sync Protocol</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handleRefreshLocation}
+                                    disabled={locationLoading}
+                                    className="w-full flex items-center justify-center gap-5 py-7 bg-[#001220] text-[#F7F4EB] text-[12px] uppercase tracking-[0.5em] font-black rounded-[30px] hover:bg-[#0B1E0F] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] transition-all duration-500 disabled:opacity-50 relative group overflow-hidden"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                    {locationLoading ? (
+                                        <Loader2 className="w-7 h-7 animate-spin" />
+                                    ) : (
+                                        <Navigation className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+                                    )}
+                                    <span>Sync GPS Location</span>
+                                </button>
                             </div>
                         </motion.div>
                     </div>
@@ -753,15 +593,22 @@ export default function BrowsePage() {
             </AnimatePresence>
 
             {/* Footer */}
-            <footer className="bg-gradient-to-r from-orange-50 to-amber-50 border-t border-orange-100">
-                <div className="max-w-6xl mx-auto px-6 py-10">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Latebites</span>
-                        <div className="flex items-center gap-8 text-sm text-gray-500 font-medium">
-                            <Link href="/help" className="hover:text-orange-600 transition-colors">Help</Link>
-                            <Link href="/profile" className="hover:text-orange-600 transition-colors">Privacy</Link>
-                            <span>© 2024</span>
+            <footer className="py-20 px-10 border-t border-[#0B1E0F]/5 bg-white/30 backdrop-blur-xl">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
+                    <div className="flex items-center gap-6">
+                        <div className="w-12 h-12 rounded-2xl bg-[#001220] text-[#F7F4EB] flex items-center justify-center font-serif text-xl shadow-xl">L</div>
+                        <div>
+                            <p className="text-[12px] uppercase tracking-[0.4em] font-black text-[#0B1E0F]">Latebites</p>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-[#0B1E0F]/40 mt-1">Premium Food Rescue • 2024</p>
                         </div>
+                    </div>
+                    <div className="flex gap-12">
+                        <Link href="/help" className="text-[11px] uppercase tracking-[0.3em] font-bold text-[#0B1E0F]/60 hover:text-[#0B1E0F] transition-colors">Concierge</Link>
+                        <Link href="/profile" className="text-[11px] uppercase tracking-[0.3em] font-bold text-[#0B1E0F]/60 hover:text-[#0B1E0F] transition-colors">Privacy Protocol</Link>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <p className="text-[11px] text-[#0B1E0F]/40 tracking-[0.4em] uppercase font-bold">Encrypted & Secured</p>
                     </div>
                 </div>
             </footer>

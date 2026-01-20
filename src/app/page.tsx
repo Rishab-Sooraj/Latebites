@@ -14,6 +14,8 @@ import { createClient } from "@/lib/supabase/client";
 import AuthModal from "@/components/AuthModal";
 
 import { Header } from "@/components/Header";
+import "./3d-effects.css";
+import "./premium-animations.css";
 
 function HomePageContent() {
   const router = useRouter();
@@ -211,13 +213,13 @@ function HomePageContent() {
             initial={{ opacity: 0, y: 50, filter: "blur(10px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 1.2, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl font-serif font-light leading-[0.95] tracking-[-0.02em] text-white"
+            className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl font-serif font-light leading-[0.95] tracking-[-0.02em] text-[#F7F4EB]"
             style={{ textShadow: "0 8px 60px rgba(0,0,0,0.8)" }}
           >
             Rescue Food.
             <br />
             <motion.span
-              className="italic text-white/90"
+              className="italic text-[#F7F4EB]/90"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1, delay: 1.5 }}
@@ -231,9 +233,9 @@ function HomePageContent() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.8, duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-lg sm:text-xl md:text-2xl text-white/60 font-light tracking-wide max-w-2xl mx-auto"
+            className="text-lg sm:text-xl md:text-2xl text-[#F7F4EB]/60 font-light tracking-wide max-w-2xl mx-auto"
           >
-            Get delicious surplus meals at <span className="text-white font-medium">50% off</span> from your favorite local restaurants.
+            Get delicious surplus meals at <span className="text-[#F7F4EB] font-medium">50% off</span> from your favorite local restaurants.
           </motion.p>
 
           {/* CTA Buttons */}
@@ -246,9 +248,9 @@ function HomePageContent() {
             {user ? (
               <Link
                 href="/browse"
-                className="btn-premium group relative inline-flex items-center gap-2 px-10 py-5 bg-white text-black text-xs uppercase tracking-[0.3em] rounded-sm font-medium overflow-hidden"
+                className="group relative inline-flex items-center gap-4 px-10 py-5 bg-[#F7F4EB] text-[#0B1E0F] text-xs uppercase tracking-[0.4em] rounded-2xl font-bold overflow-hidden hover:bg-white transition-all duration-300 shadow-2xl shadow-black/40"
               >
-                <span className="relative z-10">Find Rescue Bags</span>
+                <span className="relative z-10">Find Mystery Bags</span>
                 <motion.span
                   className="relative z-10"
                   animate={{ x: [0, 4, 0] }}
@@ -260,9 +262,9 @@ function HomePageContent() {
             ) : (
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="btn-premium group relative inline-flex items-center gap-2 px-10 py-5 bg-white text-black text-xs uppercase tracking-[0.3em] rounded-sm font-medium overflow-hidden"
+                className="group relative inline-flex items-center gap-4 px-10 py-5 bg-[#F7F4EB] text-[#0B1E0F] text-xs uppercase tracking-[0.4em] rounded-2xl font-bold overflow-hidden hover:bg-white transition-all duration-300 shadow-2xl shadow-black/40"
               >
-                <span className="relative z-10">Find Rescue Bags</span>
+                <span className="relative z-10">Find Mystery Bags</span>
                 <motion.span
                   className="relative z-10"
                   animate={{ x: [0, 4, 0] }}
@@ -274,7 +276,7 @@ function HomePageContent() {
             )}
             <Link
               href="#onboard"
-              className="group relative inline-flex items-center gap-2 px-10 py-5 border border-white/30 text-white text-xs uppercase tracking-[0.3em] rounded-sm font-light hover:bg-white/5 hover:border-white/60 transition-all duration-500"
+              className="group relative inline-flex items-center gap-4 px-10 py-5 border border-[#F7F4EB]/30 text-[#F7F4EB] text-xs uppercase tracking-[0.4em] rounded-2xl font-bold hover:bg-[#F7F4EB]/5 hover:border-[#F7F4EB]/60 transition-all duration-500"
             >
               Partner With Us
             </Link>
