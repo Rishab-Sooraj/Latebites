@@ -236,30 +236,6 @@ export default function BrowsePage() {
             <Toaster />
             <Header />
 
-            {/* Premium Dynamic Background - Using Navy and Green */}
-            <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-                <motion.div
-                    animate={{ 
-                        scale: [1, 1.2, 1], 
-                        x: [0, 30, 0], 
-                        y: [0, 20, 0],
-                        opacity: [0.1, 0.2, 0.1]
-                    }}
-                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute top-[-5%] left-[-5%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-[#0B1E0F]/20 via-[#001220]/10 to-transparent blur-[100px]"
-                />
-                <motion.div
-                    animate={{ 
-                        scale: [1.1, 1, 1.1], 
-                        x: [0, -40, 0], 
-                        y: [0, -30, 0],
-                        opacity: [0.05, 0.15, 0.05]
-                    }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-gradient-to-tl from-[#001220]/15 via-[#0B1E0F]/10 to-transparent blur-[100px]"
-                />
-            </div>
-
             <main className="pt-24 md:pt-32 pb-24 relative">
                 {/* Hero Section with Dark Green and Navy */}
                 <section className="px-4 sm:px-6 lg:px-12 mb-16 relative z-40">
@@ -593,23 +569,14 @@ export default function BrowsePage() {
             </AnimatePresence>
 
             {/* Footer */}
-            <footer className="py-20 px-10 border-t border-[#0B1E0F]/5 bg-white/30 backdrop-blur-xl">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
-                    <div className="flex items-center gap-6">
-                        <div className="w-12 h-12 rounded-2xl bg-[#001220] text-[#F7F4EB] flex items-center justify-center font-serif text-xl shadow-xl">L</div>
-                        <div>
-                            <p className="text-[12px] uppercase tracking-[0.4em] font-black text-[#0B1E0F]">Latebites</p>
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-[#0B1E0F]/40 mt-1">Premium Food Rescue • 2024</p>
-                        </div>
+            <footer className="py-12 px-6 border-t border-[#0B1E0F]/10 bg-[#F7F4EB]">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+                    <p className="text-sm font-serif italic text-[#0B1E0F]">Latebites</p>
+                    <div className="flex gap-8">
+                        <Link href="/help" className="text-xs text-[#0B1E0F]/50 hover:text-[#0B1E0F] transition-colors">Help</Link>
+                        <Link href="/profile" className="text-xs text-[#0B1E0F]/50 hover:text-[#0B1E0F] transition-colors">Privacy</Link>
                     </div>
-                    <div className="flex gap-12">
-                        <Link href="/help" className="text-[11px] uppercase tracking-[0.3em] font-bold text-[#0B1E0F]/60 hover:text-[#0B1E0F] transition-colors">Concierge</Link>
-                        <Link href="/profile" className="text-[11px] uppercase tracking-[0.3em] font-bold text-[#0B1E0F]/60 hover:text-[#0B1E0F] transition-colors">Privacy Protocol</Link>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <p className="text-[11px] text-[#0B1E0F]/40 tracking-[0.4em] uppercase font-bold">Encrypted & Secured</p>
-                    </div>
+                    <p className="text-xs text-[#0B1E0F]/40">© 2024 Latebites</p>
                 </div>
             </footer>
         </div>
