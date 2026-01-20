@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { X, Mail, Lock, User, Phone, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-type AuthStep = "role" | "email" | "login" | "signup";
+type AuthStep = "email" | "login" | "signup";
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -17,8 +17,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const router = useRouter();
     const supabase = createClient();
 
-    const [step, setStep] = useState<AuthStep>("role");
-    const [role, setRole] = useState<"customer" | "restaurant">("customer");
+    const [step, setStep] = useState<AuthStep>("email");
+    const role = "customer"; // Restaurant login moved to separate portal
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
@@ -29,8 +29,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     // Reset state when modal closes
     useEffect(() => {
         if (!isOpen) {
-            setStep("role");
-            setRole("customer");
+            setStep("email");
             setEmail("");
             setPassword("");
             setName("");
@@ -110,7 +109,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             console.log("👤 User authenticated:", authData.user.id);
 
             // Step 2: Check if profile exists in the correct table
-            const tableName = role === "customer" ? "customers" : "restaurants";
+            const tableName = "customers";
             console.log("🔍 Checking profile in table:", tableName);
 
             const { data: profileData, error: profileError } = await supabase
@@ -141,8 +140,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             onClose();
 
             // Redirect based on role - use hard navigation to ensure auth state is picked up
-            const redirectPath = role === "customer" ? "/browse" : "/restaurant/dashboard";
-            window.location.href = redirectPath;
+            window.location.href = "/browse";
         } catch (err: any) {
             console.error("❌ Login failed:", err);
             setError(err.message || "Failed to sign in. Please try again.");
@@ -247,49 +245,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
                             {/* Logo */}
                             <div className="text-center mb-6">
-                                <h1 className="text-4xl font-serif italic text-[#0B1E0F] tracking-tighter">
+                                <h1 className="text-3xl font-serif italic bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 bg-clip-text text-transparent">
                                     Latebites
                                 </h1>
-                                <p className="text-[10px] uppercase tracking-[0.4em] text-[#0B1E0F]/40 mt-3">
-                                    {step === "role" && "Choose protocol"}
-                                    {step === "email" && "Identify email"}
-                                    {step === "login" && "Access granted"}
-                                    {step === "signup" && "New recruitment"}
+                                <p className="text-sm text-gray-600 mt-2">
+                                    {step === "email" && "Enter your email to continue"}
+                                    {step === "login" && "Welcome back!"}
+                                    {step === "signup" && "Create your account"}
                                 </p>
                             </div>
 
-                            {/* Role Selection Step */}
-                            {step === "role" && (
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setRole("customer");
-                                                setStep("email");
-                                            }}
-                                            className="p-6 border-2 border-[#0B1E0F]/10 rounded-2xl hover:border-[#0B1E0F] hover:bg-[#0B1E0F]/5 transition-all group"
-                                        >
-                                            <div className="text-4xl mb-3">🍽️</div>
-                                            <div className="font-bold text-[#0B1E0F] group-hover:translate-x-1 transition-transform">Customer</div>
-                                            <div className="text-[10px] uppercase tracking-widest text-[#0B1E0F]/40 mt-1">Rescue mystery bags</div>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setRole("restaurant");
-                                                setStep("email");
-                                            }}
-                                            className="p-6 border-2 border-[#0B1E0F]/10 rounded-2xl hover:border-[#0B1E0F] hover:bg-[#0B1E0F]/5 transition-all group"
-                                        >
-                                            <div className="text-4xl mb-3">🏪</div>
-                                            <div className="font-bold text-[#0B1E0F] group-hover:translate-x-1 transition-transform">Restaurant</div>
-                                            <div className="text-[10px] uppercase tracking-widest text-[#0B1E0F]/40 mt-1">List mystery bags</div>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Email Step */}
                             {step === "email" && (
@@ -305,46 +270,44 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="your@email.com"
                                             required
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B1E0F] transition-all"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                                         />
                                     </div>
 
                                     <button
                                         type="submit"
                                         disabled={loading || !email}
-                                        className="w-full py-3 bg-gradient-to-r from-[#0B1E0F] to-[#001220] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
                                         {loading ? "Checking..." : "Continue"}
                                         <ArrowRight className="w-4 h-4" />
                                     </button>
 
-                                    {/* Only show Google OAuth for customers */}
-                                    {role === "customer" && (
-                                        <>
-                                            <div className="relative my-6">
-                                                <div className="absolute inset-0 flex items-center">
-                                                    <div className="w-full border-t border-gray-200"></div>
-                                                </div>
-                                                <div className="relative flex justify-center text-sm">
-                                                    <span className="px-2 bg-white text-gray-500">Or continue with</span>
-                                                </div>
+                                    {/* Google OAuth */}
+                                    <>
+                                        <div className="relative my-6">
+                                            <div className="absolute inset-0 flex items-center">
+                                                <div className="w-full border-t border-gray-200"></div>
                                             </div>
+                                            <div className="relative flex justify-center text-sm">
+                                                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                                            </div>
+                                        </div>
 
-                                            <button
-                                                type="button"
-                                                onClick={handleGoogleSignIn}
-                                                className="w-full py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                                                </svg>
-                                                Continue with Google
-                                            </button>
-                                        </>
-                                    )}
+                                        <button
+                                            type="button"
+                                            onClick={handleGoogleSignIn}
+                                            className="w-full py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                            </svg>
+                                            Continue with Google
+                                        </button>
+                                    </>
                                 </form>
                             )}
 
@@ -383,7 +346,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                             placeholder="••••••••"
                                             required
                                             autoFocus
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B1E0F] transition-all"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                                         />
                                     </div>
 
@@ -396,7 +359,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                     <button
                                         type="submit"
                                         disabled={loading || !password}
-                                        className="w-full py-3 bg-gradient-to-r from-[#0B1E0F] to-[#001220] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
                                         {loading ? "Signing in..." : "Sign In"}
                                         <ArrowRight className="w-4 h-4" />
