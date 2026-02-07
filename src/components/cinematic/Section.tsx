@@ -21,7 +21,7 @@ export function Section({ children, className, id, style }: SectionProps) {
       viewport={{ once: true, amount: 0.2 }}
       style={style}
       className={cn(
-        "min-h-screen flex flex-col items-center justify-center px-6 md:px-24 py-24 md:py-48",
+        "min-h-[100svh] flex flex-col items-center justify-center px-6 md:px-24 py-24 md:py-48",
         className
       )}
     >

@@ -68,45 +68,15 @@ export default function BagDetailPage() {
         }
     };
 
-    const handleReserve = async () => {
-        if (!customer || !bag) return;
-
-        setReserving(true);
-
-        try {
-            // Create order
-            const { data: orderData, error: orderError } = await supabase
-                .from("orders")
-                .insert([{
-                    customer_id: customer.id,
-                    rescue_bag_id: bag.id,
-                    restaurant_id: bag.restaurant_id,
-                    quantity: 1,
-                    total_price: bag.discounted_price,
-                    status: "pending",
-                    payment_method: "pay_at_pickup",
-                }])
-                .select()
-                .single();
-
-            if (orderError) throw orderError;
-
-            // Update bag quantity
-            const { error: updateError } = await supabase
-                .from("rescue_bags")
-                .update({ quantity_available: bag.quantity_available - 1 })
-                .eq("id", bag.id);
-
-            if (updateError) throw updateError;
-
-            // Redirect to order confirmation
-            router.push(`/orders/${orderData.id}`);
-        } catch (error: any) {
-            console.error("Error creating order:", error);
-            alert(error.message || "Failed to reserve bag. Please try again.");
-        } finally {
-            setReserving(false);
+    const handleReserve = () => {
+        if (!customer || !bag) {
+            // Redirect to login if not authenticated
+            router.push('/browse');
+            return;
         }
+
+        // Redirect to checkout page
+        router.push(`/checkout/${bag.id}`);
     };
 
     if (loading) {
@@ -236,6 +206,29 @@ export default function BagDetailPage() {
                                 <p className="text-lg text-muted-foreground mb-6">
                                     {bag.description}
                                 </p>
+                            )}
+
+                            {/* Dietary Info Badges */}
+                            {bag.dietary_info && bag.dietary_info.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-6">
+                                    {bag.dietary_info.map((info: string) => {
+                                        const dietaryConfig: Record<string, { label: string; color: string; icon: string }> = {
+                                            'veg': { label: 'Veg', color: 'bg-green-100 text-green-700 border-green-200', icon: '🥬' },
+                                            'non-veg': { label: 'Non-Veg', color: 'bg-red-100 text-red-700 border-red-200', icon: '🍖' },
+                                            'mixed': { label: 'Mixed', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: '🍽️' },
+                                        };
+                                        const config = dietaryConfig[info] || { label: info, color: 'bg-gray-100 text-gray-700 border-gray-200', icon: '•' };
+                                        return (
+                                            <span
+                                                key={info}
+                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border ${config.color}`}
+                                            >
+                                                <span>{config.icon}</span>
+                                                {config.label}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
                             )}
 
                             {/* Price */}

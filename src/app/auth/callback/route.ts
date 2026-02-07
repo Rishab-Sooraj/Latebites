@@ -73,16 +73,21 @@ export async function GET(request: NextRequest) {
 
         // If profile doesn't exist, create it
         if (!profile && role === 'customer') {
+            // Phone is required in customers table, use a placeholder if not provided
+            const phoneNumber = user.phone || user.user_metadata.phone || '+910000000000';
+
             const { error: insertError } = await supabase.from('customers').insert([{
                 id: user.id,
-                name: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
+                name: user.user_metadata.full_name || user.user_metadata.name || user.email?.split('@')[0] || 'User',
                 email: user.email || '',
-                phone: user.phone || '',
+                phone: phoneNumber,
             }])
 
             if (insertError) {
                 console.error('Error creating customer profile:', insertError)
                 // Continue anyway - user is authenticated
+            } else {
+                console.log('Customer profile created successfully for OAuth user')
             }
         }
 

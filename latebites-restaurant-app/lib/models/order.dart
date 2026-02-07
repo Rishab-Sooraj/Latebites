@@ -54,7 +54,7 @@ class Order {
       id: json['id'] ?? '',
       customerId: json['customer_id'] ?? '',
       rescueBagId: json['rescue_bag_id'] ?? '',
-      restaurantId: json['restaurant_id'] ?? '',
+      restaurantId: rescueBag?['restaurant_id'] ?? json['restaurant_id'] ?? '',
       quantity: json['quantity'] ?? 1,
       totalPrice: (json['total_price'] ?? 0).toDouble(),
       status: json['status'] ?? 'pending',

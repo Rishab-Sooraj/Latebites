@@ -1,0 +1,29 @@
+name: latebites_restaurant_app
+description: Restaurant portal for Latebites food rescue.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  flutter_animate: ^4.5.0
+  intl: ^0.19.0
+  supabase_flutter: ^2.3.0
+  google_fonts: ^6.1.0
+  flutter_riverpod: ^3.2.0
+  flutter_dotenv: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+    - .env

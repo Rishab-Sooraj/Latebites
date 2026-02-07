@@ -21,6 +21,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const role = "customer"; // Restaurant login moved to separate portal
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             setStep("email");
             setEmail("");
             setPassword("");
+            setConfirmPassword("");
             setName("");
             setPhone("");
             setError("");
@@ -41,37 +43,31 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const checkEmailExists = async () => {
         setLoading(true);
         setError("");
+        console.log("🔍 Checking email:", email);
 
         try {
-            // Use signInWithOtp with shouldCreateUser: false to check if email exists
-            // This returns an error if the user doesn't exist
-            const { error } = await supabase.auth.signInWithOtp({
+            // Try to sign in with a dummy password to check if the email exists
+            const { error } = await supabase.auth.signInWithPassword({
                 email,
-                options: {
-                    shouldCreateUser: false,
-                },
+                password: '__check_email_exists__',
             });
 
-            // If there's no error, the email exists (OTP was sent, but we won't use it)
-            // If error says "Signups not allowed" or similar, email doesn't exist
+            console.log("📧 Email check result:", error?.message || "No error (logged in?!)");
+
             if (error) {
-                console.log("Email check error:", error.message);
-                if (error.message.includes("Signups not allowed") ||
-                    error.message.includes("User not found") ||
-                    error.message.includes("user_not_found")) {
-                    // Email doesn't exist, go to signup
-                    setStep("signup");
-                } else {
-                    // Other error (maybe email exists but OTP failed), try login
+                if (error.message.includes("Invalid login credentials")) {
+                    console.log("✅ Email exists - showing login form");
                     setStep("login");
+                } else {
+                    console.log("❌ Email not found - showing signup form");
+                    setStep("signup");
                 }
             } else {
-                // No error means email exists, go to login
+                await supabase.auth.signOut();
                 setStep("login");
             }
         } catch (err) {
-            console.error("Error checking email:", err);
-            // Default to signup if we can't determine
+            console.error("❌ Error checking email:", err);
             setStep("signup");
         } finally {
             setLoading(false);
@@ -84,67 +80,34 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setError("");
 
         try {
-            console.log("🔐 Starting login for:", email, "as", role);
+            console.log("🔐 Starting login for:", email);
 
-            // Step 1: Authenticate with Supabase
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            const { data, error: loginError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
-            console.log("✅ Auth response:", { user: authData?.user?.id, error: authError?.message });
-
-            if (authError) {
-                console.error("❌ Auth error:", authError);
-                if (authError.message.includes("Invalid login credentials")) {
-                    throw new Error("Incorrect email or password. Please try again.");
+            if (loginError) {
+                console.error("❌ Auth error:", loginError.message);
+                if (loginError.message.includes("Invalid login credentials")) {
+                    setError("Incorrect email or password. Please try again.");
+                } else if (loginError.message.includes("Email not confirmed")) {
+                    setError("Please verify your email before signing in.");
+                } else {
+                    setError(loginError.message || "Login failed. Please try again.");
                 }
-                throw new Error(authError.message);
+                setLoading(false);
+                return;
             }
 
-            if (!authData.user) {
-                throw new Error("No user returned from login");
+            if (data.session) {
+                console.log("✅ Login successful! Redirecting now...");
+                onClose();
+                window.location.href = "/browse";
             }
-
-            console.log("👤 User authenticated:", authData.user.id);
-
-            // Step 2: Check if profile exists in the correct table
-            const tableName = "customers";
-            console.log("🔍 Checking profile in table:", tableName);
-
-            const { data: profileData, error: profileError } = await supabase
-                .from(tableName)
-                .select("id")
-                .eq("id", authData.user.id)
-                .maybeSingle();
-
-            console.log("📋 Profile check result:", {
-                table: tableName,
-                found: !!profileData,
-                error: profileError?.message
-            });
-
-            if (profileError) {
-                console.error("❌ Profile error:", profileError);
-                await supabase.auth.signOut();
-                throw new Error(`Database error: ${profileError.message}`);
-            }
-
-            if (!profileData) {
-                console.error("❌ No profile found in", tableName);
-                await supabase.auth.signOut();
-                throw new Error(`No ${role} account found. Please check your role selection or sign up first.`);
-            }
-
-            console.log("✅ Login successful! Redirecting...");
-            onClose();
-
-            // Redirect based on role - use hard navigation to ensure auth state is picked up
-            window.location.href = "/browse";
         } catch (err: any) {
-            console.error("❌ Login failed:", err);
+            console.error("❌ Login exception:", err);
             setError(err.message || "Failed to sign in. Please try again.");
-        } finally {
             setLoading(false);
         }
     };
@@ -160,14 +123,22 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             return;
         }
 
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            setLoading(false);
+            return;
+        }
+
         try {
+            const phoneNumber = phone.startsWith("+") ? phone : `+91${phone}`;
+
             const { data, error: signupError } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     data: {
                         name,
-                        phone: phone.startsWith("+") ? phone : `+91${phone}`,
+                        phone: phoneNumber,
                     },
                 },
             });
@@ -175,20 +146,33 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             if (signupError) throw signupError;
 
             if (data.user) {
-                // Create customer profile
-                const { error: profileError } = await supabase.from("customers").insert([{
-                    id: data.user.id,
-                    name,
-                    phone: phone.startsWith("+") ? phone : `+91${phone}`,
-                    email,
-                }]);
+                console.log("✅ Auth user created:", data.user.id);
 
-                if (profileError) {
-                    console.error("Profile creation error:", profileError);
+                // Create customer profile using server API (bypasses RLS)
+                try {
+                    const createRes = await fetch('/api/customers/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: data.user.id,
+                            email,
+                            name,
+                            phone: phoneNumber
+                        })
+                    });
+                    const createData = await createRes.json();
+
+                    if (createData.customer) {
+                        console.log("✅ Customer profile created:", createData.customer);
+                    } else if (createData.error) {
+                        console.error("❌ Customer creation failed:", createData.error);
+                    }
+                } catch (profileErr) {
+                    console.error("❌ Customer creation error:", profileErr);
+                    // Continue anyway - auth account exists
                 }
 
                 onClose();
-                // Use hard navigation to ensure auth state is picked up
                 window.location.href = "/browse";
             }
         } catch (err: any) {
@@ -444,6 +428,25 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                         <p className="text-xs text-gray-500 mt-1">At least 6 characters</p>
                                     </div>
 
+                                    <div>
+                                        <label className="text-xs uppercase tracking-wider text-gray-600 block mb-2">
+                                            <Lock className="w-3 h-3 inline mr-1" />
+                                            Confirm Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            required
+                                            minLength={6}
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                                        />
+                                        {password && confirmPassword && password !== confirmPassword && (
+                                            <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                                        )}
+                                    </div>
+
                                     {error && (
                                         <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
                                             {error}
@@ -452,7 +455,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
                                     <button
                                         type="submit"
-                                        disabled={loading || !name || phone.length !== 10 || password.length < 6}
+                                        disabled={loading || !name || phone.length !== 10 || password.length < 6 || password !== confirmPassword}
                                         className="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
                                         {loading ? "Creating account..." : "Create Account"}

@@ -126,6 +126,23 @@
 
 /* Mobile Responsiveness Fixes */
 @media (max-width: 640px) {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .h-screen {
+    height: 100svh !important;
+  }
+
+  .min-h-screen {
+    min-height: 100svh !important;
+  }
 
   /* Add solid background to header on mobile to prevent text overlap */
   header {

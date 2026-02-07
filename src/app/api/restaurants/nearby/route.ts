@@ -5,34 +5,23 @@ import type { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// Haversine formula for calculating distance between two coordinates
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(R * c * 100) / 100; // Round to 2 decimal places
+}
+
 interface NearbyRestaurantsRequest {
     latitude: number;
     longitude: number;
     radius?: number;
-}
-
-interface Restaurant {
-    id: string;
-    name: string;
-    owner_name: string;
-    email: string;
-    phone: string;
-    address_line1: string;
-    address_line2: string | null;
-    city: string;
-    state: string;
-    pincode: string;
-    latitude: number;
-    longitude: number;
-    cuisine_types: string[] | null;
-    profile_image_url: string | null;
-    cover_image_url: string | null;
-    description: string | null;
-    verified: boolean;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-    distance_km: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -44,29 +33,6 @@ export async function POST(request: NextRequest) {
         if (latitude === undefined || longitude === undefined) {
             return NextResponse.json(
                 { error: 'Latitude and longitude are required' },
-                { status: 400 }
-            );
-        }
-
-        // Validate coordinate ranges
-        if (typeof latitude !== 'number' || latitude < -90 || latitude > 90) {
-            return NextResponse.json(
-                { error: 'Invalid latitude: must be a number between -90 and 90' },
-                { status: 400 }
-            );
-        }
-
-        if (typeof longitude !== 'number' || longitude < -180 || longitude > 180) {
-            return NextResponse.json(
-                { error: 'Invalid longitude: must be a number between -180 and 180' },
-                { status: 400 }
-            );
-        }
-
-        // Validate radius
-        if (typeof radius !== 'number' || radius <= 0 || radius > 50) {
-            return NextResponse.json(
-                { error: 'Invalid radius: must be a number between 0 and 50 km' },
                 { status: 400 }
             );
         }
@@ -85,87 +51,101 @@ export async function POST(request: NextRequest) {
                         try {
                             cookieStore.set({ name, value, ...options });
                         } catch {
-                            // Ignore - this happens in read-only contexts
+                            // Ignore
                         }
                     },
                     remove(name: string, options: CookieOptions) {
                         try {
                             cookieStore.set({ name, value: '', ...options });
                         } catch {
-                            // Ignore - this happens in read-only contexts
+                            // Ignore
                         }
                     },
                 },
             }
         );
 
-        // Call the RPC function to get nearby restaurants
-        const { data: restaurants, error } = await supabase.rpc('get_nearby_restaurants', {
-            user_lat: latitude,
-            user_lon: longitude,
-            radius_km: radius,
-        });
+        console.log('🔍 DEBUG: Query params:', { latitude, longitude, radius });
 
-        if (error) {
-            console.error('Database error:', error);
-            return NextResponse.json(
-                { error: 'Failed to fetch nearby restaurants' },
-                { status: 500 }
-            );
+        // Get all active restaurants (simplified - no distance filter for now)
+        const { data: restaurants, error: restError } = await supabase
+            .from('restaurants')
+            .select('*')
+            .eq('is_active', true);
+
+        console.log('🔍 DEBUG: Restaurants found:', restaurants?.length || 0);
+        if (restError) {
+            console.error('🔍 DEBUG: Restaurant error:', restError);
+            return NextResponse.json({ error: 'Failed to fetch restaurants' }, { status: 500 });
         }
 
-        // Fetch rescue bags for the returned restaurants
-        const restaurantIds = (restaurants as Restaurant[]).map(r => r.id);
+        if (!restaurants || restaurants.length === 0) {
+            console.log('🔍 DEBUG: No active restaurants found');
+            return NextResponse.json({ restaurants: [], total: 0, query: { latitude, longitude, radius_km: radius } });
+        }
 
-        let rescueBags: Record<string, any[]> = {};
+        // Get restaurant IDs
+        const restaurantIds = restaurants.map(r => r.id);
+        console.log('🔍 DEBUG: Restaurant IDs:', restaurantIds);
 
-        if (restaurantIds.length > 0) {
-            const { data: bags, error: bagsError } = await supabase
-                .from('rescue_bags')
-                .select('*')
-                .in('restaurant_id', restaurantIds)
-                .eq('is_active', true)
-                .gte('quantity_available', 1)
-                .eq('available_date', new Date().toISOString().split('T')[0]);
+        // Get today's date in IST timezone (UTC+5:30)
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+        const istTime = new Date(now.getTime() + istOffset);
+        const todayDate = istTime.toISOString().split('T')[0];
+        console.log('🔍 DEBUG: Today date (IST):', todayDate);
 
-            if (!bagsError && bags) {
-                // Group bags by restaurant_id
-                rescueBags = bags.reduce((acc: Record<string, any[]>, bag) => {
-                    const restaurantId = bag.restaurant_id;
-                    if (!acc[restaurantId]) {
-                        acc[restaurantId] = [];
-                    }
-                    acc[restaurantId].push(bag);
-                    return acc;
-                }, {});
+        // Get ALL bags for debugging
+        const { data: allBags } = await supabase
+            .from('rescue_bags')
+            .select('*')
+            .in('restaurant_id', restaurantIds);
+        console.log('🔍 DEBUG: ALL bags for these restaurants:', allBags?.length || 0, allBags);
+
+        // Get filtered bags
+        const { data: bags, error: bagsError } = await supabase
+            .from('rescue_bags')
+            .select('*')
+            .in('restaurant_id', restaurantIds)
+            .eq('is_active', true)
+            .gte('quantity_available', 1)
+            .eq('available_date', todayDate);
+
+        console.log('🔍 DEBUG: Filtered bags:', bags?.length || 0, bags);
+        if (bagsError) {
+            console.error('🔍 DEBUG: Bags error:', bagsError);
+        }
+
+        // Group bags by restaurant_id
+        const rescueBags: Record<string, any[]> = {};
+        if (bags) {
+            for (const bag of bags) {
+                if (!rescueBags[bag.restaurant_id]) {
+                    rescueBags[bag.restaurant_id] = [];
+                }
+                rescueBags[bag.restaurant_id].push(bag);
             }
         }
 
-        // Combine restaurants with their rescue bags
-        const restaurantsWithBags = (restaurants as Restaurant[]).map(restaurant => ({
+        // Combine restaurants with bags and calculate distance
+        const restaurantsWithBags = restaurants.map(restaurant => ({
             ...restaurant,
             rescue_bags: rescueBags[restaurant.id] || [],
+            distance_km: calculateDistance(latitude, longitude, restaurant.latitude, restaurant.longitude),
         }));
 
-        // Only return restaurants that have available bags
-        const restaurantsWithAvailableBags = restaurantsWithBags.filter(
-            r => r.rescue_bags.length > 0
-        );
+        // Filter to only restaurants with bags
+        const result = restaurantsWithBags.filter(r => r.rescue_bags.length > 0);
+
+        console.log('🔍 DEBUG: Final result count:', result.length);
 
         return NextResponse.json({
-            restaurants: restaurantsWithAvailableBags,
-            total: restaurantsWithAvailableBags.length,
-            query: {
-                latitude,
-                longitude,
-                radius_km: radius,
-            },
+            restaurants: result,
+            total: result.length,
+            query: { latitude, longitude, radius_km: radius },
         });
     } catch (error) {
-        console.error('Unexpected error in nearby restaurants API:', error);
-        return NextResponse.json(
-            { error: 'An unexpected error occurred' },
-            { status: 500 }
-        );
+        console.error('Unexpected error:', error);
+        return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
     }
 }

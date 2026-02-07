@@ -153,7 +153,7 @@ function HomePageContent() {
       <Header />
       <ScrollProgressIndicator />
       {/* 1. HERO SECTION */}
-      <Section id="hero" className="relative h-screen flex items-center justify-center overflow-hidden">
+      <Section id="hero" className="relative min-h-[100svh] flex items-center justify-center overflow-hidden">
         {/* Full-bleed Background with Cinematic Zoom-in - Ken Burns Effect on Landing */}
         <motion.div
           className="absolute inset-0 z-0"
@@ -785,7 +785,7 @@ function HomePageContent() {
       </Section>
 
       {/* 9. CLOSING STATEMENT */}
-      <Section id="closing" className="h-screen flex items-center justify-center bg-black text-white">
+      <Section id="closing" className="min-h-[100svh] flex items-center justify-center bg-black text-white">
         <div className="text-center space-y-12">
           <RevealText
             text="Latebites."

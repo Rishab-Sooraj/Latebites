@@ -9,8 +9,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/database";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
-    rescue_bags: Database['public']['Tables']['rescue_bags']['Row'];
-    restaurants: Database['public']['Tables']['restaurants']['Row'];
+    rescue_bags: Database['public']['Tables']['rescue_bags']['Row'] | null;
+    restaurants: Database['public']['Tables']['restaurants']['Row'] | null;
 };
 
 export default function OrdersPage() {
@@ -27,6 +27,11 @@ export default function OrdersPage() {
     }, [customer]);
 
     const fetchOrders = async () => {
+        if (!customer?.id) {
+            setLoading(false);
+            return;
+        }
+
         try {
             const { data, error } = await supabase
                 .from("orders")
@@ -35,7 +40,7 @@ export default function OrdersPage() {
           rescue_bags (*),
           restaurants (*)
         `)
-                .eq("customer_id", customer?.id)
+                .eq("customer_id", customer.id)
                 .order("created_at", { ascending: false });
 
             if (error) throw error;
@@ -120,10 +125,10 @@ export default function OrdersPage() {
                                         </div>
                                         <div className="flex-1">
                                             <h3 className="font-medium mb-1 group-hover:text-primary transition-colors">
-                                                {order.rescue_bags.title}
+                                                {order.rescue_bags?.title || 'Mystery Bag'}
                                             </h3>
                                             <p className="text-sm text-muted-foreground mb-2">
-                                                {order.restaurants.name}
+                                                {order.restaurants?.name || 'Restaurant'}
                                             </p>
                                             <p className="text-lg font-bold text-primary">
                                                 ₹{order.total_price}
@@ -133,17 +138,21 @@ export default function OrdersPage() {
                                     </div>
 
                                     <div className="flex items-center gap-6 text-sm text-muted-foreground pt-4 border-t border-primary/10">
-                                        <div className="flex items-center gap-2">
-                                            <Clock className="w-4 h-4" />
-                                            <span>
-                                                {order.rescue_bags.pickup_start_time.slice(0, 5)} -{" "}
-                                                {order.rescue_bags.pickup_end_time.slice(0, 5)}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <MapPin className="w-4 h-4" />
-                                            <span className="truncate">{order.restaurants.address}</span>
-                                        </div>
+                                        {order.rescue_bags?.pickup_start_time && order.rescue_bags?.pickup_end_time && (
+                                            <div className="flex items-center gap-2">
+                                                <Clock className="w-4 h-4" />
+                                                <span>
+                                                    {order.rescue_bags.pickup_start_time.slice(0, 5)} -{" "}
+                                                    {order.rescue_bags.pickup_end_time.slice(0, 5)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {order.restaurants?.address_line1 && (
+                                            <div className="flex items-center gap-2">
+                                                <MapPin className="w-4 h-4" />
+                                                <span className="truncate">{order.restaurants.address_line1}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </Link>
                             </motion.div>

@@ -84,8 +84,29 @@ class PricingEngine {
   }
 }
 
+/// Dietary option configuration
+class DietaryOption {
+  final String id;
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  const DietaryOption({
+    required this.id,
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+
+  static const List<DietaryOption> options = [
+    DietaryOption(id: 'veg', label: 'Veg', icon: Icons.eco, color: Color(0xFF4CAF50)),
+    DietaryOption(id: 'non-veg', label: 'Non-Veg', icon: Icons.restaurant, color: Color(0xFFE53935)),
+    DietaryOption(id: 'mixed', label: 'Mixed', icon: Icons.dining, color: Color(0xFFFF9800)),
+  ];
+}
+
 class AddBagModal extends StatefulWidget {
-  final Function(String size, int estimatedValue, int quantity, String pickupStart, String pickupEnd) onConfirm;
+  final Function(String size, int estimatedValue, int quantity, String pickupStart, String pickupEnd, List<String> dietaryInfo) onConfirm;
 
   const AddBagModal({
     super.key,
@@ -104,6 +125,7 @@ class _AddBagModalState extends State<AddBagModal> {
   TimeOfDay _pickupEnd = const TimeOfDay(hour: 21, minute: 30);
   bool _isLoading = false;
   String? _valueError;
+  String? _selectedDietaryType;
 
   int get _estimatedValue => int.tryParse(_valueController.text) ?? 0;
   int get _customerPrice => PricingEngine.calculateCustomerPrice(_estimatedValue);
@@ -251,6 +273,13 @@ class _AddBagModalState extends State<AddBagModal> {
       return;
     }
 
+    if (_selectedDietaryType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select food type (Veg/Non-Veg/Mixed)'), backgroundColor: AppTheme.error),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     widget.onConfirm(
@@ -259,6 +288,7 @@ class _AddBagModalState extends State<AddBagModal> {
       _quantity,
       _formatTimeForDB(_pickupStart),
       _formatTimeForDB(_pickupEnd),
+      [_selectedDietaryType!],
     );
   }
 
@@ -527,6 +557,92 @@ class _AddBagModalState extends State<AddBagModal> {
                         ],
                       ),
                     ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Step 5: Food Type (Required)
+                  Row(
+                    children: [
+                      Text('5. FOOD TYPE', style: Theme.of(context).textTheme.labelSmall),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'REQUIRED',
+                          style: TextStyle(
+                            color: AppTheme.error,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Select the type of food in this bag',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Column(
+                    children: DietaryOption.options.map((option) {
+                      final isSelected = _selectedDietaryType == option.id;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedDietaryType = option.id;
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isSelected ? option.color.withValues(alpha: 0.1) : AppTheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? option.color : AppTheme.border,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSelected ? option.color : AppTheme.border,
+                                    width: 2,
+                                  ),
+                                  color: isSelected ? option.color : Colors.transparent,
+                                ),
+                                child: isSelected
+                                    ? Icon(Icons.check, size: 14, color: Colors.white)
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Icon(option.icon, size: 20, color: isSelected ? option.color : AppTheme.textMuted),
+                              const SizedBox(width: 10),
+                              Text(
+                                option.label,
+                                style: TextStyle(
+                                  color: isSelected ? option.color : AppTheme.textPrimary,
+                                  fontSize: 15,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
 
                   const SizedBox(height: 24),

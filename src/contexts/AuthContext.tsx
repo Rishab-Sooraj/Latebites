@@ -41,13 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .maybeSingle();
 
         if (customerData) {
+            console.log("✅ Customer found:", customerData.name);
             setCustomer(customerData);
             setRestaurant(null);
             setRole('customer');
             return;
         }
 
-        // If not a customer, try restaurant
+        // Try restaurant
         const { data: restaurantData } = await supabase
             .from('restaurants')
             .select('*')
@@ -61,7 +62,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        // No profile found
+        // No profile in DB - use user metadata as fallback (fast, no API call)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const firstName = user.email?.split('@')[0] || 'Customer';
+            console.log("🔄 Using fallback profile:", firstName);
+            setCustomer({
+                id: userId,
+                name: user.user_metadata?.name || firstName,
+                email: user.email || '',
+                phone: user.user_metadata?.phone || '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                profile_image_url: null,
+            } as any);
+            setRole('customer');
+
+            // Sync profile in background (don't await)
+            fetch('/api/auth/sync-profile', { method: 'POST' }).catch(() => { });
+            return;
+        }
+
         setCustomer(null);
         setRestaurant(null);
         setRole(null);
@@ -74,27 +95,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     useEffect(() => {
-        // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        let isMounted = true;
+
+        // Get initial session - no retries, just check once
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
+            console.log("🔐 AuthContext: Session:", session ? session.user.email : "None");
+
+            if (!isMounted) return;
+
             setSession(session);
             setUser(session?.user ?? null);
 
             if (session?.user) {
-                fetchUserProfile(session.user.id).then(() => setLoading(false));
-            } else {
-                setLoading(false);
+                // Fetch profile in background - don't block UI
+                fetchUserProfile(session.user.id);
             }
+
+            setLoading(false);
         });
 
         // Listen for auth changes
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log("🔐 AuthContext: Auth changed:", event);
+
+            if (!isMounted) return;
+
             setSession(session);
             setUser(session?.user ?? null);
 
             if (session?.user) {
-                await fetchUserProfile(session.user.id);
+                fetchUserProfile(session.user.id);
             } else {
                 setCustomer(null);
                 setRestaurant(null);
@@ -104,7 +136,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            isMounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     const signOut = async () => {

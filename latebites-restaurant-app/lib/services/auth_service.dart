@@ -68,22 +68,31 @@ class AuthService {
 
   /// Check if there's an existing session and get restaurant info
   Future<SessionCheckResult> checkSession() async {
-    final session = _client.auth.currentSession;
-    if (session == null) return SessionCheckResult.noSession();
+    try {
+      final session = _client.auth.currentSession;
+      if (session == null) return SessionCheckResult.noSession();
 
-    // Verify it's still a valid restaurant
-    final restaurantData = await _client
-        .from('restaurants')
-        .select('id, name, must_change_password')
-        .eq('id', session.user.id)
-        .maybeSingle();
+      // Add timeout to prevent hanging
+      final restaurantData = await _client
+          .from('restaurants')
+          .select('id, name, must_change_password')
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+            debugPrint('⚠️ Session check timed out');
+            return null;
+          });
 
-    if (restaurantData == null) return SessionCheckResult.noSession();
-    
-    return SessionCheckResult.valid(
-      mustChangePassword: restaurantData['must_change_password'] == true,
-      restaurantName: restaurantData['name'] ?? 'Restaurant',
-    );
+      if (restaurantData == null) return SessionCheckResult.noSession();
+      
+      return SessionCheckResult.valid(
+        mustChangePassword: restaurantData['must_change_password'] == true,
+        restaurantName: restaurantData['name'] ?? 'Restaurant',
+      );
+    } catch (e) {
+      debugPrint('❌ Session check error: $e');
+      return SessionCheckResult.noSession();
+    }
   }
 }
 

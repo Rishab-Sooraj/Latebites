@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -9,6 +9,8 @@ import { User, Phone, Mail, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 
 export default function SignupPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectTo = searchParams.get('redirect') || '/browse';
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -38,7 +40,7 @@ export default function SignupPage() {
         try {
             console.log("Starting signup process...");
 
-            // Sign up with email and password (disable email confirmation)
+            // Sign up with email and password
             const { data, error: signupError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -51,46 +53,59 @@ export default function SignupPage() {
                 },
             });
 
-            console.log("Signup response:", { data, error: signupError });
+            console.log("Signup response:", JSON.stringify({ data, error: signupError }, null, 2));
 
             if (signupError) {
                 console.error("Signup error:", signupError);
-                throw signupError;
-            }
-
-            if (!data.user) {
-                throw new Error("No user returned from signup");
-            }
-
-            console.log("User created:", data.user.id);
-
-            // Create customer profile
-            const profileData = {
-                id: data.user.id,
-                name: formData.name,
-                phone: formData.phone.startsWith("+") ? formData.phone : `+91${formData.phone}`,
-                email: formData.email,
-            };
-
-            console.log("Creating profile with data:", profileData);
-
-            const { error: profileError } = await supabase.from("customers").insert([profileData]);
-
-            if (profileError) {
-                console.error("Profile creation error:", profileError);
-                setError(`Account created but profile failed: ${profileError.message}. Please contact support.`);
+                if (signupError.message.includes("User already registered")) {
+                    setError("This email is already registered. Please log in instead.");
+                } else {
+                    setError(signupError.message || "Failed to create account");
+                }
                 setLoading(false);
                 return;
             }
 
-            console.log("Profile created successfully!");
+            if (!data.user) {
+                setError("No user returned from signup");
+                setLoading(false);
+                return;
+            }
 
-            // Redirect to browse page immediately
-            router.push("/browse");
+            console.log("User created:", data.user.id);
+
+            // Create customer profile using server API (bypasses RLS)
+            console.log("Creating customer profile via API...");
+            try {
+                const phoneNumber = formData.phone.startsWith("+") ? formData.phone : `+91${formData.phone}`;
+                const createRes = await fetch('/api/customers/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: data.user.id,
+                        email: formData.email,
+                        name: formData.name,
+                        phone: phoneNumber
+                    })
+                });
+                const createData = await createRes.json();
+                if (createData.customer) {
+                    console.log("Customer profile created!", createData.customer);
+                } else if (createData.error) {
+                    console.error("Customer creation failed:", createData.error);
+                }
+            } catch (profileErr: any) {
+                console.error("Customer creation error:", profileErr?.message);
+                // Continue anyway - auth account exists
+            }
+
+            console.log("Redirecting to:", redirectTo);
+
+            // Use hard navigation for reliable redirect
+            window.location.href = redirectTo;
         } catch (err: any) {
             console.error("Signup failed:", err);
             setError(err.message || "Failed to create account");
-        } finally {
             setLoading(false);
         }
     };

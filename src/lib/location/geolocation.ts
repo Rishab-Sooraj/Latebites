@@ -23,25 +23,37 @@ export async function getCurrentLocation(): Promise<Coordinates> {
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                resolve({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                });
-            },
-            (error) => {
-                reject({
-                    code: error.code,
-                    message: getErrorMessage(error.code),
-                });
-            },
-            {
-                enableHighAccuracy: false, // Use faster, less accurate location
-                timeout: 30000, // 30 seconds timeout
-                maximumAge: 60000, // Accept cached position up to 1 minute old
-            }
-        );
+        // Try high accuracy first with a shorter timeout
+        const tryGetLocation = (highAccuracy: boolean, timeout: number) => {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    });
+                },
+                (error) => {
+                    // If high accuracy failed, try low accuracy as fallback
+                    if (highAccuracy && error.code === 3) {
+                        console.log("High accuracy timed out, trying low accuracy...");
+                        tryGetLocation(false, 30000);
+                    } else {
+                        reject({
+                            code: error.code,
+                            message: getErrorMessage(error.code),
+                        });
+                    }
+                },
+                {
+                    enableHighAccuracy: highAccuracy,
+                    timeout: timeout,
+                    maximumAge: 300000, // Accept cached position up to 5 minutes old
+                }
+            );
+        };
+
+        // Start with low accuracy for faster response
+        tryGetLocation(false, 15000);
     });
 }
 
@@ -104,13 +116,13 @@ function toRadians(degrees: number): number {
 function getErrorMessage(code: number): string {
     switch (code) {
         case 1:
-            return "Location permission denied. Please enable location access in your browser settings.";
+            return "Location access denied. Please enable location in your browser settings, or search for your location manually.";
         case 2:
-            return "Location unavailable. Please check your device settings.";
+            return "Couldn't detect your location. Please search for your location manually using the search box above.";
         case 3:
-            return "Location request timed out. Please try again.";
+            return "Location detection is taking too long. Please search for your location manually using the search box above.";
         default:
-            return "An unknown error occurred while getting your location.";
+            return "Couldn't get your location. Please search for your location manually.";
     }
 }
 

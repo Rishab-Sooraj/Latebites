@@ -76,6 +76,26 @@ class RestaurantService {
     }
   }
 
+  /// Get ALL active rescue bags for this restaurant (not just today)
+  Future<List<Map<String, dynamic>>> getAllBags() async {
+    if (_userId == null) return [];
+    
+    try {
+      final data = await _client
+          .from('rescue_bags')
+          .select('*')
+          .eq('restaurant_id', _userId!)
+          .eq('is_active', true)
+          .order('available_date', ascending: false)
+          .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      debugPrint('❌ Error fetching all bags: $e');
+      return [];
+    }
+  }
+
   /// Calculate customer price with 40% off, rounded to end in 9 or 0
   int _calculateCustomerPrice(int estimatedValue) {
     double basePrice = estimatedValue * 0.6;
@@ -98,6 +118,7 @@ class RestaurantService {
     required int quantity,
     required String pickupStart,
     required String pickupEnd,
+    List<String>? dietaryInfo,
   }) async {
     if (_userId == null) return false;
     
@@ -127,6 +148,7 @@ class RestaurantService {
         'pickup_end_time': pickupEnd,
         'available_date': today,
         'is_active': true,
+        'dietary_info': dietaryInfo ?? [],
       });
       
       debugPrint('✅ Rescue bag created: $title @ ₹$customerPrice (payout: ₹$restaurantPayout)');
@@ -172,16 +194,26 @@ class RestaurantService {
     if (_userId == null) return [];
     
     try {
+      debugPrint('🔍 Fetching orders for restaurant ID: $_userId');
+      
       final data = await _client
           .from('orders')
           .select('''
             *,
-            rescue_bags (title, pickup_start_time, pickup_end_time),
+            rescue_bags (
+              id,
+              title,
+              pickup_start_time,
+              pickup_end_time,
+              restaurant_id
+            ),
             customers (name, phone)
           ''')
           .eq('restaurant_id', _userId!)
           .order('created_at', ascending: false);
 
+      debugPrint('📦 Fetched ${data.length} orders for restaurant $_userId');
+      
       return (data as List)
           .map((json) => Order.fromJson(json))
           .toList();

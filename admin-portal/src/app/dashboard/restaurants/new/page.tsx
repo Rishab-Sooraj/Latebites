@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { Store, Mail, Phone, User, Lock, Copy, Check, ArrowLeft, Loader2, AlertCircle, MapPin } from "lucide-react";
+import { Store, Mail, Phone, User, Lock, Copy, Check, ArrowLeft, Loader2, AlertCircle, MapPin, ImageIcon, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import LocationPicker from "@/components/LocationPicker";
 
@@ -37,6 +38,9 @@ export default function NewRestaurantPage() {
         phone: "",
     });
     const [location, setLocation] = useState<LocationData | null>(null);
+    const [coverImage, setCoverImage] = useState<File | null>(null);
+    const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [credentials, setCredentials] = useState<CreatedCredentials | null>(null);
@@ -49,6 +53,54 @@ export default function NewRestaurantPage() {
 
     const handleLocationSelect = (locationData: LocationData | null) => {
         setLocation(locationData);
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                setError('Image must be less than 5MB');
+                return;
+            }
+            setCoverImage(file);
+            setCoverImagePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const removeImage = () => {
+        setCoverImage(null);
+        setCoverImagePreview(null);
+    };
+
+    const uploadCoverImage = async (restaurantId: string): Promise<string | null> => {
+        if (!coverImage) return null;
+
+        setUploadingImage(true);
+        try {
+            const supabase = createClient();
+            const fileExt = coverImage.name.split('.').pop();
+            const fileName = `${restaurantId}/cover.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('restaurant-images')
+                .upload(fileName, coverImage, { upsert: true });
+
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+                return null;
+            }
+
+            const { data: publicUrl } = supabase.storage
+                .from('restaurant-images')
+                .getPublicUrl(fileName);
+
+            return publicUrl.publicUrl;
+        } catch (err) {
+            console.error('Upload error:', err);
+            return null;
+        } finally {
+            setUploadingImage(false);
+        }
     };
 
     // Get validation state for each field
@@ -119,6 +171,19 @@ export default function NewRestaurantPage() {
 
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to create restaurant');
+            }
+
+            // Upload cover image if provided
+            if (coverImage && data.restaurantId) {
+                const imageUrl = await uploadCoverImage(data.restaurantId);
+                if (imageUrl) {
+                    // Update restaurant with cover image URL
+                    const supabase = createClient();
+                    await supabase
+                        .from('restaurants')
+                        .update({ cover_image_url: imageUrl })
+                        .eq('id', data.restaurantId);
+                }
             }
 
             setCredentials({
@@ -299,6 +364,44 @@ export default function NewRestaurantPage() {
                                     <Check className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
                                 )}
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Cover Image Upload */}
+                    <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-widest text-zinc-500">Restaurant Cover Image</label>
+                        <div className="relative">
+                            {coverImagePreview ? (
+                                <div className="relative rounded-lg overflow-hidden">
+                                    <img
+                                        src={coverImagePreview}
+                                        alt="Cover preview"
+                                        className="w-full h-48 object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={removeImage}
+                                        className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+                                    >
+                                        <X className="w-4 h-4 text-white" />
+                                    </button>
+                                    <div className="absolute bottom-2 left-2 px-3 py-1 bg-emerald-500/90 rounded-full">
+                                        <span className="text-xs text-white font-medium">✓ Image selected</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-amber-500/50 transition-colors bg-zinc-800/30">
+                                    <ImageIcon className="w-10 h-10 text-zinc-500 mb-3" />
+                                    <span className="text-sm text-zinc-400">Click to upload restaurant photo</span>
+                                    <span className="text-xs text-zinc-600 mt-1">PNG, JPG up to 5MB (like Swiggy/Zomato)</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        className="hidden"
+                                    />
+                                </label>
+                            )}
                         </div>
                     </div>
 

@@ -10,8 +10,8 @@ import Link from "next/link";
 import type { Database } from "@/types/database";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
-    rescue_bags: Database['public']['Tables']['rescue_bags']['Row'];
-    restaurants: Database['public']['Tables']['restaurants']['Row'];
+    rescue_bags: Database['public']['Tables']['rescue_bags']['Row'] | null;
+    restaurants: Database['public']['Tables']['restaurants']['Row'] | null;
 };
 
 const CountdownTimer = ({ endTime, orderStatus }: { endTime: string, orderStatus: string }) => {
@@ -67,19 +67,19 @@ const CountdownTimer = ({ endTime, orderStatus }: { endTime: string, orderStatus
                         <h2 className="text-2xl font-serif">Pickup window has ended</h2>
                     </div>
                 ) : timeLeft ? (
-                    <div className="flex items-end gap-4">
+                    <div className="flex items-end gap-2 sm:gap-4 flex-wrap">
                         <div className="text-center">
-                            <span className="text-4xl md:text-5xl font-serif">{String(timeLeft.hours).padStart(2, '0')}</span>
+                            <span className="text-3xl sm:text-4xl md:text-5xl font-serif">{String(timeLeft.hours).padStart(2, '0')}</span>
                             <p className="text-[8px] uppercase tracking-widest opacity-80 mt-1">Hours</p>
                         </div>
-                        <span className="text-4xl md:text-5xl font-serif mb-4">:</span>
+                        <span className="text-3xl sm:text-4xl md:text-5xl font-serif mb-4">:</span>
                         <div className="text-center">
-                            <span className="text-4xl md:text-5xl font-serif">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                            <span className="text-3xl sm:text-4xl md:text-5xl font-serif">{String(timeLeft.minutes).padStart(2, '0')}</span>
                             <p className="text-[8px] uppercase tracking-widest opacity-80 mt-1">Mins</p>
                         </div>
-                        <span className="text-4xl md:text-5xl font-serif mb-4">:</span>
+                        <span className="text-3xl sm:text-4xl md:text-5xl font-serif mb-4">:</span>
                         <div className="text-center">
-                            <span className="text-4xl md:text-5xl font-serif">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                            <span className="text-3xl sm:text-4xl md:text-5xl font-serif">{String(timeLeft.seconds).padStart(2, '0')}</span>
                             <p className="text-[8px] uppercase tracking-widest opacity-80 mt-1">Secs</p>
                         </div>
                     </div>
@@ -194,10 +194,12 @@ export default function OrderConfirmationPage() {
                 <div className="grid md:grid-cols-5 gap-12">
                     <div className="md:col-span-3 space-y-8">
                         {/* Countdown Timer Component */}
-                        <CountdownTimer
-                            endTime={order.rescue_bags.pickup_end_time}
-                            orderStatus={order.status}
-                        />
+                        {order.rescue_bags?.pickup_end_time && (
+                            <CountdownTimer
+                                endTime={order.rescue_bags.pickup_end_time}
+                                orderStatus={order.status}
+                            />
+                        )}
 
                         {/* Pickup OTP Card */}
                         {(order.status === 'pending' || order.status === 'confirmed' || order.status === 'ready') && (
@@ -214,7 +216,7 @@ export default function OrderConfirmationPage() {
                                     <p className="text-[10px] uppercase tracking-[0.3em] text-emerald-400 font-medium">Your Pickup Code</p>
                                 </div>
                                 <div className="flex items-center justify-center gap-3">
-                                    {order.pickup_otp?.split('').map((digit, index) => (
+                                    {(order as any).pickup_otp?.split('').map((digit: string, index: number) => (
                                         <div
                                             key={index}
                                             className="w-16 h-20 bg-black/40 border border-emerald-500/30 rounded-sm flex items-center justify-center"
@@ -242,8 +244,8 @@ export default function OrderConfirmationPage() {
                                     <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-2xl font-serif mb-2">{order.rescue_bags.title}</h3>
-                                    <p className="text-muted-foreground font-light italic mb-4">From {order.restaurants.name}</p>
+                                    <h3 className="text-2xl font-serif mb-2">{order.rescue_bags?.title || 'Mystery Bag'}</h3>
+                                    <p className="text-muted-foreground font-light italic mb-4">From {order.restaurants?.name || 'Restaurant'}</p>
                                     <div className="flex items-center gap-6">
                                         <div>
                                             <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Total Paid</p>
@@ -265,7 +267,7 @@ export default function OrderConfirmationPage() {
                                         <p className="text-[10px] uppercase tracking-[0.2em] font-medium">Collection Window</p>
                                     </div>
                                     <p className="text-sm font-light leading-relaxed">
-                                        Today, {order.rescue_bags.pickup_start_time.slice(0, 5)} - {order.rescue_bags.pickup_end_time.slice(0, 5)}
+                                        Today, {order.rescue_bags?.pickup_start_time?.slice(0, 5) || '--:--'} - {order.rescue_bags?.pickup_end_time?.slice(0, 5) || '--:--'}
                                     </p>
                                 </div>
                                 <div className="space-y-4">
@@ -274,9 +276,9 @@ export default function OrderConfirmationPage() {
                                         <p className="text-[10px] uppercase tracking-[0.2em] font-medium">Location</p>
                                     </div>
                                     <p className="text-sm font-light leading-relaxed">
-                                        {order.restaurants.name}<br />
+                                        {order.restaurants?.name || 'Restaurant'}<br />
                                         <span className="text-muted-foreground opacity-60">
-                                            {order.restaurants.address_line1}, {order.restaurants.city}
+                                            {order.restaurants?.address_line1 || ''}{order.restaurants?.city ? `, ${order.restaurants.city}` : ''}
                                         </span>
                                     </p>
                                 </div>
@@ -300,7 +302,7 @@ export default function OrderConfirmationPage() {
                                     </div>
                                     <div>
                                         <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-0.5">Call Restaurant</p>
-                                        <p className="text-sm font-light">{order.restaurants.phone}</p>
+                                        <p className="text-sm font-light">{order.restaurants?.phone || 'N/A'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 group cursor-pointer">
@@ -309,7 +311,7 @@ export default function OrderConfirmationPage() {
                                     </div>
                                     <div>
                                         <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-0.5">Email Support</p>
-                                        <p className="text-sm font-light">{order.restaurants.email}</p>
+                                        <p className="text-sm font-light">{order.restaurants?.email || 'N/A'}</p>
                                     </div>
                                 </div>
                             </div>

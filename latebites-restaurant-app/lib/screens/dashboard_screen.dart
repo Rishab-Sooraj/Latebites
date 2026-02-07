@@ -84,7 +84,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => AddBagModal(
-        onConfirm: (size, estimatedValue, quantity, pickupStart, pickupEnd) async {
+        onConfirm: (size, estimatedValue, quantity, pickupStart, pickupEnd, dietaryInfo) async {
           Navigator.pop(ctx);
           
           final success = await _service.createRescueBag(
@@ -93,6 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             quantity: quantity,
             pickupStart: pickupStart,
             pickupEnd: pickupEnd,
+            dietaryInfo: dietaryInfo,
           );
           
           if (!mounted) return;
@@ -291,7 +292,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text('TODAY\'S LISTINGS', style: Theme.of(context).textTheme.labelSmall),
                 const SizedBox(height: 12),
                 
-                ...(_bags.asMap().entries.map((entry) {
+                ...(_bags.asMap().entries.where((entry) {
+                  final bag = entry.value;
+                  final qty = (bag['quantity_available'] ?? 0) as int;
+                  return qty > 0; // Only show bags with available quantity
+                }).map((entry) {
                   final index = entry.key;
                   final bag = entry.value;
                   

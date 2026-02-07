@@ -111,17 +111,37 @@ export function Header() {
                     className="absolute right-0 mt-2 w-48 bg-background border border-border shadow-xl rounded-sm overflow-hidden"
                   >
                     <div className="px-4 py-3 border-b border-border bg-secondary/20">
-                      <p className="text-xs font-medium truncate">{customer.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{customer.email}</p>
+                      <p className="text-sm font-medium truncate">{customer.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{customer.email}</p>
                     </div>
 
                     <Link
-                      href="/browse"
-                      className="flex items-center gap-2 px-4 py-2 hover:bg-secondary/50 transition-colors text-sm"
+                      href="/profile"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-sm"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <UserCircle className="w-4 h-4" />
+                      My Account
+                    </Link>
+
+                    <Link
+                      href="/orders"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-sm"
                       onClick={() => setShowDropdown(false)}
                     >
                       <ShoppingBag className="w-4 h-4" />
-                      Browse
+                      Your Orders
+                    </Link>
+
+                    <Link
+                      href="/help"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-sm border-b border-border"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Help & Support
                     </Link>
 
                     <button
@@ -129,7 +149,7 @@ export function Header() {
                         setShowDropdown(false);
                         signOut();
                       }}
-                      className="w-full flex items-center gap-2 px-4 py-2 hover:bg-red-500/10 text-red-500 transition-colors text-sm text-left"
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 text-red-500 transition-colors text-sm text-left"
                     >
                       <LogOut className="w-4 h-4" />
                       Sign Out
