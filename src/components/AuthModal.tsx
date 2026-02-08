@@ -46,29 +46,26 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         console.log("🔍 Checking email:", email);
 
         try {
-            // Try to sign in with a dummy password to check if the email exists
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password: '__check_email_exists__',
+            // Use API endpoint to check if email exists in auth.users
+            const response = await fetch('/api/auth/check-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
             });
 
-            console.log("📧 Email check result:", error?.message || "No error (logged in?!)");
+            const data = await response.json();
+            console.log("📧 Email check result:", data);
 
-            if (error) {
-                if (error.message.includes("Invalid login credentials")) {
-                    console.log("✅ Email exists - showing login form");
-                    setStep("login");
-                } else {
-                    console.log("❌ Email not found - showing signup form");
-                    setStep("signup");
-                }
-            } else {
-                await supabase.auth.signOut();
+            if (data.exists) {
+                console.log("✅ Email exists - showing login form");
                 setStep("login");
+            } else {
+                console.log("❌ Email not found - showing signup form");
+                setStep("signup");
             }
         } catch (err) {
             console.error("❌ Error checking email:", err);
-            setStep("signup");
+            setError("Failed to check email. Please try again.");
         } finally {
             setLoading(false);
         }

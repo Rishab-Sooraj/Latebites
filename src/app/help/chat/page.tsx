@@ -24,7 +24,14 @@ interface Conversation {
     order_id: string | null;
     issue_type: string;
     status: string;
+    assigned_admin_id: string | null;
     created_at: string;
+}
+
+interface Admin {
+    id: string;
+    name: string;
+    email: string;
 }
 
 interface Order {
@@ -54,11 +61,13 @@ function ChatContent() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [conversation, setConversation] = useState<Conversation | null>(null);
     const [order, setOrder] = useState<Order | null>(null);
+    const [assignedAdmin, setAssignedAdmin] = useState<Admin | null>(null);
     const [newMessage, setNewMessage] = useState("");
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const isInitializingRef = useRef(false); // Prevent duplicate initialization
     const supabase = createClient();
 
     const orderId = searchParams.get('order'); // Can be null for general support
@@ -102,6 +111,7 @@ function ChatContent() {
         stopPolling();
         pollingRef.current = setInterval(() => {
             fetchMessages(conversationId);
+            fetchConversationUpdates(conversationId); // Check for admin assignment
         }, 5000);
     };
 
@@ -112,11 +122,38 @@ function ChatContent() {
         }
     };
 
-    const initializeChat = async () => {
+    const fetchConversationUpdates = async (conversationId: string) => {
         try {
-            let orderData: Order | null = null;
+            const { data, error } = await supabase
+                .from('support_conversations')
+                .select('*')
+                .eq('id', conversationId)
+                .single();
 
-            // Only fetch order if orderId is provided
+            if (!error && data) {
+                const conv = data as Conversation;
+                setConversation(conv);
+
+                // Fetch admin if newly assigned
+                if (conv.assigned_admin_id && !assignedAdmin) {
+                    await fetchAssignedAdmin(conv.assigned_admin_id);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching conversation updates:', err);
+        }
+    };
+
+    const initializeChat = async () => {
+        // Prevent duplicate initialization
+        if (isInitializingRef.current) {
+            console.log('⏳ Chat already initializing, skipping...');
+            return;
+        }
+        isInitializingRef.current = true;
+
+        try {
+            // Fetch order details if orderId is provided
             if (orderId) {
                 const { data, error: orderError } = await supabase
                     .from('orders')
@@ -129,67 +166,65 @@ function ChatContent() {
                     .eq('id', orderId)
                     .single();
 
-                if (!orderError) {
-                    orderData = data;
-                    setOrder(data);
+                if (!orderError && data) {
+                    setOrder(data as any);
                 }
             }
 
-            // Check if conversation already exists
-            let query = supabase
-                .from('support_conversations')
-                .select('*')
-                .eq('customer_id', customer?.id)
-                .eq('issue_type', issueType);
+            // Use API endpoint to atomically get or create conversation
+            // This prevents race conditions and duplicates
+            console.log('🔄 Calling get-or-create-conversation API...');
+            const response = await fetch('/api/support/get-or-create-conversation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customerId: customer?.id,
+                    orderId: orderId || null,
+                    issueType: issueType,
+                    customerName: customer?.name,
+                }),
+            });
 
-            if (orderId) {
-                query = query.eq('order_id', orderId);
-            } else {
-                query = query.is('order_id', null);
+            const result = await response.json();
+
+            if (result.error) {
+                console.error('❌ API error:', result.error);
+                throw new Error(result.error);
             }
 
-            const { data: existingConv, error: convError } = await query.maybeSingle();
+            if (result.conversation) {
+                console.log(`✅ Got conversation (isNew: ${result.isNew}):`, result.conversation.id);
+                setConversation(result.conversation as Conversation);
 
-            if (convError && convError.code !== 'PGRST116') throw convError;
+                // Fetch admin info if assigned
+                if (result.conversation.assigned_admin_id) {
+                    await fetchAssignedAdmin(result.conversation.assigned_admin_id);
+                }
 
-            if (existingConv) {
-                setConversation(existingConv);
-                await fetchMessages(existingConv.id);
-            } else {
-                // Create new conversation
-                const { data: newConv, error: createError } = await supabase
-                    .from('support_conversations')
-                    .insert({
-                        customer_id: customer?.id,
-                        order_id: orderId || null,
-                        issue_type: issueType,
-                        status: 'open',
-                    })
-                    .select()
-                    .single();
-
-                if (createError) throw createError;
-                setConversation(newConv);
-
-                // Send initial automated message
-                const welcomeMessage = orderData
-                    ? `Hi ${customer?.name?.split(' ')[0]}! 👋 Thanks for reaching out. I can see you had an issue with your order from ${orderData.restaurant.name}. Our support team will be with you shortly!`
-                    : `Hi ${customer?.name?.split(' ')[0]}! 👋 Thanks for reaching out to Latebites support. How can we help you today? Our team will respond shortly!`;
-
-                await supabase.from('support_messages').insert({
-                    conversation_id: newConv.id,
-                    sender_type: 'admin',
-                    sender_id: '00000000-0000-0000-0000-000000000000',
-                    message: welcomeMessage,
-                    read_by_recipient: false,
-                });
-
-                await fetchMessages(newConv.id);
+                await fetchMessages(result.conversation.id);
             }
         } catch (error) {
             console.error('Error initializing chat:', error);
         } finally {
             setLoading(false);
+            // Don't reset isInitializingRef - keep it true to prevent re-initialization
+        }
+    };
+
+    const fetchAssignedAdmin = async (adminId: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('admins')
+                .select('id, name, email')
+                .eq('id', adminId)
+                .single();
+
+            if (!error && data) {
+                setAssignedAdmin(data as Admin);
+                console.log('👤 Assigned admin:', data);
+            }
+        } catch (err) {
+            console.error('Error fetching admin:', err);
         }
     };
 
@@ -206,6 +241,48 @@ function ChatContent() {
         }
 
         setMessages(data || []);
+
+        // Check if there's a real admin responding (not the system bot)
+        // System bot has ID: 00000000-0000-0000-0000-000000000000
+        const systemBotId = '00000000-0000-0000-0000-000000000000';
+        const adminMessages = (data || []).filter(
+            (msg: Message) => msg.sender_type === 'admin' && msg.sender_id !== systemBotId
+        );
+
+        if (adminMessages.length > 0 && !assignedAdmin) {
+            // Get the first real admin who responded
+            const adminId = adminMessages[0].sender_id;
+            console.log('🔍 Found admin responder:', adminId);
+            await fetchAdminFromMessages(adminId);
+        }
+    };
+
+    const fetchAdminFromMessages = async (adminId: string) => {
+        try {
+            // First try 'admins' table
+            let { data, error } = await supabase
+                .from('admins')
+                .select('id, name, email')
+                .eq('id', adminId)
+                .single();
+
+            if (!error && data) {
+                setAssignedAdmin(data as Admin);
+                console.log('👤 Found admin in admins table:', data);
+                return;
+            }
+
+            // If not found, try to get from auth.users via API
+            const response = await fetch(`/api/admin/get-admin-info?id=${adminId}`);
+            const result = await response.json();
+
+            if (result.admin) {
+                setAssignedAdmin(result.admin as Admin);
+                console.log('👤 Found admin via API:', result.admin);
+            }
+        } catch (err) {
+            console.error('Error fetching admin from messages:', err);
+        }
     };
 
     const subscribeToMessages = () => {
@@ -294,7 +371,7 @@ function ChatContent() {
                         <div className="flex-1">
                             <h1 className="text-lg font-semibold text-gray-900">Support Chat</h1>
                             <p className="text-sm text-gray-600">
-                                {order ? `${order.restaurant.name} • ` : ''}{issueLabels[issueType]}
+                                {order ? `${(order as any).restaurant?.name} • ` : ''}{issueLabels[issueType]}
                             </p>
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-medium ${conversation?.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
@@ -307,20 +384,41 @@ function ChatContent() {
                 </div>
             </div>
 
+            {/* Admin Connection Banner */}
+            {assignedAdmin && (
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
+                    <div className="max-w-4xl mx-auto px-4 py-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-medium text-sm">
+                                {assignedAdmin.name?.charAt(0).toUpperCase() || 'A'}
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-emerald-800">
+                                    You are connected to <span className="font-semibold">{assignedAdmin.name}</span>
+                                </p>
+                                <p className="text-xs text-emerald-600">Latebites Support Agent</p>
+                            </div>
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Order Context Card - Only show if there's an order */}
             {order && (
                 <div className="bg-emerald-50 border-b border-emerald-100">
                     <div className="max-w-4xl mx-auto px-4 py-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-900">{order.rescue_bag.name}</p>
-                                <p className="text-xs text-gray-600">Order from {order.restaurant.name}</p>
+                                <p className="text-sm font-medium text-gray-900">{(order as any).rescue_bag?.name}</p>
+                                <p className="text-xs text-gray-600">Order from {(order as any).restaurant?.name}</p>
                             </div>
                             <p className="text-sm font-semibold text-gray-900">₹{order.total_price}</p>
                         </div>
                     </div>
                 </div>
             )}
+
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto">
