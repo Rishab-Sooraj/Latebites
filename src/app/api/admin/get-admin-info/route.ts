@@ -23,14 +23,19 @@ export async function GET(request: Request) {
 
         if (!userError && userData?.user) {
             const user = userData.user;
+            console.log('📋 User metadata:', JSON.stringify(user.user_metadata, null, 2));
+            console.log('📋 Raw user metadata:', JSON.stringify(user.raw_user_meta_data, null, 2));
+            console.log('📧 User email:', user.email);
+
             // Check multiple name fields - prioritize user_metadata
             const name = user.user_metadata?.name ||
                 user.user_metadata?.full_name ||
                 user.user_metadata?.display_name ||
+                user.raw_user_meta_data?.name ||
+                user.raw_user_meta_data?.full_name ||
                 null;
 
-            // Only use if it's a real name (not "admin")
-            if (name && name.toLowerCase() !== 'admin') {
+            if (name) {
                 const admin = {
                     id: user.id,
                     name: name,
@@ -48,7 +53,7 @@ export async function GET(request: Request) {
             .eq('id', adminId)
             .single();
 
-        if (!adminError && adminData && adminData.name && adminData.name.toLowerCase() !== 'admin') {
+        if (!adminError && adminData && adminData.name) {
             console.log('✅ Found admin in admins table:', adminData.name);
             return NextResponse.json({ admin: adminData });
         }

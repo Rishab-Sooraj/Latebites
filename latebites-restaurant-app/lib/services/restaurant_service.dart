@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import '../models/order.dart';
+import 'notification_service.dart';
 
 /// Service for managing restaurant status and orders
 class RestaurantService {
@@ -223,10 +224,10 @@ class RestaurantService {
     }
   }
 
-  /// Subscribe to order updates
+  /// Subscribe to order updates for data refresh
   RealtimeChannel subscribeToOrders(VoidCallback onUpdate) {
     return _client
-        .channel('orders-changes')
+        .channel('orders-changes-${DateTime.now().millisecondsSinceEpoch}')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -234,6 +235,33 @@ class RestaurantService {
           callback: (payload) {
             debugPrint('📦 Order update received');
             onUpdate();
+          },
+        )
+        .subscribe();
+  }
+
+  /// Monitor orders for notifications (call this once at app level)
+  RealtimeChannel monitorOrdersForNotifications() {
+    // Initialize notifications
+    NotificationService().init();
+
+    return _client
+        .channel('orders-notifications')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'orders',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'restaurant_id',
+            value: _userId ?? '',
+          ),
+          callback: (payload) {
+            debugPrint('🔔 New order notification trigger!');
+            NotificationService().showNewOrderNotification(
+              title: 'New Order Received! 🛍️',
+              body: 'Customer placed a new order. Tap to view details.',
+            );
           },
         )
         .subscribe();

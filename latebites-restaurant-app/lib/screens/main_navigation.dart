@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/restaurant_service.dart';
 import 'dashboard_screen.dart';
 import 'orders_screen.dart';
 import 'account_screen.dart';
@@ -13,6 +15,20 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  final RestaurantService _service = RestaurantService();
+  RealtimeChannel? _subscription;
+  
+  @override
+  void initState() {
+    super.initState();
+    _subscription = _service.monitorOrdersForNotifications();
+  }
+
+  @override
+  void dispose() {
+    _subscription?.unsubscribe();
+    super.dispose();
+  }
 
   final List<Widget> _screens = const [
     DashboardScreen(),

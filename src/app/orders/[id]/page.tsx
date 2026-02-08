@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { CheckCircle, MapPin, Clock, Phone, Mail, ShoppingBag, ArrowRight, Timer, AlertCircle, Sparkles, Copy, Check } from "lucide-react";
+import { CheckCircle, MapPin, Clock, Phone, Mail, ShoppingBag, ArrowRight, Timer, AlertCircle, Sparkles, Copy, Check, X, Loader2, RotateCcw, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import type { Database } from "@/types/database";
 
@@ -319,6 +319,10 @@ export default function OrderConfirmationPage() {
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelLoading, setCancelLoading] = useState(false);
+    const [cancelResult, setCancelResult] = useState<{ success: boolean; message: string; refunded?: boolean } | null>(null);
+    const [isLocked, setIsLocked] = useState(false);
 
     const supabase = createClient();
 
@@ -354,6 +358,73 @@ export default function OrderConfirmationPage() {
             navigator.clipboard.writeText((order as any).pickup_otp);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    // Check if before lock-in period
+    const checkIsBeforeLockIn = () => {
+        if (!order?.rescue_bags?.pickup_start_time) return true;
+
+        const now = new Date();
+        const [hours, minutes, seconds] = order.rescue_bags.pickup_start_time.split(':').map(Number);
+        const pickupStart = new Date();
+        pickupStart.setHours(hours, minutes, seconds || 0, 0);
+
+        if (pickupStart.getTime() < now.getTime()) {
+            pickupStart.setDate(pickupStart.getDate() + 1);
+        }
+
+        const lockInTime = new Date(pickupStart.getTime() - 45 * 60 * 1000);
+        return now.getTime() < lockInTime.getTime();
+    };
+
+    const handleCancelOrder = async () => {
+        if (!order) return;
+
+        setCancelLoading(true);
+        setCancelResult(null);
+
+        try {
+            const response = await fetch('/api/orders/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    orderId: order.id,
+                    reason: 'Customer requested cancellation',
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.isAfterLockIn) {
+                setCancelResult({
+                    success: false,
+                    message: data.message,
+                });
+                return;
+            }
+
+            if (data.success) {
+                setCancelResult({
+                    success: true,
+                    message: data.message,
+                    refunded: data.refunded,
+                });
+                // Refresh order data
+                await fetchOrderDetails();
+            } else {
+                setCancelResult({
+                    success: false,
+                    message: data.error || 'Failed to cancel order',
+                });
+            }
+        } catch (error: any) {
+            setCancelResult({
+                success: false,
+                message: error.message || 'Failed to cancel order',
+            });
+        } finally {
+            setCancelLoading(false);
         }
     };
 
@@ -641,6 +712,16 @@ export default function OrderConfirmationPage() {
                             >
                                 View My Rescues
                             </Link>
+
+                            {/* Cancel Order Button - Only for active orders */}
+                            {['pending', 'confirmed'].includes(order.status) && (
+                                <button
+                                    onClick={() => setShowCancelModal(true)}
+                                    className="w-full flex items-center justify-center py-4 sm:py-5 border border-red-500/30 hover:border-red-500/50 hover:bg-red-500/10 text-[11px] uppercase tracking-[0.2em] text-red-400 hover:text-red-300 transition-all rounded-xl"
+                                >
+                                    Cancel Order
+                                </button>
+                            )}
                         </motion.div>
 
                         {/* Order ID - Prominent Display */}
@@ -666,6 +747,133 @@ export default function OrderConfirmationPage() {
                     100% { background-position: -200% 0; }
                 }
             `}</style>
+
+            {/* Cancel Order Modal */}
+            {showCancelModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden"
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-zinc-800">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+                                    <AlertTriangle className="w-5 h-5 text-red-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-white">Cancel Order</h2>
+                                    <p className="text-sm text-zinc-500">This action cannot be undone</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowCancelModal(false);
+                                    setCancelResult(null);
+                                }}
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 transition-colors"
+                            >
+                                <X className="w-4 h-4 text-zinc-400" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6">
+                            {cancelResult ? (
+                                <div className={`p-4 rounded-lg ${cancelResult.success ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                                    <div className="flex items-start gap-3">
+                                        {cancelResult.success ? (
+                                            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                                        ) : (
+                                            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                        )}
+                                        <div>
+                                            <h4 className={`font-medium ${cancelResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                {cancelResult.success ? 'Order Cancelled' : 'Unable to Cancel'}
+                                            </h4>
+                                            <p className="text-sm text-zinc-400 mt-1">{cancelResult.message}</p>
+                                            {cancelResult.refunded && (
+                                                <p className="text-sm text-emerald-400 mt-2 flex items-center gap-2">
+                                                    <RotateCcw className="w-4 h-4" />
+                                                    Refund initiated
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Lock-in warning */}
+                                    {checkIsBeforeLockIn() ? (
+                                        <div className="bg-emerald-500/10 p-4 rounded-lg mb-4">
+                                            <p className="text-sm text-emerald-400">
+                                                ✅ You're within the free cancellation period.
+                                                {order?.payment_method === 'online' && order?.payment_status === 'paid' && (
+                                                    <span className="block mt-1"> A full refund of <strong>₹{order?.total_price}</strong> will be processed.</span>
+                                                )}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-amber-500/10 p-4 rounded-lg mb-4">
+                                            <p className="text-sm text-amber-400">
+                                                ⚠️ The lock-in period has passed. Cancellation may require contacting customer support.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <p className="text-zinc-400 text-sm">
+                                        Are you sure you want to cancel this order?
+                                        {order?.rescue_bags?.title && (
+                                            <span className="block mt-2 text-white font-medium">
+                                                {order.rescue_bags.title} from {order?.restaurants?.name}
+                                            </span>
+                                        )}
+                                    </p>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-end gap-3 p-6 border-t border-zinc-800">
+                            {cancelResult ? (
+                                <button
+                                    onClick={() => {
+                                        setShowCancelModal(false);
+                                        setCancelResult(null);
+                                    }}
+                                    className="px-6 py-2.5 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
+                                >
+                                    Close
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setShowCancelModal(false)}
+                                        className="px-6 py-2.5 text-zinc-400 hover:text-white transition-colors"
+                                    >
+                                        Keep Order
+                                    </button>
+                                    <button
+                                        onClick={handleCancelOrder}
+                                        disabled={cancelLoading}
+                                        className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        {cancelLoading ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            'Yes, Cancel Order'
+                                        )}
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </main >
     );
 }
