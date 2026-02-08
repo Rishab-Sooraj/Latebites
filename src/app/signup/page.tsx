@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { User, Phone, Mail, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
+import { User, Phone, Mail, ArrowRight, Eye, EyeOff, Lock, Loader2 } from "lucide-react";
 
-export default function SignupPage() {
+function SignupContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirectTo = searchParams.get('redirect') || '/browse';
@@ -288,5 +288,17 @@ export default function SignupPage() {
                 </div>
             </motion.div>
         </main>
+    );
+}
+
+export default function SignupPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-100 via-blue-100 to-teal-100">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        }>
+            <SignupContent />
+        </Suspense>
     );
 }
