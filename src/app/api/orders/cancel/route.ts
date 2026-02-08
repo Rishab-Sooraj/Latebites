@@ -7,13 +7,16 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Initialize Razorpay only if keys are available
-const razorpay = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET
-    ? new Razorpay({
+// Lazy-load Razorpay to avoid build-time initialization
+const getRazorpay = () => {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+        return null;
+    }
+    return new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID,
         key_secret: process.env.RAZORPAY_KEY_SECRET,
-    })
-    : null;
+    });
+};
 
 export async function POST(request: NextRequest) {
     try {
@@ -90,9 +93,9 @@ export async function POST(request: NextRequest) {
             let paymentId = order.razorpay_payment_id;
 
             // Try to fetch from Razorpay if not in DB
-            if (!paymentId && order.razorpay_order_id && razorpay) {
+            if (!paymentId && order.razorpay_order_id && getRazorpay()) {
                 try {
-                    const payments = await razorpay.orders.fetchPayments(order.razorpay_order_id);
+                    const payments = await getRazorpay()!.orders.fetchPayments(order.razorpay_order_id);
                     if (payments.items && payments.items.length > 0) {
                         const successfulPayment = payments.items.find((p: any) => p.status === 'captured');
                         if (successfulPayment) {
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest) {
                 }
             }
 
-            if (paymentId && razorpay) {
+            if (paymentId && getRazorpay()) {
                 try {
                     const refundAmountPaise = Math.round(order.total_price * 100);
 
@@ -128,7 +131,7 @@ export async function POST(request: NextRequest) {
                         .single();
 
                     // Process refund via Razorpay
-                    const refund = await razorpay.payments.refund(paymentId, {
+                    const refund = await getRazorpay()!.payments.refund(paymentId, {
                         amount: refundAmountPaise,
                         speed: 'normal',
                         notes: {
