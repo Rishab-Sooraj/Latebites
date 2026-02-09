@@ -15,22 +15,22 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Email is required' }, { status: 400 });
         }
 
-        console.log('🔍 Checking if email exists in auth.users:', email);
+        console.log('🔍 Checking if email exists in customers table:', email);
 
-        // Check if user exists in Supabase auth
-        const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+        // Check customers table instead of auth.users (no 50 user limit)
+        const { data: customer, error: customerError } = await supabaseAdmin
+            .from('customers')
+            .select('id')
+            .eq('email', email.toLowerCase())
+            .maybeSingle();
 
-        if (authError) {
-            console.error('❌ Error checking auth users:', authError);
+        if (customerError) {
+            console.error('❌ Error checking customers:', customerError);
             return NextResponse.json({ error: 'Failed to check email' }, { status: 500 });
         }
 
-        // Check if email exists in auth.users
-        const userExists = authUsers.users.some(
-            user => user.email?.toLowerCase() === email.toLowerCase()
-        );
-
-        console.log(`📧 Email ${email} exists in auth: ${userExists}`);
+        const userExists = !!customer;
+        console.log(`📧 Email ${email} exists in customers: ${userExists}`);
 
         return NextResponse.json({ exists: userExists });
     } catch (error) {
