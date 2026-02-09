@@ -11,3 +11,11 @@
 2. Check `if (!user) return 401`.
 3. When creating resources, use `user.id` from the session, NOT from the request body.
 4. When reading resources, verify `resource.user_id === user.id`.
+
+## 2025-02-12 - Supabase Auth & Frontend Error Handling
+**Vulnerability:** A "Database error saving new user" was exposed to users during signup when an account existed in `auth.users` but not in the application's `customers` table (a "zombie user"). This generic error confused users and potentially hinted at backend state inconsistencies.
+**Learning:** Relying solely on a secondary table (like `customers`) to check for user existence is a performance optimization but can lead to false negatives if the tables are out of sync. Direct `auth.admin.listUsers()` checks are paginated and slow.
+**Prevention:**
+1. Use the `customers` table for the fast path (checking existence).
+2. In the frontend, catch specific signup errors like "User already registered" and "Database error saving new user" (which often masks a unique constraint violation in Auth).
+3. Gracefully redirect these cases to the login flow with a helpful message, rather than showing a raw database error.

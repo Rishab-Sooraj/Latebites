@@ -45,15 +45,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ exists: true });
         }
 
-        // Fallback: Check auth.users if not in customers table
-        // Use getUserById won't work with email.
-        // We use listUsers() but note it only checks first page by default.
-        // However, if we assume customers table sync is working, this fallback is rarely needed.
-        // If we really need to check auth, we must paginate or filter if supported.
-        // Current JS client supports loose filtering or exact via RPC usually.
-        // Given the constraints, let's just check customers table as primary source of truth.
-        // If user deleted from customers but exists in Auth, they might be "zombie".
-        // But for UI flow (Login vs Signup), existing customer record implies "Login".
+        // Note: We primarily check the 'customers' table for performance and scalability.
+        // Direct checks against auth.users via listUsers() are slow and rate-limited.
+        // If a user exists in Auth but not in Customers (e.g. partial cleanup),
+        // the check-email will return false (allowing signup flow).
+        // However, the actual signup attempt will fail with "User already registered" or "Database error".
+        // The frontend (AuthModal) is configured to catch these errors and redirect to Login.
 
         console.log(`❌ Email ${email} not found in customers table`);
         return NextResponse.json({ exists: false });
