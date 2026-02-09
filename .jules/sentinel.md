@@ -2,3 +2,12 @@
 **Vulnerability:** The `/api/admin/get-admin-info` endpoint allowed unauthenticated users to look up any user's name and email by ID. It bypassed RLS by using the service role key to query `auth.users` directly without verifying if the target user was actually an admin or if the requester was authorized.
 **Learning:** Using `SUPABASE_SERVICE_ROLE_KEY` to "bypass RLS" for one purpose (e.g., looking up admin names) can inadvertently open up access to the entire `auth.users` table if input validation and authorization checks are missing.
 **Prevention:** Always authenticate the requester first. When using service role keys, strictly validate the input and ensure the target resource is one that the requester is allowed to access (e.g., only return info if the ID exists in a public `admins` table).
+
+## 2025-02-12 - Order Spoofing & Information Disclosure
+**Vulnerability:** The `/api/orders/[id]` and `/api/orders/create` endpoints were completely unauthenticated. `/orders/[id]` allowed anyone to fetch full order details (PII) by ID. `/orders/create` allowed creating orders on behalf of any user ID passed in the request body.
+**Learning:** API routes in Next.js do not inherit any default authentication. "Service Role" clients bypass RLS and must NEVER be used without first establishing the identity of the requester and validating that they have permission to perform the action or access the data.
+**Prevention:**
+1. Always use `createClient()` from `@/lib/supabase/server` to get the authenticated user session.
+2. Check `if (!user) return 401`.
+3. When creating resources, use `user.id` from the session, NOT from the request body.
+4. When reading resources, verify `resource.user_id === user.id`.
