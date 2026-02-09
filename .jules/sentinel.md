@@ -1,0 +1,4 @@
+## 2025-02-12 - Critical IDOR in Admin Info Lookup
+**Vulnerability:** The `/api/admin/get-admin-info` endpoint allowed unauthenticated users to look up any user's name and email by ID. It bypassed RLS by using the service role key to query `auth.users` directly without verifying if the target user was actually an admin or if the requester was authorized.
+**Learning:** Using `SUPABASE_SERVICE_ROLE_KEY` to "bypass RLS" for one purpose (e.g., looking up admin names) can inadvertently open up access to the entire `auth.users` table if input validation and authorization checks are missing.
+**Prevention:** Always authenticate the requester first. When using service role keys, strictly validate the input and ensure the target resource is one that the requester is allowed to access (e.g., only return info if the ID exists in a public `admins` table).
