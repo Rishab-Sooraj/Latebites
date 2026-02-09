@@ -2,13 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
-// Use service role to bypass RLS for admin lookups
-// This is necessary because we need to check the 'admins' table which might be restricted
-const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function GET(request: Request) {
     try {
         // 1. Authenticate the requester
@@ -26,6 +19,18 @@ export async function GET(request: Request) {
         if (!adminId) {
             return NextResponse.json({ error: 'Admin ID is required' }, { status: 400 });
         }
+
+        // Initialize admin client inside the handler to avoid build-time env var issues
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!serviceRoleKey) {
+            console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        }
+
+        const supabaseAdmin = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey
+        );
 
         console.log('🔍 Looking up admin info for:', adminId);
 
