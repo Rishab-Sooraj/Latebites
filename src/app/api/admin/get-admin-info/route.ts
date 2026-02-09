@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
+// Explicitly define runtime to ensure compatibility
+export const runtime = 'edge';
+
 export async function GET(request: Request) {
     try {
         // 1. Authenticate the requester
@@ -21,6 +24,7 @@ export async function GET(request: Request) {
         }
 
         // Initialize admin client inside the handler to avoid build-time env var issues
+        // and ensure runtime access to secrets
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!serviceRoleKey) {
             console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
@@ -29,7 +33,14 @@ export async function GET(request: Request) {
 
         const supabaseAdmin = createAdminClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            serviceRoleKey
+            serviceRoleKey,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false,
+                    detectSessionInUrl: false
+                }
+            }
         );
 
         console.log('🔍 Looking up admin info for:', adminId);
