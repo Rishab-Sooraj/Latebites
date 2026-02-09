@@ -1,4 +1,6 @@
--- Update the auto-create customer profile function to exclude admin emails
+-- Fix handle_new_user function to generate unique placeholder phone numbers
+-- This prevents UNIQUE constraint violations when phone is not provided
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -32,9 +34,3 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
--- Make sure the trigger exists
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

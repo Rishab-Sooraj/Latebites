@@ -140,7 +140,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 },
             });
 
-            if (signupError) throw signupError;
+            if (signupError) {
+                console.error("❌ Signup error:", signupError);
+                throw signupError;
+            }
 
             if (data.user) {
                 console.log("✅ Auth user created:", data.user.id);
@@ -159,20 +162,24 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     });
                     const createData = await createRes.json();
 
+                    if (!createRes.ok || createData.error) {
+                        console.error("❌ Customer creation failed:", createData.error);
+                        throw new Error(createData.error || "Database error saving new user");
+                    }
+
                     if (createData.customer) {
                         console.log("✅ Customer profile created:", createData.customer);
-                    } else if (createData.error) {
-                        console.error("❌ Customer creation failed:", createData.error);
                     }
-                } catch (profileErr) {
+                } catch (profileErr: any) {
                     console.error("❌ Customer creation error:", profileErr);
-                    // Continue anyway - auth account exists
+                    throw new Error(profileErr.message || "Database error saving new user");
                 }
 
                 onClose();
                 window.location.href = "/browse";
             }
         } catch (err: any) {
+            console.error("❌ Signup flow error:", err);
             setError(err.message || "Failed to create account");
         } finally {
             setLoading(false);
