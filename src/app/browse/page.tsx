@@ -67,7 +67,8 @@ export default function BrowsePage() {
     const supabase = createClient();
 
     useEffect(() => {
-        // Redirect if not authenticated and done loading
+        // Only redirect if auth is done loading AND user is not authenticated
+        // This prevents redirect loop during OAuth callback
         if (!authLoading && !user) {
             router.push('/?auth=customer');
         }

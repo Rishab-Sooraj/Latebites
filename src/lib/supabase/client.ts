@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/database'
+import { SUPABASE_AUTH_STORAGE_KEY } from './constants'
 
 // Singleton client instance to ensure consistent session across the app
 let supabaseClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
@@ -17,7 +18,7 @@ export function createClient() {
                 persistSession: true,
                 autoRefreshToken: true,
                 detectSessionInUrl: true,
-                storageKey: 'latebites-customer-auth', // Unique key for customer app
+                storageKey: SUPABASE_AUTH_STORAGE_KEY, // Unique key for customer app
             },
             // Use default cookie settings for compatibility with middleware
         }

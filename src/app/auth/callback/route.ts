@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { SUPABASE_AUTH_STORAGE_KEY } from '@/lib/supabase/constants'
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,10 @@ export async function GET(request: NextRequest) {
         const redirect = searchParams.get('redirect') || '/browse'
         const role = searchParams.get('role') || 'customer'
 
+        console.log('🔐 OAuth callback started:', { code: code?.substring(0, 10), redirect, role })
+
         if (!code) {
-            console.error('No code provided in OAuth callback')
+            console.error('❌ No code provided in OAuth callback')
             return NextResponse.redirect(`${origin}/?error=no_code`)
         }
 
@@ -22,6 +25,9 @@ export async function GET(request: NextRequest) {
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
+                auth: {
+                    storageKey: SUPABASE_AUTH_STORAGE_KEY,
+                },
                 cookies: {
                     get(name: string) {
                         return cookieStore.get(name)?.value
@@ -44,20 +50,25 @@ export async function GET(request: NextRequest) {
             }
         )
 
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+        console.log('🔄 Exchanging code for session...')
+        const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
         if (exchangeError) {
-            console.error('Error exchanging code for session:', exchangeError)
+            console.error('❌ Error exchanging code for session:', exchangeError)
             return NextResponse.redirect(`${origin}/?error=auth_failed`)
         }
+
+        console.log('✅ Session established:', sessionData.user?.email)
 
         // Get the authenticated user
         const { data: { user }, error: userError } = await supabase.auth.getUser()
 
         if (userError || !user) {
-            console.error('Error getting user:', userError)
+            console.error('❌ Error getting user:', userError)
             return NextResponse.redirect(`${origin}/?error=user_fetch_failed`)
         }
+
+        console.log('✅ User authenticated:', user.email)
 
         // Check if profile exists in the selected role's table
         const tableName = role === 'customer' ? 'customers' : 'restaurants'
@@ -68,11 +79,12 @@ export async function GET(request: NextRequest) {
             .maybeSingle()
 
         if (profileError) {
-            console.error('Error checking profile:', profileError)
+            console.error('⚠️ Error checking profile:', profileError)
         }
 
         // If profile doesn't exist, create it
         if (!profile && role === 'customer') {
+            console.log('📝 Creating customer profile...')
             // Phone is required in customers table, use a placeholder if not provided
             const phoneNumber = user.phone || user.user_metadata.phone || '+910000000000';
 
@@ -84,17 +96,33 @@ export async function GET(request: NextRequest) {
             }])
 
             if (insertError) {
-                console.error('Error creating customer profile:', insertError)
+                console.error('❌ Error creating customer profile:', insertError)
                 // Continue anyway - user is authenticated
             } else {
-                console.log('Customer profile created successfully for OAuth user')
+                console.log('✅ Customer profile created successfully')
             }
+        } else if (profile) {
+            console.log('✅ Profile already exists')
         }
 
-        console.log('OAuth callback successful, redirecting to:', redirect)
-        return NextResponse.redirect(`${origin}${redirect}`)
+        console.log('🎉 OAuth callback successful, redirecting to:', redirect)
+
+        // Create response with redirect
+        const response = NextResponse.redirect(`${origin}${redirect}`)
+
+        // Ensure cookies are set on the response
+        response.cookies.set({
+            name: SUPABASE_AUTH_STORAGE_KEY,
+            value: JSON.stringify(sessionData.session),
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+        })
+
+        return response
     } catch (error) {
-        console.error('Unexpected error in OAuth callback:', error)
+        console.error('❌ Unexpected error in OAuth callback:', error)
         const { origin } = new URL(request.url)
         return NextResponse.redirect(`${origin}/?error=unexpected_error`)
     }

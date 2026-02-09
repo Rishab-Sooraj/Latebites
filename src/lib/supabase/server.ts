@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
+import { SUPABASE_AUTH_STORAGE_KEY } from './constants'
 
 export async function createClient() {
     const cookieStore = await cookies()
@@ -9,6 +10,9 @@ export async function createClient() {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
+            auth: {
+                storageKey: SUPABASE_AUTH_STORAGE_KEY,
+            },
             cookies: {
                 getAll() {
                     return cookieStore.getAll()

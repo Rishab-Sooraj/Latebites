@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { SUPABASE_AUTH_STORAGE_KEY } from '@/lib/supabase/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,9 @@ export async function POST(request: NextRequest) {
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
+                auth: {
+                    storageKey: SUPABASE_AUTH_STORAGE_KEY,
+                },
                 cookies: {
                     get(name: string) {
                         return cookieStore.get(name)?.value;
