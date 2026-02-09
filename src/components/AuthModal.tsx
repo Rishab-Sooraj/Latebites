@@ -173,7 +173,24 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 window.location.href = "/browse";
             }
         } catch (err: any) {
-            setError(err.message || "Failed to create account");
+            console.error("❌ Signup error details:", err);
+
+            // Normalize error message to handle various formats
+            const errorMsg = String(err?.message || err).toLowerCase();
+
+            // Handle cases where user exists in Auth but not in Customers (zombie user)
+            // or if there's a unique constraint violation that Supabase reports as a DB error
+            if (
+                errorMsg.includes("database error saving new user") ||
+                errorMsg.includes("user already registered") ||
+                errorMsg.includes("violates unique constraint") ||
+                errorMsg.includes("duplicate key")
+            ) {
+                setError("An account with this email already exists. Please sign in.");
+                setStep("login");
+            } else {
+                setError(err.message || "Failed to create account");
+            }
         } finally {
             setLoading(false);
         }

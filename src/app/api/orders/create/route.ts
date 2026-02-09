@@ -1,26 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import Razorpay from 'razorpay';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
+        // 1. Authenticate user
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // 2. Initialize admin client inside handler
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!serviceRoleKey) {
+            console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY');
+            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        }
+
+        const supabaseAdmin = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
+
+        const razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID!,
+            key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        });
+
         // Handle both single bag format and cart items format
         let bagId: string;
         let quantity: number;
-        let customerId: string;
+        // customerId is inferred from session, but body might contain it. We should use session ID.
 
+        // Validate request body structure
         if (body.items && Array.isArray(body.items)) {
             // Cart format: { items: [...], customerId, totalAmount }
             if (body.items.length === 0) {
@@ -29,23 +55,32 @@ export async function POST(request: NextRequest) {
             // Use first item (for now, only support single item checkout)
             bagId = body.items[0].bagId;
             quantity = body.items[0].quantity;
-            customerId = body.customerId;
         } else {
             // Direct format: { bagId, quantity, customerId }
             bagId = body.bagId;
             quantity = body.quantity;
-            customerId = body.customerId;
         }
 
-        if (!bagId || !quantity || !customerId) {
+        // Validate basic fields
+        if (!bagId || quantity === undefined) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
                 { status: 400 }
             );
         }
 
+        // Validate quantity (positive integer)
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+            return NextResponse.json(
+                { error: 'Invalid quantity' },
+                { status: 400 }
+            );
+        }
+
+        const customerId = user.id; // Use authenticated user ID, ignore body.customerId
+
         // Fetch bag details
-        const { data: bag, error: bagError } = await supabase
+        const { data: bag, error: bagError } = await supabaseAdmin
             .from('rescue_bags')
             .select('*')
             .eq('id', bagId)
@@ -88,7 +123,7 @@ export async function POST(request: NextRequest) {
         const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
         // Create order in database with pending status
-        const { data: order, error: orderError } = await supabase
+        const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
             .insert({
                 customer_id: customerId,
@@ -126,7 +161,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Update order with Razorpay order ID
-        await supabase
+        await supabaseAdmin
             .from('orders')
             .update({ razorpay_order_id: razorpayOrder.id })
             .eq('id', order.id);

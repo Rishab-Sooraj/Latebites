@@ -1,14 +1,23 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 
-// Use service role to bypass RLS
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Explicitly define runtime as nodejs to match other API routes (onboard/verify)
+// This ensures compatibility with the build process and environment variable access
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
+        // 1. Authenticate the requester
+        // Ensure only logged-in users can query this endpoint
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { searchParams } = new URL(request.url);
         const adminId = searchParams.get('id');
 
@@ -16,68 +25,87 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Admin ID is required' }, { status: 400 });
         }
 
-        console.log('🔍 Looking up admin info for:', adminId);
-
-        // First try auth.users to get the real name from user_metadata
-        const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(adminId);
-
-        if (!userError && userData?.user) {
-            const user = userData.user;
-            // Check multiple name fields - prioritize user_metadata
-            const name = user.user_metadata?.name ||
-                user.user_metadata?.full_name ||
-                user.user_metadata?.display_name ||
-                null;
-
-            // Only use if it's a real name (not "admin")
-            if (name && name.toLowerCase() !== 'admin') {
-                const admin = {
-                    id: user.id,
-                    name: name,
-                    email: user.email || '',
-                };
-                console.log('✅ Found admin name in auth.users:', admin.name);
-                return NextResponse.json({ admin });
-            }
+        // Initialize admin client inside the handler to avoid build-time env var issues
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!serviceRoleKey) {
+            console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
         }
 
-        // If auth.users doesn't have a good name, try the admins table
+        const supabaseAdmin = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
+
+        console.log('🔍 Looking up admin info for:', adminId);
+
+        // 2. Authorization Check: Verify the target ID belongs to an admin
+        // We check the 'admins' table first. This is the source of truth for who is an admin.
+        // This prevents users from querying arbitrary user IDs from auth.users.
         const { data: adminData, error: adminError } = await supabaseAdmin
             .from('admins')
             .select('id, name, email')
             .eq('id', adminId)
             .single();
 
-        if (!adminError && adminData && adminData.name && adminData.name.toLowerCase() !== 'admin') {
-            console.log('✅ Found admin in admins table:', adminData.name);
-            return NextResponse.json({ admin: adminData });
+        // If not in admins table, we treat them as a generic support agent (or not an admin)
+        // We deliberately do NOT fall back to checking auth.users for any ID to prevent IDOR/Enumeration.
+        if (adminError || !adminData) {
+            console.log('⚠️ ID not found in admins table, returning default agent info.');
+            return NextResponse.json({
+                admin: {
+                    id: adminId,
+                    name: 'Support Agent',
+                    email: '', // Do not expose email for unverified admins
+                }
+            });
         }
 
-        // If we have userData but no good name, use formatted email prefix
-        if (!userError && userData?.user?.email) {
-            const emailName = userData.user.email.split('@')[0];
-            // Capitalize first letter and format
-            const formattedName = emailName
-                .replace(/[._]/g, ' ')
-                .split(' ')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
-            const admin = {
-                id: userData.user.id,
-                name: formattedName,
-                email: userData.user.email,
-            };
-            console.log('✅ Using formatted email as name:', admin.name);
-            return NextResponse.json({ admin });
+        // 3. If verified admin, we can try to get fresher data from auth.users if needed
+        // (Optional, but preserves original behavior of preferring auth.users name)
+        let finalName = adminData.name;
+        let finalEmail = adminData.email;
+
+        // It is safe to query auth.users now because we have verified adminId belongs to an admin
+        const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(adminId);
+
+        if (!userError && userData?.user) {
+             const user = userData.user;
+             const name = user.user_metadata?.name ||
+                user.user_metadata?.full_name ||
+                user.user_metadata?.display_name;
+
+             // Only use if it's a real name (not "admin")
+             if (name && name.toLowerCase() !== 'admin') {
+                 finalName = name;
+             }
+             if (user.email) {
+                 finalEmail = user.email;
+             }
+
+             // Also handle the formatted email fallback case from original code
+             if (!finalName && user.email) {
+                const emailName = user.email.split('@')[0];
+                finalName = emailName
+                    .replace(/[._]/g, ' ')
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+             }
         }
 
-        // Fallback
-        console.log('⚠️ Admin not found, returning default');
+        console.log('✅ Found verified admin:', finalName);
         return NextResponse.json({
             admin: {
-                id: adminId,
-                name: 'Support Agent',
-                email: '',
+                id: adminData.id,
+                name: finalName,
+                email: finalEmail
             }
         });
 

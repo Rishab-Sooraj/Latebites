@@ -1,11 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-// Use service role to bypass RLS
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(
     request: Request,
@@ -14,15 +12,51 @@ export async function GET(
     try {
         const { id } = await params;
 
-        // Fetch order with related data using service role (bypasses RLS)
+        // 1. Authenticate user
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // 2. Initialize admin client inside handler
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!serviceRoleKey) {
+            console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY');
+            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        }
+
+        const supabaseAdmin = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
+
+        // 3. Fetch order with authorization check
+        // Query must ensure the order belongs to the authenticated user
+        // OR if the user is an admin (which we'd need to verify separately, but for now strict ownership is safest)
         const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
             .select('*')
             .eq('id', id)
             .single();
 
-        if (orderError) {
-            return NextResponse.json({ error: orderError.message }, { status: 404 });
+        if (orderError || !order) {
+            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        // Verify ownership
+        // Note: admin users might need access, but current implementation doesn't seem to have a global admin check here.
+        // Assuming strict customer ownership for this endpoint.
+        if (order.customer_id !== user.id) {
+            console.warn(`⚠️ Unauthorized access attempt: User ${user.id} tried to access order ${id} owned by ${order.customer_id}`);
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
         // Fetch rescue bag
