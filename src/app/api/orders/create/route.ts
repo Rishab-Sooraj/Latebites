@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         let quantity: number;
         // customerId is inferred from session, but body might contain it. We should use session ID.
 
-        // Validate request body
+        // Validate request body structure
         if (body.items && Array.isArray(body.items)) {
             // Cart format: { items: [...], customerId, totalAmount }
             if (body.items.length === 0) {
@@ -61,9 +61,18 @@ export async function POST(request: NextRequest) {
             quantity = body.quantity;
         }
 
-        if (!bagId || !quantity) {
+        // Validate basic fields
+        if (!bagId || quantity === undefined) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
+                { status: 400 }
+            );
+        }
+
+        // Validate quantity (positive integer)
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+            return NextResponse.json(
+                { error: 'Invalid quantity' },
                 { status: 400 }
             );
         }
