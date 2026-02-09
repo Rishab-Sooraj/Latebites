@@ -19,3 +19,11 @@
 1. Use the `customers` table for the fast path (checking existence).
 2. In the frontend, catch specific signup errors like "User already registered" and "Database error saving new user" (which often masks a unique constraint violation in Auth).
 3. Gracefully redirect these cases to the login flow with a helpful message, rather than showing a raw database error.
+
+## 2025-02-09 - Supabase Auth & Zombie Users
+**Vulnerability:** Not a direct vulnerability, but a UX failure leading to user lock-out. Users existing in `auth.users` but missing from `public.customers` (zombie users) were unable to sign up because `check-email` only checked `customers`, allowing them to proceed to `signUp`, which then failed with a generic "Database error saving new user".
+**Learning:** Supabase Auth operations can trigger database constraints (via triggers) that return generic "Database error" messages to the client, masking the true cause (duplicate user/key). Frontend error handling must be robust enough to interpret these generic errors as potential duplicate user scenarios.
+**Prevention:**
+1. Always check both Auth and App tables for user existence if possible (though Auth check is limited).
+2. Implement robust error parsing in the frontend to catch "database error", "duplicate key", etc., and guide the user to Login.
+3. Ensure the application can self-heal by creating missing profiles on login (which this app does via `AuthContext`).

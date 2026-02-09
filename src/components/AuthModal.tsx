@@ -175,12 +175,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         } catch (err: any) {
             console.error("❌ Signup error details:", err);
 
+            // Normalize error message to handle various formats
+            const errorMsg = String(err?.message || err).toLowerCase();
+
             // Handle cases where user exists in Auth but not in Customers (zombie user)
             // or if there's a unique constraint violation that Supabase reports as a DB error
             if (
-                err.message?.includes("Database error saving new user") ||
-                err.message?.includes("User already registered") ||
-                err.message?.includes("violates unique constraint")
+                errorMsg.includes("database error saving new user") ||
+                errorMsg.includes("user already registered") ||
+                errorMsg.includes("violates unique constraint") ||
+                errorMsg.includes("duplicate key")
             ) {
                 setError("An account with this email already exists. Please sign in.");
                 setStep("login");
