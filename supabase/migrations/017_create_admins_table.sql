@@ -20,9 +20,15 @@ CREATE INDEX IF NOT EXISTS idx_admins_is_active ON public.admins(is_active);
 -- Enable RLS
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Admins can view all admins" ON public.admins;
+DROP POLICY IF EXISTS "Super admins can do everything on admins" ON public.admins;
+DROP POLICY IF EXISTS "Admins can update their own record" ON public.admins;
+DROP POLICY IF EXISTS "Service role full access to admins" ON public.admins;
+
 -- RLS Policies for admins table
 -- Super admins can do everything
-CREATE POLICY "Super admins can do everything on admins"
+CREATE POLICY "super_admins_full_access"
     ON public.admins
     FOR ALL
     USING (
@@ -35,7 +41,7 @@ CREATE POLICY "Super admins can do everything on admins"
     );
 
 -- Admins can view all admins
-CREATE POLICY "Admins can view all admins"
+CREATE POLICY "admins_can_view_all"
     ON public.admins
     FOR SELECT
     USING (
@@ -47,20 +53,13 @@ CREATE POLICY "Admins can view all admins"
     );
 
 -- Admins can update their own record (for password change)
-CREATE POLICY "Admins can update their own record"
+CREATE POLICY "admins_can_update_own"
     ON public.admins
     FOR UPDATE
     USING (user_id = auth.uid())
     WITH CHECK (user_id = auth.uid());
 
--- Service role can do everything (for API operations)
-CREATE POLICY "Service role full access to admins"
-    ON public.admins
-    FOR ALL
-    USING (true)
-    WITH CHECK (true);
-
--- Create updated_at trigger
+-- Create updated_at trigger function if it doesn't exist
 CREATE OR REPLACE FUNCTION update_admins_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -69,6 +68,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Drop trigger if exists and recreate
+DROP TRIGGER IF EXISTS update_admins_updated_at_trigger ON public.admins;
 CREATE TRIGGER update_admins_updated_at_trigger
     BEFORE UPDATE ON public.admins
     FOR EACH ROW
