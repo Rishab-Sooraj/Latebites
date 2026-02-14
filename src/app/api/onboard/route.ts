@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
-import { generateVerificationEmail, generateVerificationToken } from '@/lib/email-template';
+import { sendEmail } from '@/lib/zeptomail';
+import { generateRestaurantVerificationEmail, generateVerificationToken } from '@/lib/email-template';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-// Helper function to get Resend client (lazy initialization)
-function getResendClient() {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-        console.warn('⚠️ RESEND_API_KEY not configured - email sending will be skipped');
-        return null;
-    }
-    return new Resend(apiKey);
-}
 
 export async function POST(request: NextRequest) {
     try {
@@ -99,30 +89,29 @@ export async function POST(request: NextRequest) {
 
         // Send verification email
         try {
-            const resend = getResendClient();
+            const emailHtml = generateRestaurantVerificationEmail(restaurant_name, contact_person, verificationUrl);
 
-            if (!resend) {
-                console.warn('⚠️ Skipping email send - Resend not configured');
-                // Continue without sending email - data is still saved
+            console.log('📧 Attempting to send email to:', email);
+            console.log('🔗 Verification URL:', verificationUrl);
+
+            const emailSent = await sendEmail({
+                to: email,
+                subject: 'Verify Your Email - Latebites Restaurant Onboarding',
+                html: emailHtml,
+                from: {
+                    name: 'Latebites',
+                    email: 'noreply@latebites.in'
+                }
+            });
+
+            if (emailSent) {
+                console.log('✅ Email sent successfully!');
             } else {
-                const emailHtml = generateVerificationEmail(restaurant_name, contact_person, verificationUrl);
-
-                console.log('📧 Attempting to send email to:', email);
-                console.log('🔗 Verification URL:', verificationUrl);
-
-                const emailResult = await resend.emails.send({
-                    from: 'Latebites <hello@onboarding.latebites.in>',
-                    to: email,
-                    subject: 'Verify Your Email - Latebites Restaurant Onboarding',
-                    html: emailHtml,
-                });
-
-                console.log('✅ Email sent successfully!', emailResult);
+                console.warn('⚠️ Email sending failed - continuing without email');
             }
         } catch (emailError) {
             console.error('❌ Email sending error:', emailError);
             // Don't fail the request if email fails - data is still saved
-            // You can manually verify or resend later
         }
 
         return NextResponse.json(

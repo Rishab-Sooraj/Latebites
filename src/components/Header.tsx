@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import AuthModal from "./AuthModal";
 
 // Sections with dark backgrounds where we need WHITE text
-const darkSections = ["hero", "what-we-do", "vetting", "closing"];
+const darkSections = ["hero", "mystery-bags", "partner", "footer"];
 
 export function Header() {
   const { user, customer, signOut } = useAuth();
@@ -27,8 +27,7 @@ export function Header() {
 
   useEffect(() => {
     const sections = [
-      "hero", "problem", "belief", "what-we-do", "impact", "vision",
-      "how-we-work", "vetting", "onboard", "closing"
+      "hero", "how-it-works", "mystery-bags", "why", "partner", "footer"
     ];
 
     const handleScroll = () => {

@@ -1,0 +1,103 @@
+2026-02-10T14:56:01.916Z [console][error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <InnerScrollAndFocusHandler segmentPath={[...]} focusAndScrollRef={{apply:false, ...}}>
+      <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+        <LoadingBoundary loading={null}>
+          <HTTPAccessFallbackBoundary notFound={[...]} forbidden={undefined} unauthorized={undefined}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={[...]} forbidden={undefined} unauthorized={undefined} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <InnerLayoutRouter url="/" tree={[...]} cacheNode={{lazyData:null, ...}} segmentPath={[...]}>
+                    <ClientPageRoot Component={function HomePage} searchParams={{}} params={{}}>
+                      <HomePage params={Promise} searchParams={Promise}>
+                        <Suspense fallback={<div>}>
+                          <HomePageContent>
+                            <main
+                              className="bg-background selection:bg-primary selection:text-primary-foreground"
+-                             data-orchid-ref="ref-fs5mhdtvpf"
+                            >
+                              <Header>
+                                <motion.header initial={{y:-20,opacity:0}} animate={{y:0,opacity:1}} ...>
+                                  <header
+                                    className="fixed top-0 left-0 w-full z-50 px-4 py-4 sm:px-6 sm:py-6 md:px-12 md:py..."
+                                    style={{opacity:0,transform:"translateY..."}}
+                                    ref={function useMotionRef.useCallback}
+-                                   data-orchid-ref="ref-g1zdcagjaz"
+                                  >
+                                    <div
+                                      className="flex flex-col items-center pointer-events-auto cursor-pointer hover:o..."
+-                                     data-orchid-ref="ref-txuzrz9yl8"
+                                    >
+                                      <LinkComponent href="/" className="flex flex-...">
+                                        <a
+                                          className="flex flex-col items-center"
+                                          ref={function}
+                                          onClick={function onClick}
+                                          onMouseEnter={function onMouseEnter}
+                                          onTouchStart={function onTouchStart}
+                                          href="/"
+-                                         data-orchid-ref="ref-wkxmosr785"
+                                        >
+                                          <img
+                                            src="/images/latebites-logo.jpg"
+                                            alt="Latebites Logo"
+                                            className="w-8 h-8 md:w-10 md:h-10 object-contain mb-1 transition-all dura..."
+-                                           data-orchid-ref="ref-vaac5u2iud"
+                                          >
+                                          <span
+                                            className="font-serif italic text-lg sm:text-xl md:text-2xl tracking-tight..."
+-                                    ... [truncated]
+2026-02-10T14:56:01.924Z [console][error] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly.
+2026-02-10T15:01:16.289Z [console][error] You are trying to animate borderColor from "oklab(0.966927 -0.000278413 0.0123569 / 0.2)" to "hsl(var(--primary-foreground))". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T15:01:16.292Z [console][error] You are trying to animate borderColor from "hsl(var(--primary-foreground))" to "oklab(0.966927 -0.000278413 0.0123569 / 0.2)". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T15:01:16.292Z [console][error] You are trying to animate borderColor from "oklab(0.966927 -0.000278413 0.0123569 / 0.2)" to "hsl(var(--primary-foreground))". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T15:01:16.315Z [console][error] You are trying to animate borderColor from "hsl(var(--primary-foreground))" to "oklab(0.966927 -0.000278413 0.0123569 / 0.2)". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T15:01:18.553Z [console][error] You are trying to animate borderColor from "oklab(0.966927 -0.000278413 0.0123569 / 0.2)" to "hsl(var(--primary-foreground))". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T15:01:19.003Z [console][error] You are trying to animate borderColor from "hsl(var(--primary-foreground))" to "oklab(0.966927 -0.000278413 0.0123569 / 0.2)". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T15:01:23.220Z [console][error] You are trying to animate borderColor from "oklab(0.966927 -0.000278413 0.0123569 / 0.2)" to "hsl(var(--primary-foreground))". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T15:01:23.258Z [console][error] You are trying to animate borderColor from "hsl(var(--primary-foreground))" to "oklab(0.966927 -0.000278413 0.0123569 / 0.2)". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T15:01:23.259Z [console][error] You are trying to animate borderColor from "oklab(0.966927 -0.000278413 0.0123569 / 0.2)" to "hsl(var(--primary-foreground))". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T15:01:23.303Z [console][error] You are trying to animate borderColor from "hsl(var(--primary-foreground))" to "oklab(0.966927 -0.000278413 0.0123569 / 0.2)". "hsl(var(--primary-foreground))" is not an animatable value.. For more information and steps for solving, visit https://motion.dev/troubleshooting/value-not-animatable
+2026-02-10T14:56:01.916Z [console][error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <InnerScrollAndFocusHandler segmentPath={[...]} focusAndScrollRef={{apply:false, ...}}>
+      <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+        <LoadingBoundary loading={null}>
+          <HTTPAccessFallbackBoundary notFound={[...]} forbidden={undefined} unauthorized={undefined}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={[...]} forbidden={undefined} unauthorized={undefined} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <InnerLayoutRouter url="/" tree={[...]} cacheNode={{lazyData:null, ...}} segmentPath={[...]}>
+                    <ClientPageRoot Component={function HomePage} searchParams={{}} params={{}}>
+                      <HomePage params={Promise} searchParams={Promise}>
+                        <Suspense fallback={<div>}>
+                          <HomePageContent>
+                            <main
+                              className="bg-background selection:bg-primary selection:text-primary-foreground"
+-                             data-orchid-ref="ref-fs5mhdtvpf"
+                            >
+                              <Header>
+                                <motion.header initial={{y:-20,opacity:0}} animate={{y:0,opacity:1}} ...>
+       ...

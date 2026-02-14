@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
 import ErrorReporter from "@/components/ErrorReporter";
@@ -7,9 +8,24 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import CartBar from "@/components/CartBar";
 
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Latebites | A Manifesto for Food Rescue",
-  description: "Reducing food waste by enabling end-of-day food rescue with dignity and transparency.",
+  title: "Latebites | Fresh surplus food from local restaurants",
+  description: "Mystery bags of fresh surplus food from nearby restaurants at lower prices. Pick up before closing.",
 };
 
 export default function RootLayout({
@@ -18,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${cormorant.variable} ${jakarta.variable}`}>
       <body className="antialiased" suppressHydrationWarning>
         <Script
           id="orchids-browser-logs"

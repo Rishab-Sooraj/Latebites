@@ -1,21 +1,49 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { Instagram, Mail, Youtube } from "lucide-react";
-import { Section } from "@/components/cinematic/Section";
-import { RevealText } from "@/components/cinematic/RevealText";
-import { ScrollProgressIndicator } from "@/components/ScrollProgressIndicator";
-import { ScrollRevealImage } from "@/components/ScrollRevealImage";
+import { motion, useInView, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { Instagram, Mail, Youtube, Clock, MapPin, ShoppingBag, ChevronRight, Sparkles, ArrowRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import AuthModal from "@/components/AuthModal";
-
 import { Header } from "@/components/Header";
-import "./3d-effects.css";
-import "./premium-animations.css";
+import { ScrollProgressIndicator } from "@/components/ScrollProgressIndicator";
+
+/* ── Motion config ── */
+const ease = [0.22, 1, 0.36, 1] as const;
+const STAGGER = 0.12;
+
+/* Reusable scroll-reveal wrapper — animates once, no motion on reduced-motion */
+function Reveal({
+  children,
+  delay = 0,
+  className = "",
+  y = 40,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+  y?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+  const prefersReduced = useReducedMotion();
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={prefersReduced ? false : { opacity: 0, y }}
+      animate={inView ? { opacity: 1, y: 0 } : undefined}
+      transition={{ duration: 0.75, delay, ease }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 function HomePageContent() {
   const router = useRouter();
@@ -23,18 +51,26 @@ function HomePageContent() {
   const { user, loading: authLoading } = useAuth();
   const supabase = createClient();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const prefersReduced = useReducedMotion();
 
-  // Auto-open auth modal if redirected with ?auth=customer param
+  /* Hero parallax */
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress: heroProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+  const heroImageY = useTransform(heroProgress, [0, 1], ["0%", "20%"]);
+  const heroOpacity = useTransform(heroProgress, [0, 0.7], [1, 0]);
+
   useEffect(() => {
-    const authParam = searchParams.get('auth');
-    if (authParam === 'customer' && !user && !authLoading) {
+    const authParam = searchParams.get("auth");
+    if (authParam === "customer" && !user && !authLoading) {
       setShowAuthModal(true);
-      // Clean up the URL
-      router.replace('/');
+      router.replace("/");
     }
   }, [searchParams, user, authLoading, router]);
 
-  // Form state management
+  /* ── Form state ── */
   const [formData, setFormData] = useState({
     restaurant_name: "",
     contact_person: "",
@@ -43,50 +79,43 @@ function HomePageContent() {
     city: "Coimbatore",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [submitMessage, setSubmitMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
   const validateField = (name: string, value: string): string => {
     switch (name) {
-      case 'restaurant_name':
-        return value.trim().length < 2 ? 'Restaurant name must be at least 2 characters' : '';
-      case 'contact_person':
-        return value.trim().length < 2 ? 'Contact person name must be at least 2 characters' : '';
-      case 'email':
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return !emailRegex.test(value) ? 'Please enter a valid email address' : '';
-      case 'phone_number':
-        const phoneRegex = /^[+]?[0-9\s-]{10,}$/;
-        return !phoneRegex.test(value) ? 'Please enter a valid phone number' : '';
-      case 'city':
-        return value.trim().length < 2 ? 'City name must be at least 2 characters' : '';
+      case "restaurant_name":
+        return value.trim().length < 2 ? "Restaurant name must be at least 2 characters" : "";
+      case "contact_person":
+        return value.trim().length < 2 ? "Name must be at least 2 characters" : "";
+      case "email":
+        return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "Please enter a valid email" : "";
+      case "phone_number":
+        return !/^[+]?[0-9\s-]{10,}$/.test(value) ? "Please enter a valid phone number" : "";
+      case "city":
+        return value.trim().length < 2 ? "City name required" : "";
       default:
-        return '';
+        return "";
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-
-    // Clear error when user starts typing
-    if (fieldErrors[name]) {
-      setFieldErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setTouchedFields(prev => ({ ...prev, [name]: true }));
-    const error = validateField(name, value);
-    setFieldErrors(prev => ({ ...prev, [name]: error }));
+    setTouchedFields((prev) => ({ ...prev, [name]: true }));
+    setFieldErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
   };
 
   const getInputBorderClass = (fieldName: string) => {
-    if (!touchedFields[fieldName]) return 'border-primary/20';
-    if (fieldErrors[fieldName]) return 'border-red-500';
-    return 'border-green-500';
+    if (!touchedFields[fieldName]) return "border-[#0B1E0F]/20 focus:border-[#0B1E0F]/60";
+    if (fieldErrors[fieldName]) return "border-red-500";
+    return "border-green-600";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,755 +123,554 @@ function HomePageContent() {
     setIsSubmitting(true);
     setSubmitMessage(null);
 
-    // Validate all fields
     const errors: Record<string, string> = {};
-    Object.keys(formData).forEach(key => {
+    Object.keys(formData).forEach((key) => {
       const error = validateField(key, formData[key as keyof typeof formData]);
-      if (error) {
-        errors[key] = error;
-      }
+      if (error) errors[key] = error;
     });
-
-    // Mark all fields as touched
     const allTouched: Record<string, boolean> = {};
-    Object.keys(formData).forEach(key => {
-      allTouched[key] = true;
-    });
+    Object.keys(formData).forEach((key) => { allTouched[key] = true; });
     setTouchedFields(allTouched);
 
-    // If there are errors, don't submit
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       setIsSubmitting(false);
-      setSubmitMessage({ type: 'error', text: 'Please fix the errors above before submitting.' });
+      setSubmitMessage({ type: "error", text: "Please fix the errors above." });
       return;
     }
 
     try {
-      const response = await fetch('/api/onboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/onboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
       const result = await response.json();
-
       if (response.ok) {
-        setSubmitMessage({ type: 'success', text: result.message });
-        setFormData({
-          restaurant_name: "",
-          contact_person: "",
-          email: "",
-          phone_number: "",
-          city: "Coimbatore",
-        });
+        setSubmitMessage({ type: "success", text: result.message });
+        setFormData({ restaurant_name: "", contact_person: "", email: "", phone_number: "", city: "Coimbatore" });
         setFieldErrors({});
         setTouchedFields({});
       } else {
-        setSubmitMessage({ type: 'error', text: result.error || 'Something went wrong' });
+        setSubmitMessage({ type: "error", text: result.error || "Something went wrong" });
       }
-    } catch (error) {
-      setSubmitMessage({ type: 'error', text: 'Failed to submit. Please try again.' });
+    } catch {
+      setSubmitMessage({ type: "error", text: "Failed to submit. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleCTA = () => {
+    if (user) router.push("/browse");
+    else setShowAuthModal(true);
+  };
+
   return (
-    <main className="bg-background selection:bg-primary selection:text-primary-foreground">
+    <main className="bg-[#F7F4EB] text-[#0B1E0F] selection:bg-[#0B1E0F] selection:text-[#F7F4EB]">
       <Header />
       <ScrollProgressIndicator />
-      {/* 1. HERO SECTION */}
-      <Section id="hero" className="relative min-h-[100svh] flex items-center justify-center overflow-hidden">
-        {/* Full-bleed Background with Cinematic Zoom-in - Ken Burns Effect on Landing */}
+
+      {/* ════════════════════════════════════════════
+          SECTION 1 — HERO
+          ════════════════════════════════════════════ */}
+      <section
+        ref={heroRef}
+        id="hero"
+        className="relative min-h-[100svh] flex items-center justify-center overflow-hidden"
+      >
+        {/* BG image with parallax */}
         <motion.div
-          className="absolute inset-0 z-0"
-          initial={{
-            scale: 1.15,
-            filter: "blur(12px) brightness(0.8)"
-          }}
-          animate={{
-            scale: 1.3,
-            filter: "blur(0px) brightness(1)"
-          }}
-          transition={{
-            scale: {
-              duration: 20,
-              ease: [0.25, 0.1, 0.25, 1] // Smooth ease-out for cinematic feel
-            },
-            filter: {
-              duration: 2.5,
-              ease: [0.22, 1, 0.36, 1],
-              delay: 0.3 // Slight delay for dramatic effect
-            }
-          }}
+          className="absolute inset-0 z-0 will-change-transform"
+          style={{ y: prefersReduced ? 0 : heroImageY }}
         >
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: "url('/images/hero-indian-food.png')",
-            }}
+          <Image
+            src="/images/hero-indian-food.png"
+            alt="Fresh Indian food spread"
+            fill
+            priority
+            className="object-cover"
+            sizes="100vw"
+            quality={75}
           />
+          {/* Overlay: dark gradient for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70" />
         </motion.div>
 
-        {/* Premium Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/20 z-[1]" />
-
-        {/* Noise Texture */}
-        <div className="absolute inset-0 z-[2] noise-overlay pointer-events-none" />
-
-        {/* Blur Vignette */}
-        <div className="absolute inset-0 z-[2] blur-vignette pointer-events-none" />
-
         {/* Content */}
-        <div className="text-center space-y-8 max-w-5xl px-4 sm:px-6 relative z-10">
-          {/* Brand Tag */}
-          <motion.div
-            initial={{ opacity: 0, y: -30, filter: "blur(10px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 1, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="flex items-center justify-center gap-3"
-          >
-            <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-white/50" />
-            <span className="text-xs uppercase tracking-[0.5em] text-white/80 font-light">Latebites</span>
-            <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-white/50" />
-          </motion.div>
-
-          {/* Main Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 50, filter: "blur(10px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 1.2, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl font-serif font-light leading-[0.95] tracking-[-0.02em] text-[#F7F4EB]"
-            style={{ textShadow: "0 8px 60px rgba(0,0,0,0.8)" }}
-          >
-            Rescue Food.
-            <br />
-            <motion.span
-              className="italic text-[#F7F4EB]/90"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1, delay: 1.5 }}
-            >
-              Save the Planet.
-            </motion.span>
-          </motion.h1>
-
-          {/* Subheadline */}
+        <motion.div
+          className="relative z-10 text-center px-5 sm:px-8 max-w-3xl mx-auto"
+          style={{ opacity: prefersReduced ? 1 : heroOpacity }}
+        >
           <motion.p
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.8, duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-lg sm:text-xl md:text-2xl text-[#F7F4EB]/60 font-light tracking-wide max-w-2xl mx-auto"
+            transition={{ duration: 0.6, delay: 0.2, ease }}
+            className="text-xs sm:text-sm tracking-[0.25em] uppercase text-[#F7F4EB]/60 mb-5 sm:mb-6 font-light"
           >
-            Get delicious surplus meals at <span className="text-[#F7F4EB] font-medium">50% off</span> from your favorite local restaurants.
+            Surplus food from local restaurants
           </motion.p>
 
-          {/* CTA Buttons */}
-          <motion.div
+          <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2.2, duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="pt-4 flex flex-col sm:flex-row gap-4 justify-center items-center"
+            transition={{ duration: 0.9, delay: 0.4, ease }}
+            className="text-[2.5rem] leading-[1.05] sm:text-5xl md:text-6xl lg:text-7xl font-serif font-light tracking-[-0.02em] text-[#F7F4EB]"
           >
-            {user ? (
-              <Link
-                href="/browse"
-                className="group relative inline-flex items-center gap-4 px-10 py-5 bg-[#F7F4EB] text-[#0B1E0F] text-xs uppercase tracking-[0.4em] rounded-2xl font-bold overflow-hidden hover:bg-white transition-all duration-300 shadow-2xl shadow-black/40"
-              >
-                <span className="relative z-10">Find Mystery Bags</span>
-                <motion.span
-                  className="relative z-10"
-                  animate={{ x: [0, 4, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  →
-                </motion.span>
-              </Link>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="group relative inline-flex items-center gap-4 px-10 py-5 bg-[#F7F4EB] text-[#0B1E0F] text-xs uppercase tracking-[0.4em] rounded-2xl font-bold overflow-hidden hover:bg-white transition-all duration-300 shadow-2xl shadow-black/40"
-              >
-                <span className="relative z-10">Find Mystery Bags</span>
-                <motion.span
-                  className="relative z-10"
-                  animate={{ x: [0, 4, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  →
-                </motion.span>
-              </button>
-            )}
-            <Link
-              href="#onboard"
-              className="group relative inline-flex items-center gap-4 px-10 py-5 border border-[#F7F4EB]/30 text-[#F7F4EB] text-xs uppercase tracking-[0.4em] rounded-2xl font-bold hover:bg-[#F7F4EB]/5 hover:border-[#F7F4EB]/60 transition-all duration-500"
+            Fresh food from{" "}
+            <br className="hidden sm:block" />
+            nearby restaurants.
+            <br />
+            <span className="italic text-[#F7F4EB]/80">At a lower price.</span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.7, ease }}
+            className="mt-5 sm:mt-7 text-[0.95rem] sm:text-lg text-[#F7F4EB]/60 font-light max-w-lg mx-auto leading-relaxed"
+          >
+            Restaurants have surplus food every day. We pack it into Mystery Bags
+            so you get a great meal — and nothing goes to waste.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1, ease }}
+            className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center"
+          >
+            <button
+              onClick={handleCTA}
+              className="group inline-flex items-center justify-center gap-2.5 px-7 py-4 bg-[#F7F4EB] text-[#0B1E0F] text-sm sm:text-[0.95rem] font-medium rounded-full hover:bg-white hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
             >
-              Partner With Us
+              Find food near you
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+            <Link
+              href="#partner"
+              className="inline-flex items-center justify-center gap-2 px-7 py-4 border border-[#F7F4EB]/25 text-[#F7F4EB] text-sm sm:text-[0.95rem] font-light rounded-full hover:bg-[#F7F4EB]/10 hover:border-[#F7F4EB]/40 transition-all duration-300"
+            >
+              List your restaurant
             </Link>
           </motion.div>
-        </div>
+        </motion.div>
 
-        {/* Scroll Indicator - Premium */}
+        {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 3, duration: 1.5 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10"
+          transition={{ delay: 2.5, duration: 1 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden sm:block"
         >
           <motion.div
-            animate={{ y: [0, 12, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col items-center gap-3"
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+            className="w-5 h-8 border-[1.5px] border-white/25 rounded-full flex justify-center pt-1.5"
           >
-            <span className="text-white/40 text-[9px] uppercase tracking-[0.4em] font-light">Explore</span>
-            <div className="w-[1px] h-12 bg-gradient-to-b from-white/40 via-white/20 to-transparent" />
+            <div className="w-1 h-1.5 bg-white/50 rounded-full" />
           </motion.div>
         </motion.div>
-      </Section>
+      </section>
 
-      {/* 2. THE PROBLEM */}
-      <Section id="problem" className="bg-secondary/20">
-        <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center px-4 sm:px-6">
-          <div className="space-y-8 md:space-y-12">
-            <RevealText
-              text="The silent departure."
-              tag="h2"
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif italic"
-            />
-            <RevealText
-              text="Every night, in every city, perfectly good food quietly disappears. It's not because it lacks value, but because we lack a way to value it in its final hours."
-              className="text-xl md:text-2xl font-light leading-relaxed text-muted-foreground"
-            />
-            <RevealText
-              text="This isn't a failure of production. It's a failure of presence."
-              className="text-lg font-medium text-foreground border-l-2 border-primary pl-6 py-2"
-            />
-          </div>
-          <ScrollRevealImage
-            src="/images/indian-thali.png"
-            alt="Traditional Indian Thali"
-            aspectRatio="portrait"
-            className="rounded-sm"
-          />
-        </div>
-      </Section>
-
-      {/* 3. OUR BELIEF */}
-      <Section id="belief">
-        <div className="max-w-4xl mx-auto text-center space-y-16">
-          <RevealText
-            text="Rescue carries dignity. Discounts carry desperation."
-            tag="h2"
-            className="text-4xl md:text-7xl font-serif leading-tight"
-          />
-          <div className="grid md:grid-cols-3 gap-12 pt-12">
-            {[
-              {
-                title: "Dignity",
-                description: "We respect the craft of every kitchen. Surplus is proof of hard work, not a mistake to be hidden."
-              },
-              {
-                title: "Transparency",
-                description: "Honesty over hype. We share what is left, exactly as it is, with those who intend to rescue it."
-              },
-              {
-                title: "Intention",
-                description: "Impact should feel calm. We don't rush the process; we enable a meaningful handover."
-              },
-            ].map((value, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 1 }}
-                viewport={{ once: true }}
-                className="space-y-4 text-left"
-              >
-                <h3 className="text-xl font-serif italic">{value.title}</h3>
-                <p className="text-sm font-light leading-relaxed text-muted-foreground">{value.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      {/* 4. WHAT WE DO */}
-      <Section id="what-we-do" className="bg-primary text-primary-foreground overflow-hidden">
-        <div className="grid md:grid-cols-2 gap-24 items-center">
-          <ScrollRevealImage
-            src="/images/paneer-curry.png"
-            alt="Paneer Butter Masala"
-            aspectRatio="portrait"
-            className="rounded-sm"
-          />
-          <div className="space-y-12">
-            <RevealText
-              text="End-of-day intentionality."
-              tag="h2"
-              className="text-4xl md:text-6xl font-serif"
-            />
-            <div className="space-y-8 text-xl font-light text-primary-foreground/80">
-              <RevealText text="We identify surplus as the kitchen closes." />
-              <RevealText text="We enable local pickup for those who care." />
-              <RevealText text="We ensure nothing goes into the dark." />
-            </div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1.5 }}
-              viewport={{ once: true }}
-              className="pt-8 border-t border-primary-foreground/20"
-            >
-              <p className="text-sm uppercase tracking-[0.3em] font-light">
-                Pickup only. Limited quantity. Zero waste.
-              </p>
-            </motion.div>
-          </div>
-        </div>
-      </Section>
-
-      {/* 5. OUR IMPACT */}
-      <Section id="impact">
-        <div className="grid md:grid-cols-2 gap-16 items-start">
-          <div className="space-y-12 md:sticky md:top-24">
-            <RevealText
-              text="A shift in breathing."
-              tag="h2"
-              className="text-4xl md:text-6xl font-serif italic"
-            />
-            <p className="text-xl font-light leading-relaxed text-muted-foreground">
-              When we rescue food, we don't just save calories. We save the water, the soil, the labor, and the spirit that went into its creation.
+      {/* ════════════════════════════════════════════
+          SECTION 2 — HOW IT WORKS
+          ════════════════════════════════════════════ */}
+      <section id="how-it-works" className="py-24 sm:py-32 md:py-40 px-5 sm:px-8">
+        <div className="max-w-5xl mx-auto">
+          <Reveal className="text-center mb-16 sm:mb-20">
+            <p className="text-xs tracking-[0.25em] uppercase text-[#4A5D4D]/60 mb-4 font-medium">
+              How it works
             </p>
-          </div>
-          <div className="space-y-24">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-light leading-tight">
+              Three steps. That&apos;s it.
+            </h2>
+          </Reveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-5">
             {[
               {
-                label: "Environmental",
-                text: "Reducing the methane footprint of our cities, one night at a time.",
-                img: "/images/street-chaat.png"
+                step: "01",
+                icon: <MapPin className="w-5 h-5" />,
+                title: "Browse nearby",
+                desc: "See which restaurants near you have Mystery Bags available right now.",
               },
               {
-                label: "Cultural",
-                text: "Rekindling the Indian value of 'Prasad'—that food is sacred and never to be wasted.",
-                img: "/images/biryani-closeup.png"
-              }
+                step: "02",
+                icon: <ShoppingBag className="w-5 h-5" />,
+                title: "Reserve a bag",
+                desc: "Pick a size, pay online. You won't know exactly what's inside — that's the fun part.",
+              },
+              {
+                step: "03",
+                icon: <Clock className="w-5 h-5" />,
+                title: "Pick it up",
+                desc: "Walk into the restaurant during the pickup window. Your food is ready.",
+              },
             ].map((item, i) => (
-              <div key={i} className="space-y-8">
-                <ScrollRevealImage src={item.img} alt={item.label} aspectRatio="square" className="rounded-sm" />
-                <div className="space-y-4">
-                  <span className="text-xs uppercase tracking-widest text-primary font-bold">{item.label}</span>
-                  <p className="text-2xl font-serif font-light">{item.text}</p>
+              <Reveal key={i} delay={i * STAGGER}>
+                <div className="group relative bg-white/50 backdrop-blur-sm border border-[#D1CEC2]/80 rounded-2xl p-7 sm:p-8 hover:shadow-xl hover:shadow-[#0B1E0F]/5 hover:-translate-y-1.5 transition-all duration-500 h-full">
+                  {/* Step number */}
+                  <span className="text-[0.65rem] font-medium text-[#4A5D4D]/40 tracking-[0.2em] uppercase">
+                    Step {item.step}
+                  </span>
+
+                  {/* Icon */}
+                  <div className="mt-5 w-11 h-11 rounded-xl bg-[#0B1E0F] text-[#F7F4EB] flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
+                    {item.icon}
+                  </div>
+
+                  <h3 className="mt-5 text-xl sm:text-2xl font-serif font-normal">
+                    {item.title}
+                  </h3>
+                  <p className="mt-3 text-sm sm:text-[0.9rem] text-[#4A5D4D] font-light leading-relaxed">
+                    {item.desc}
+                  </p>
+
+                  {/* Decorative connector line (desktop only) */}
+                  {i < 2 && (
+                    <div className="hidden md:block absolute top-1/2 -right-3 w-6 border-t border-dashed border-[#D1CEC2]" />
+                  )}
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
-      </Section>
+      </section>
 
-      {/* 6. OUR VISION */}
-      <Section id="vision" className="bg-secondary/10">
-        <div className="max-w-3xl space-y-12">
-          <RevealText
-            text="Cities that breathe together."
-            tag="h2"
-            className="text-5xl md:text-7xl font-serif "
-          />
-          <p className="text-xl md:text-2xl font-light leading-relaxed text-muted-foreground">
-            We envision a future where consumption is conscious, production is surgical, and waste is a relic of the past. A future where we respect the effort as much as the outcome.
-          </p>
-          <motion.div
-            initial={{ width: 0 }}
-            whileInView={{ width: "100%" }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
-            className="h-px bg-primary/30"
-          />
-        </div>
-      </Section>
+      {/* ════════════════════════════════════════════
+          SECTION 3 — MYSTERY BAGS
+          ════════════════════════════════════════════ */}
+      <section id="mystery-bags" className="relative py-24 sm:py-32 md:py-40 px-5 sm:px-8 bg-[#0B1E0F] text-[#F7F4EB] overflow-hidden">
+        {/* Subtle grain texture overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
 
-      {/* 7. HOW WE WORK - Part 1: Bag System & Quality */}
-      <Section id="how-we-work" className="bg-secondary/10">
-        <div className="max-w-6xl mx-auto space-y-24 md:space-y-32">
-          {/* Section Header */}
-          <div className="max-w-3xl">
-            <RevealText
-              text="The mechanics of care."
-              tag="h2"
-              className="text-4xl sm:text-5xl md:text-7xl font-serif"
-            />
-            <p className="mt-8 text-lg sm:text-xl md:text-2xl font-light text-muted-foreground leading-relaxed">
-              Intention without execution is just philosophy. Here's how we turn care into action.
+        <div className="relative max-w-5xl mx-auto">
+          <Reveal className="text-center mb-16 sm:mb-20">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F7F4EB]/8 border border-[#F7F4EB]/10 rounded-full text-xs tracking-[0.2em] uppercase text-[#F7F4EB]/50 mb-6">
+              <Sparkles className="w-3.5 h-3.5" />
+              The concept
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-light">
+              What&apos;s a Mystery Bag?
+            </h2>
+            <p className="mt-5 text-base sm:text-lg text-[#F7F4EB]/50 font-light max-w-2xl mx-auto leading-relaxed">
+              A bag of freshly prepared surplus food from a restaurant near you.
+              You don&apos;t choose the items — the restaurant packs what they have extra.
+              The minimum value is always guaranteed.
             </p>
+          </Reveal>
+
+          {/* Bag sizes */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-16 sm:mb-20">
+            {[
+              { size: "Small", serves: "For 1", worth: "150+", price: "79" },
+              { size: "Medium", serves: "For 2", worth: "300+", price: "159", featured: true },
+              { size: "Large", serves: "For 3–4", worth: "500+", price: "259" },
+            ].map((bag, i) => (
+              <Reveal key={i} delay={i * STAGGER}>
+                <div
+                  className={`group relative rounded-2xl p-7 sm:p-8 transition-all duration-500 cursor-default ${
+                    bag.featured
+                      ? "bg-[#F7F4EB]/10 border-2 border-[#F7F4EB]/20 hover:border-[#F7F4EB]/40"
+                      : "border border-[#F7F4EB]/10 hover:border-[#F7F4EB]/25 hover:bg-[#F7F4EB]/5"
+                  }`}
+                >
+                  {bag.featured && (
+                    <span className="absolute -top-3 left-7 px-3 py-0.5 bg-[#F7F4EB] text-[#0B1E0F] text-[0.65rem] tracking-[0.15em] uppercase font-medium rounded-full">
+                      Popular
+                    </span>
+                  )}
+
+                  <div className="flex items-baseline justify-between">
+                    <h3 className="text-2xl sm:text-3xl font-serif">{bag.size}</h3>
+                    <span className="text-xs text-[#F7F4EB]/35 tracking-wider uppercase font-light">
+                      {bag.serves}
+                    </span>
+                  </div>
+
+                  <div className="mt-6 pt-5 border-t border-[#F7F4EB]/8">
+                    <p className="text-sm text-[#F7F4EB]/40 font-light">
+                      Worth ₹{bag.worth}
+                    </p>
+                    <p className="mt-1.5 text-3xl sm:text-4xl font-serif tracking-tight">
+                      ₹{bag.price}
+                    </p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
           </div>
 
-          {/* Bag System */}
-          <div className="space-y-12">
-            <RevealText
-              text="Three sizes. One promise."
-              tag="h3"
-              className="text-3xl sm:text-4xl md:text-5xl font-serif italic"
-            />
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+          {/* Trust points */}
+          <Reveal>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5 sm:gap-8">
               {[
-                { size: "Small", description: "Perfect for one", discount: "50% off or more" },
-                { size: "Medium", description: "Ideal for two", discount: "50% off or more" },
-                { size: "Large", description: "Made for sharing", discount: "50% off or more" },
-              ].map((bag, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1, duration: 0.6 }}
-                  viewport={{ once: true }}
-                  className="group relative bg-background border border-primary/20 p-6 md:p-8 space-y-4 hover:border-primary/40 transition-all duration-500"
-                >
-                  <div className="space-y-2">
-                    <h4 className="text-2xl md:text-3xl font-serif">{bag.size}</h4>
-                    <p className="text-sm text-muted-foreground">{bag.description}</p>
+                { label: "Freshly prepared same day", icon: "fresh" },
+                { label: "Veg & non-veg options shown", icon: "diet" },
+                { label: "Pickup time clearly listed", icon: "time" },
+                { label: "Minimum value guaranteed", icon: "value" },
+              ].map((point, i) => (
+                <div key={i} className="text-center">
+                  <div className="w-8 h-8 mx-auto mb-3 rounded-full bg-[#F7F4EB]/8 flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-[#F7F4EB]/40 rounded-full" />
                   </div>
-                  <div className="pt-4 border-t border-primary/10">
-                    <p className="text-lg font-medium text-primary">{bag.discount}</p>
-                  </div>
-                  <div className="absolute top-4 right-4 w-2 h-2 bg-primary/20 group-hover:bg-primary transition-colors duration-500" />
-                </motion.div>
+                  <p className="text-xs sm:text-sm text-[#F7F4EB]/45 font-light leading-relaxed">
+                    {point.label}
+                  </p>
+                </div>
               ))}
             </div>
-            <div className="max-w-2xl space-y-4">
-              <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed text-muted-foreground">
-                Each calibrated to different appetites, different moments. But every bag carries the same guarantee: <span className="text-foreground font-medium">50% off or more</span>.
-              </p>
-              <p className="text-base sm:text-lg font-light leading-relaxed text-muted-foreground">
-                Not a discount born of desperation, but of timing. Of understanding that value doesn't diminish at closing time.
-              </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════
+          SECTION 4 — WHY LATEBITES
+          ════════════════════════════════════════════ */}
+      <section id="why" className="py-24 sm:py-32 md:py-40 px-5 sm:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center">
+            {/* Image */}
+            <Reveal y={30} className="order-2 md:order-1">
+              <div className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl shadow-[#0B1E0F]/10">
+                <Image
+                  src="/images/indian-thali.png"
+                  alt="Traditional Indian Thali"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  loading="lazy"
+                />
+                {/* Soft overlay at bottom for depth */}
+                <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/20 to-transparent" />
+              </div>
+            </Reveal>
+
+            {/* Copy */}
+            <div className="order-1 md:order-2 space-y-8">
+              <Reveal>
+                <p className="text-xs tracking-[0.25em] uppercase text-[#4A5D4D]/60 mb-4 font-medium">
+                  Why Latebites
+                </p>
+                <h2 className="text-3xl sm:text-4xl md:text-[2.75rem] font-serif font-light leading-[1.15]">
+                  Why people use{" "}
+                  <span className="italic">Latebites</span>
+                </h2>
+              </Reveal>
+
+              <div className="space-y-5">
+                {[
+                  {
+                    title: "Good food, lower price",
+                    text: "Same food the restaurant sells — just at a better price because it's surplus.",
+                  },
+                  {
+                    title: "From restaurants you know",
+                    text: "Only vetted local restaurants. No random kitchens, no ghost brands.",
+                  },
+                  {
+                    title: "Quick and easy pickup",
+                    text: "Reserve online, walk in during the pickup window, grab your bag.",
+                  },
+                  {
+                    title: "Less food wasted",
+                    text: "Every bag you pick up is food that would've been thrown away.",
+                  },
+                ].map((item, i) => (
+                  <Reveal key={i} delay={i * 0.08} y={20}>
+                    <div className="group border-l-2 border-[#0B1E0F]/10 pl-5 hover:border-[#0B1E0F]/40 transition-colors duration-400">
+                      <h3 className="text-[0.95rem] sm:text-base font-medium tracking-tight">
+                        {item.title}
+                      </h3>
+                      <p className="mt-1 text-sm text-[#4A5D4D] font-light leading-relaxed">
+                        {item.text}
+                      </p>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Quality Standards */}
-          <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
-            <div className="space-y-8 md:space-y-12">
-              <RevealText
-                text="Standards without compromise."
-                tag="h3"
-                className="text-3xl sm:text-4xl md:text-5xl font-serif italic"
+      {/* ════════════════════════════════════════════
+          SECTION 5 — PARTNER / ONBOARD
+          ════════════════════════════════════════════ */}
+      <section id="partner" className="relative py-24 sm:py-32 md:py-40 px-5 sm:px-8 bg-[#001220] text-[#F7F4EB] overflow-hidden">
+        {/* Subtle radial gradient */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(247,244,235,0.03)_0%,_transparent_60%)] pointer-events-none" />
+
+        <div className="relative max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
+            {/* Left copy */}
+            <Reveal className="space-y-6">
+              <p className="text-xs tracking-[0.25em] uppercase text-[#F7F4EB]/40 font-medium">
+                For restaurants
+              </p>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-light leading-tight">
+                Own a restaurant?
+              </h2>
+              <p className="text-base sm:text-lg text-[#F7F4EB]/50 font-light leading-relaxed">
+                You already make great food. We help you sell what&apos;s left over
+                — instead of throwing it away. No extra effort. No delivery logistics.
+              </p>
+              <div className="space-y-3.5 pt-2">
+                {[
+                  "Sell surplus food instead of wasting it",
+                  "We handle discovery and payments",
+                  "Customers come to you for pickup",
+                  "Currently onboarding in Coimbatore",
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="mt-2 w-1 h-1 bg-[#F7F4EB]/30 rounded-full flex-shrink-0" />
+                    <span className="text-sm text-[#F7F4EB]/50 font-light">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+
+            {/* Form */}
+            <Reveal delay={0.1}>
+              <div className="bg-[#F7F4EB] text-[#0B1E0F] rounded-2xl p-7 sm:p-10 shadow-2xl shadow-black/20">
+                <h3 className="text-xl sm:text-2xl font-serif mb-1">Get started</h3>
+                <p className="text-sm text-[#4A5D4D] font-light mb-7">
+                  We&apos;ll reach out within 24 hours.
+                </p>
+                <form className="space-y-5" onSubmit={handleSubmit}>
+                  {[
+                    { label: "Restaurant Name", name: "restaurant_name", type: "text", placeholder: "Your restaurant" },
+                    { label: "Contact Person", name: "contact_person", type: "text", placeholder: "Your name" },
+                    { label: "Email", name: "email", type: "email", placeholder: "you@email.com" },
+                    { label: "Phone", name: "phone_number", type: "tel", placeholder: "+91 ..." },
+                  ].map((field) => (
+                    <div key={field.name}>
+                      <label className="text-[0.65rem] font-medium text-[#4A5D4D] tracking-[0.15em] uppercase">
+                        {field.label}
+                      </label>
+                      <input
+                        type={field.type}
+                        name={field.name}
+                        value={formData[field.name as keyof typeof formData]}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        placeholder={field.placeholder}
+                        required
+                        className={`mt-1.5 w-full bg-transparent border-b-2 ${getInputBorderClass(field.name)} py-3 text-sm focus:outline-none transition-colors duration-300 font-light placeholder:text-[#0B1E0F]/25`}
+                      />
+                      {touchedFields[field.name] && fieldErrors[field.name] && (
+                        <p className="text-xs text-red-500 mt-1.5">{fieldErrors[field.name]}</p>
+                      )}
+                    </div>
+                  ))}
+
+                  <div>
+                    <label className="text-[0.65rem] font-medium text-[#4A5D4D] tracking-[0.15em] uppercase">City</label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      readOnly
+                      className="mt-1.5 w-full bg-transparent border-b border-[#0B1E0F]/10 py-3 text-sm font-light opacity-40"
+                    />
+                  </div>
+
+                  {submitMessage && (
+                    <div
+                      className={`text-sm font-light py-3 px-4 rounded-xl ${
+                        submitMessage.type === "success"
+                          ? "bg-green-50 text-green-700 border border-green-200"
+                          : "bg-red-50 text-red-600 border border-red-200"
+                      }`}
+                    >
+                      {submitMessage.text}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full mt-2 py-4 bg-[#0B1E0F] text-[#F7F4EB] text-sm font-medium rounded-full hover:bg-[#0B1E0F]/90 hover:shadow-lg active:scale-[0.98] transition-all duration-300 disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Submitting..." : "Apply to partner"}
+                  </button>
+                </form>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════
+          SECTION 6 — FOOTER
+          ════════════════════════════════════════════ */}
+      <section id="footer" className="py-16 sm:py-24 px-5 sm:px-8 bg-[#0B1E0F] text-[#F7F4EB]">
+        <div className="max-w-5xl mx-auto">
+          {/* Closing CTA */}
+          <div className="text-center mb-16 sm:mb-20 pb-16 sm:pb-20 border-b border-[#F7F4EB]/8">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-light leading-tight">
+              Good food shouldn&apos;t go to waste.
+            </h2>
+            <p className="mt-4 text-base sm:text-lg text-[#F7F4EB]/45 font-light">
+              Try a Mystery Bag from a restaurant near you.
+            </p>
+            <button
+              onClick={handleCTA}
+              className="group mt-8 sm:mt-10 inline-flex items-center gap-2.5 px-8 py-4 bg-[#F7F4EB] text-[#0B1E0F] text-sm sm:text-[0.95rem] font-medium rounded-full hover:bg-white hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+            >
+              Find food near you
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
+
+          {/* Footer meta */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-3">
+              <img
+                src="/images/latebites-logo.jpg"
+                alt="Latebites"
+                className="w-7 h-7 object-contain invert opacity-70"
               />
-              <div className="space-y-6">
-                <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed">
-                  We don't rescue waste. We rescue <span className="italic">surplus</span>. There's a difference, and we guard it fiercely.
-                </p>
-                <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed">
-                  Every restaurant partner knows: <span className="font-medium">old food has no place here</span>. Neither does compromise. Our team doesn't just monitor hygiene—we monitor character. We track patterns. We build relationships. We intervene early.
-                </p>
-                <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed">
-                  Because when you trust us with your dinner, we take that seriously.
-                </p>
-              </div>
-              <div className="space-y-4 border-l-2 border-primary pl-6">
-                <p className="text-xs uppercase tracking-widest text-primary font-bold">Our Promise</p>
-                <ul className="space-y-3 text-sm sm:text-base font-light">
-                  <li className="flex items-start gap-3">
-                    <span className="text-primary mt-1">•</span>
-                    <span>Fresh surplus only, never leftovers</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-primary mt-1">•</span>
-                    <span>Daily hygiene inspections</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-primary mt-1">•</span>
-                    <span>Immediate intervention protocols</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-primary mt-1">•</span>
-                    <span>Zero tolerance for violations</span>
-                  </li>
-                </ul>
-              </div>
+              <span className="font-serif italic text-lg text-[#F7F4EB]/70">
+                Latebites
+              </span>
             </div>
-            <ScrollRevealImage
-              src="/images/south-indian-dosa.png"
-              alt="South Indian Dosa"
-              aspectRatio="portrait"
-              className="rounded-sm"
-            />
-          </div>
-        </div>
-      </Section>
 
-      {/* 7. HOW WE WORK - Part 2: Restaurant Vetting */}
-      <Section
-        id="vetting"
-        className="overflow-hidden"
-        style={{
-          background: 'var(--navy)',
-          color: 'var(--navy-foreground)'
-        }}
-      >
-        <div className="max-w-4xl mx-auto text-center space-y-12">
-          <RevealText
-            text="Careful curation, not casual collection."
-            tag="h3"
-            className="text-3xl sm:text-4xl md:text-5xl font-serif italic"
-          />
-          <div className="space-y-6 text-left">
-            <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed opacity-80">
-              We don't onboard restaurants. We <span className="italic">partner</span> with them. And partnerships require scrutiny.
-            </p>
-            <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed opacity-80">
-              Our vetting process is rigorous because it has to be. We're not building a marketplace—we're building trust.
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-6 text-left">
-            {[
-              {
-                title: "Character assessment",
-                question: "Do they share our values?",
-              },
-              {
-                title: "Hygiene verification",
-                question: "Do their standards match ours?",
-              },
-              {
-                title: "Operational alignment",
-                question: "Can they commit to consistency?",
-              },
-              {
-                title: "Ongoing monitoring",
-                question: "Do they maintain excellence?",
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                whileHover={{
-                  scale: 1.05,
-                  z: 30,
-                  borderColor: "hsl(var(--primary-foreground))",
-                  backgroundColor: "hsl(var(--primary-foreground) / 0.05)",
-                }}
-                transition={{
-                  delay: i * 0.1,
-                  duration: 0.6,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                viewport={{ once: true }}
-                style={{ transformStyle: "preserve-3d" }}
-                className="p-8 border-2 border-primary-foreground/20 rounded-sm cursor-pointer bg-primary-foreground/5 backdrop-blur-sm hover:shadow-2xl hover:shadow-primary-foreground/10 transition-all"
-              >
-                <h4 className="text-lg sm:text-xl font-semibold tracking-tight">{item.title}</h4>
-                <p className="text-sm sm:text-base text-primary-foreground/70 font-light italic leading-relaxed">{item.question}</p>
-              </motion.div>
-            ))}
-          </div>
-          <div className="space-y-6 pt-8">
-            <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed">
-              We're stern because we care. We care for you the way we care for the food. The way we care for the environment. The way we care for the future we're building together.
-            </p>
-            <p className="text-lg sm:text-xl md:text-2xl font-serif italic text-primary-foreground">
-              Rejection isn't failure. It's protection.
-            </p>
-          </div>
-        </div>
-      </Section>
-
-
-
-      {/* 8. RESTAURANT ONBOARDING */}
-      <Section id="onboard" className="bg-secondary/20">
-        <div className="grid md:grid-cols-2 gap-16 items-start">
-          <div className="space-y-8">
-            <RevealText
-              text="Join the Latebites movement."
-              tag="h2"
-              className="text-4xl md:text-6xl font-serif"
-            />
-            <p className="text-xl font-light text-muted-foreground leading-relaxed">
-              We're looking for partner restaurants who value their craft and care about their surplus. Rescue your effort with us in Coimbatore.
-            </p>
-            <div className="pt-8 space-y-4">
-              <div className="flex items-center gap-4 text-sm tracking-widest uppercase text-muted-foreground/60">
-                <span className="h-px w-8 bg-primary/30" />
-                <span>Smooth Onboarding</span>
-              </div>
-              <div className="flex items-center gap-4 text-sm tracking-widest uppercase text-muted-foreground/60">
-                <span className="h-px w-8 bg-primary/30" />
-                <span>Intentional Reach</span>
-              </div>
-              <div className="flex items-center gap-4 text-sm tracking-widest uppercase text-muted-foreground/60">
-                <span className="h-px w-8 bg-primary/30" />
-                <span>Dignified Disposal</span>
-              </div>
-            </div>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 1 }}
-            viewport={{ once: true }}
-            className="bg-background p-8 md:p-12 rounded-sm border border-primary/10 shadow-sm"
-          >
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Restaurant Name</label>
-                <input
-                  type="text"
-                  name="restaurant_name"
-                  value={formData.restaurant_name}
-                  onChange={handleInputChange}
-                  onBlur={handleBlur}
-                  placeholder="The Kitchen Collective"
-                  required
-                  className={`w-full bg-transparent border-b-2 ${getInputBorderClass('restaurant_name')} py-3 focus:outline-none transition-colors font-light`}
-                />
-                {touchedFields.restaurant_name && fieldErrors.restaurant_name && (
-                  <p className="text-xs text-red-500 mt-1">{fieldErrors.restaurant_name}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Contact Person</label>
-                <input
-                  type="text"
-                  name="contact_person"
-                  value={formData.contact_person}
-                  onChange={handleInputChange}
-                  onBlur={handleBlur}
-                  placeholder="Your Name"
-                  required
-                  className={`w-full bg-transparent border-b-2 ${getInputBorderClass('contact_person')} py-3 focus:outline-none transition-colors font-light`}
-                />
-                {touchedFields.contact_person && fieldErrors.contact_person && (
-                  <p className="text-xs text-red-500 mt-1">{fieldErrors.contact_person}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Email Address</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  onBlur={handleBlur}
-                  placeholder="your@email.com"
-                  required
-                  className={`w-full bg-transparent border-b-2 ${getInputBorderClass('email')} py-3 focus:outline-none transition-colors font-light`}
-                />
-                {touchedFields.email && fieldErrors.email && (
-                  <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Phone Number</label>
-                <input
-                  type="tel"
-                  name="phone_number"
-                  value={formData.phone_number}
-                  onChange={handleInputChange}
-                  onBlur={handleBlur}
-                  placeholder="+91 ...."
-                  required
-                  className={`w-full bg-transparent border-b-2 ${getInputBorderClass('phone_number')} py-3 focus:outline-none transition-colors font-light`}
-                />
-                {touchedFields.phone_number && fieldErrors.phone_number && (
-                  <p className="text-xs text-red-500 mt-1">{fieldErrors.phone_number}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">City</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  readOnly
-                  className="w-full bg-transparent border-b border-primary/20 py-3 focus:outline-none focus:border-primary transition-colors font-light opacity-50"
-                />
-              </div>
-
-              {submitMessage && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`text-sm font-light py-3 px-4 rounded-sm ${submitMessage.type === 'success'
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'bg-destructive/10 text-destructive border border-destructive/20'
-                    }`}
+            <div className="flex gap-5">
+              {[
+                { href: "https://youtube.com/@latebites", icon: <Youtube className="w-[18px] h-[18px]" />, label: "YouTube" },
+                { href: "https://instagram.com/latebites.in", icon: <Instagram className="w-[18px] h-[18px]" />, label: "Instagram" },
+                { href: "mailto:support@latebites.in", icon: <Mail className="w-[18px] h-[18px]" />, label: "Email" },
+              ].map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target={social.href.startsWith("http") ? "_blank" : undefined}
+                  rel={social.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  className="text-[#F7F4EB]/30 hover:text-[#F7F4EB]/80 transition-colors duration-300"
+                  aria-label={social.label}
                 >
-                  {submitMessage.text}
-                </motion.div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-4 mt-8 bg-primary text-primary-foreground text-xs uppercase tracking-[0.3em] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Submitting...' : 'Apply to Rescue'}
-              </button>
-            </form>
-          </motion.div>
-        </div>
-      </Section>
-
-      {/* 9. CLOSING STATEMENT */}
-      <Section id="closing" className="min-h-[100svh] flex items-center justify-center bg-black text-white">
-        <div className="text-center space-y-12">
-          <RevealText
-            text="Latebites."
-            className="text-6xl md:text-9xl font-serif italic font-light tracking-tighter"
-          />
-          <RevealText
-            text="We’re just getting started."
-            className="text-2xl md:text-3xl font-serif italic font-light opacity-60"
-            delay={0.5}
-          />
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 2 }}
-            className="space-y-8 pt-12"
-          >
-            <div className="flex justify-center gap-8 items-center">
-              <a
-                href="https://youtube.com/@latebites"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground/60 hover:text-white transition-colors"
-                aria-label="YouTube"
-              >
-                <Youtube className="w-5 h-5" />
-              </a>
-              <a
-                href="https://instagram.com/latebites.in"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground/60 hover:text-white transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a
-                href="mailto:support@latebites.in"
-                className="text-muted-foreground/60 hover:text-white transition-colors"
-                aria-label="Email"
-              >
-                <Mail className="w-5 h-5" />
-              </a>
+                  {social.icon}
+                </a>
+              ))}
             </div>
-            <p className="text-[9px] uppercase tracking-widest text-white/70">© 2024 Latebites - Coimbatore, India. All rights reserved.</p>
-          </motion.div>
-        </div>
-      </Section>
 
-      {/* Auth Modal */}
+            <p className="text-xs text-[#F7F4EB]/25 font-light">
+              &copy; 2025 Latebites &middot; Coimbatore, India
+            </p>
+          </div>
+        </div>
+      </section>
+
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-    </main >
+    </main>
   );
 }
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#F7F4EB]" />}>
       <HomePageContent />
     </Suspense>
   );

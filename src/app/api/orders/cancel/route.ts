@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Razorpay from 'razorpay';
+import { sendEmail } from '@/lib/zeptomail';
+import { generateOrderCancellationEmail } from '@/lib/email-template';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -251,6 +253,44 @@ export async function POST(request: NextRequest) {
                     })
                     .eq('id', order.rescue_bag_id);
             }
+        }
+
+        // Send cancellation email
+        try {
+            const { data: customer } = await supabase
+                .from('customers')
+                .select('name, email')
+                .eq('id', order.customer_id)
+                .single();
+
+            const { data: restaurant } = await supabase
+                .from('restaurants')
+                .select('name')
+                .eq('id', order.restaurant_id)
+                .single();
+
+            if (customer && restaurant) {
+                const refundAmount = refundResult ? refundResult.amount / 100 : 0;
+
+                const emailHtml = generateOrderCancellationEmail(
+                    customer.name,
+                    order.id.substring(0, 8),
+                    restaurant.name,
+                    refundAmount,
+                    reason
+                );
+
+                await sendEmail({
+                    to: customer.email,
+                    subject: `Order Cancelled - ${restaurant.name} | Latebites`,
+                    html: emailHtml
+                });
+
+                console.log('✅ Cancellation email sent to:', customer.email);
+            }
+        } catch (emailError) {
+            console.error('❌ Failed to send cancellation email:', emailError);
+            // Don't fail the request if email fails
         }
 
         return NextResponse.json({

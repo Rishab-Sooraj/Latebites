@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { sendEmail } from '@/lib/zeptomail';
+import { generateOrderConfirmationEmail } from '@/lib/email-template';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,6 +74,57 @@ export async function POST(request: NextRequest) {
                 .from('rescue_bags')
                 .update({ quantity_available: newQuantity })
                 .eq('id', bag.id);
+        }
+
+        // Send order confirmation email
+        try {
+            // Fetch customer and restaurant details
+            const { data: customer } = await supabase
+                .from('customers')
+                .select('name, email')
+                .eq('id', order.customer_id)
+                .single();
+
+            const { data: restaurant } = await supabase
+                .from('restaurants')
+                .select('name, address_line1, city, state, pincode')
+                .eq('id', order.restaurant_id)
+                .single();
+
+            if (customer && restaurant && bag) {
+                const pickupTime = new Date(order.pickup_time).toLocaleString('en-IN', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                });
+
+                const pickupAddress = `${restaurant.address_line1}, ${restaurant.city}, ${restaurant.state} ${restaurant.pincode}`;
+
+                const emailHtml = generateOrderConfirmationEmail(
+                    customer.name,
+                    order.id.substring(0, 8),
+                    restaurant.name,
+                    [{
+                        title: bag.title,
+                        quantity: order.quantity,
+                        price: bag.discounted_price
+                    }],
+                    order.total_price,
+                    pickupTime,
+                    pickupAddress,
+                    order.pickup_otp || ''
+                );
+
+                await sendEmail({
+                    to: customer.email,
+                    subject: `Order Confirmed - ${restaurant.name} | Latebites`,
+                    html: emailHtml
+                });
+
+                console.log('✅ Order confirmation email sent to:', customer.email);
+            }
+        } catch (emailError) {
+            console.error('❌ Failed to send confirmation email:', emailError);
+            // Don't fail the request if email fails
         }
 
         return NextResponse.json({
