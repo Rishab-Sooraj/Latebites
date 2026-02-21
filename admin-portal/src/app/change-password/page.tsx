@@ -15,6 +15,7 @@ export default function ChangePasswordPage() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [adminName, setAdminName] = useState("");
+    const [adminEmail, setAdminEmail] = useState("");
 
     const [formData, setFormData] = useState({
         currentPassword: "",
@@ -41,11 +42,11 @@ export default function ChangePasswordPage() {
                 return;
             }
 
-            // Check if admin exists and needs password change
+            // Check if admin exists and needs password change (case-insensitive)
             const { data: adminData } = await supabase
                 .from('admins')
                 .select('name, must_change_password')
-                .eq('email', user.email)
+                .ilike('email', user.email!)
                 .single();
 
             if (!adminData) {
@@ -60,6 +61,7 @@ export default function ChangePasswordPage() {
             }
 
             setAdminName(adminData.name);
+            setAdminEmail(user.email!);
         } catch {
             router.push('/');
         } finally {
@@ -95,6 +97,7 @@ export default function ChangePasswordPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    email: adminEmail,
                     currentPassword: formData.currentPassword,
                     newPassword: formData.newPassword,
                 }),
@@ -108,9 +111,10 @@ export default function ChangePasswordPage() {
 
             setSuccess(true);
 
-            // Redirect to dashboard after 2 seconds
+            // Sign out and redirect to login so user gets fresh session
+            await supabase.auth.signOut();
             setTimeout(() => {
-                router.push('/dashboard');
+                router.push('/');
             }, 2000);
 
         } catch (err) {

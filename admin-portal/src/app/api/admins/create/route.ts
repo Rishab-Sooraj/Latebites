@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient, createServerSupabaseClient } from '@/lib/supabase/server';
+import { getAuthenticatedUser, isSuperAdmin, supabaseAdmin } from '@/lib/auth-helpers';
 
 // Generate a secure temporary password
 function generateTempPassword(): string {
@@ -38,36 +38,37 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if current user is super_admin
-        const supabase = await createServerSupabaseClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        // Check authentication via token
+        const user = await getAuthenticatedUser(request);
 
-        if (!user) {
+        if (!user || !user.email) {
+            console.error('❌ No authenticated user found');
             return NextResponse.json(
-                { error: 'Unauthorized' },
+                { error: 'Unauthorized - Please log in again' },
                 { status: 401 }
             );
         }
 
-        const { data: currentAdmin } = await supabase
-            .from('admins')
-            .select('role')
-            .eq('email', user.email)
-            .eq('is_active', true)
-            .single();
+        console.log('✅ Authenticated user:', user.email);
 
-        if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+        // Check if user is super admin
+        const isSuper = await isSuperAdmin(user.email);
+
+        if (!isSuper) {
+            console.error('❌ User is not a super admin:', user.email);
             return NextResponse.json(
                 { error: 'Only super admins can create new admins' },
                 { status: 403 }
             );
         }
 
-        // Check if email already exists in admins
-        const { data: existingAdmin } = await supabase
+        console.log('✅ User is super admin, proceeding...');
+
+        // Check if email already exists
+        const { data: existingAdmin } = await supabaseAdmin
             .from('admins')
             .select('id')
-            .eq('email', email)
+            .ilike('email', email)
             .single();
 
         if (existingAdmin) {
@@ -80,10 +81,8 @@ export async function POST(request: Request) {
         // Generate temporary password
         const tempPassword = generateTempPassword();
 
-        // Create auth user with admin client (service role)
-        const adminClient = createAdminClient();
-
-        const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+        // Create auth user
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password: tempPassword,
             email_confirm: true,
@@ -94,15 +93,17 @@ export async function POST(request: Request) {
         });
 
         if (authError) {
-            console.error('Auth error:', authError);
+            console.error('❌ Auth error:', authError);
             return NextResponse.json(
                 { error: authError.message || 'Failed to create user account' },
                 { status: 500 }
             );
         }
 
+        console.log('✅ Auth user created:', authData.user.id);
+
         // Create admin record
-        const { data: adminData, error: adminError } = await supabase
+        const { data: adminData, error: adminError } = await supabaseAdmin
             .from('admins')
             .insert({
                 name: name,
@@ -116,15 +117,17 @@ export async function POST(request: Request) {
             .single();
 
         if (adminError) {
-            console.error('Admin insert error:', adminError);
+            console.error('❌ Admin insert error:', adminError);
             // Try to delete the auth user if admin creation fails
-            await adminClient.auth.admin.deleteUser(authData.user.id);
+            await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
 
             return NextResponse.json(
                 { error: adminError.message || 'Failed to create admin record' },
                 { status: 500 }
             );
         }
+
+        console.log('✅ Admin created successfully:', adminData.id);
 
         return NextResponse.json({
             success: true,
@@ -136,10 +139,10 @@ export async function POST(request: Request) {
             message: 'Admin account created successfully',
         });
 
-    } catch (error) {
-        console.error('Unexpected error:', error);
+    } catch (error: any) {
+        console.error('❌ Unexpected error:', error);
         return NextResponse.json(
-            { error: 'An unexpected error occurred' },
+            { error: error.message || 'An unexpected error occurred' },
             { status: 500 }
         );
     }

@@ -6,11 +6,18 @@ import { motion, useInView, useScroll, useTransform, useReducedMotion } from "fr
 import { Instagram, Mail, Youtube, Clock, MapPin, ShoppingBag, ChevronRight, Sparkles, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase/client";
-import AuthModal from "@/components/AuthModal";
 import { Header } from "@/components/Header";
-import { ScrollProgressIndicator } from "@/components/ScrollProgressIndicator";
+import { OurAimSection } from "@/components/OurAimSection";
+
+// Lazy-load non-critical components — keeps initial JS bundle smaller
+const AuthModal = dynamic(() => import("@/components/AuthModal"), { ssr: false });
+const ScrollProgressIndicator = dynamic(
+  () => import("@/components/ScrollProgressIndicator").then((m) => ({ default: m.ScrollProgressIndicator })),
+  { ssr: false }
+);
 
 /* ── Motion config ── */
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -185,25 +192,26 @@ function HomePageContent() {
           style={{ y: prefersReduced ? 0 : heroImageY }}
         >
           <Image
-            src="/images/hero-indian-food.png"
+            src="/images/hero-indian-food.webp"
             alt="Fresh Indian food spread"
             fill
             priority
+            fetchPriority="high"
             className="object-cover"
-            sizes="100vw"
-            quality={75}
+            sizes="(max-width: 640px) 100vw, 100vw"
+            quality={85}
           />
           {/* Overlay: dark gradient for text legibility */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70" />
         </motion.div>
 
-        {/* Content */}
+        {/* Content — hero text renders immediately (no initial opacity:0) so LCP isn't blocked by animations */}
         <motion.div
           className="relative z-10 text-center px-5 sm:px-8 max-w-3xl mx-auto"
           style={{ opacity: prefersReduced ? 1 : heroOpacity }}
         >
           <motion.p
-            initial={{ opacity: 0, y: 15 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease }}
             className="text-xs sm:text-sm tracking-[0.25em] uppercase text-[#F7F4EB]/60 mb-5 sm:mb-6 font-light"
@@ -212,9 +220,9 @@ function HomePageContent() {
           </motion.p>
 
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.4, ease }}
+            transition={{ duration: 0.9, delay: 0.3, ease }}
             className="text-[2.5rem] leading-[1.05] sm:text-5xl md:text-6xl lg:text-7xl font-serif font-light tracking-[-0.02em] text-[#F7F4EB]"
           >
             Fresh food from{" "}
@@ -225,9 +233,9 @@ function HomePageContent() {
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.7, ease }}
+            transition={{ duration: 0.8, delay: 0.5, ease }}
             className="mt-5 sm:mt-7 text-[0.95rem] sm:text-lg text-[#F7F4EB]/60 font-light max-w-lg mx-auto leading-relaxed"
           >
             Restaurants have surplus food every day. We pack it into Mystery Bags
@@ -235,9 +243,9 @@ function HomePageContent() {
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1, ease }}
+            transition={{ duration: 0.8, delay: 0.6, ease }}
             className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center"
           >
             <button
@@ -272,6 +280,11 @@ function HomePageContent() {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* ════════════════════════════════════════════
+          SECTION — OUR AIM (scroll text reveal)
+          ════════════════════════════════════════════ */}
+      <OurAimSection />
 
       {/* ════════════════════════════════════════════
           SECTION 2 — HOW IT WORKS
@@ -370,11 +383,10 @@ function HomePageContent() {
             ].map((bag, i) => (
               <Reveal key={i} delay={i * STAGGER}>
                 <div
-                  className={`group relative rounded-2xl p-7 sm:p-8 transition-all duration-500 cursor-default ${
-                    bag.featured
-                      ? "bg-[#F7F4EB]/10 border-2 border-[#F7F4EB]/20 hover:border-[#F7F4EB]/40"
-                      : "border border-[#F7F4EB]/10 hover:border-[#F7F4EB]/25 hover:bg-[#F7F4EB]/5"
-                  }`}
+                  className={`group relative rounded-2xl p-7 sm:p-8 transition-all duration-500 cursor-default ${bag.featured
+                    ? "bg-[#F7F4EB]/10 border-2 border-[#F7F4EB]/20 hover:border-[#F7F4EB]/40"
+                    : "border border-[#F7F4EB]/10 hover:border-[#F7F4EB]/25 hover:bg-[#F7F4EB]/5"
+                    }`}
                 >
                   {bag.featured && (
                     <span className="absolute -top-3 left-7 px-3 py-0.5 bg-[#F7F4EB] text-[#0B1E0F] text-[0.65rem] tracking-[0.15em] uppercase font-medium rounded-full">
@@ -435,7 +447,7 @@ function HomePageContent() {
             <Reveal y={30} className="order-2 md:order-1">
               <div className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl shadow-[#0B1E0F]/10">
                 <Image
-                  src="/images/indian-thali.png"
+                  src="/images/indian-thali.webp"
                   alt="Traditional Indian Thali"
                   fill
                   className="object-cover"
@@ -578,11 +590,10 @@ function HomePageContent() {
 
                   {submitMessage && (
                     <div
-                      className={`text-sm font-light py-3 px-4 rounded-xl ${
-                        submitMessage.type === "success"
-                          ? "bg-green-50 text-green-700 border border-green-200"
-                          : "bg-red-50 text-red-600 border border-red-200"
-                      }`}
+                      className={`text-sm font-light py-3 px-4 rounded-xl ${submitMessage.type === "success"
+                        ? "bg-green-50 text-green-700 border border-green-200"
+                        : "bg-red-50 text-red-600 border border-red-200"
+                        }`}
                     >
                       {submitMessage.text}
                     </div>
@@ -655,10 +666,21 @@ function HomePageContent() {
                 </a>
               ))}
             </div>
+          </div>
 
+          {/* Legal links */}
+          <div className="mt-8 pt-6 border-t border-[#F7F4EB]/8 flex flex-col sm:flex-row justify-between items-center gap-3">
             <p className="text-xs text-[#F7F4EB]/25 font-light">
               &copy; 2025 Latebites &middot; Coimbatore, India
             </p>
+            <div className="flex gap-5 text-xs text-[#F7F4EB]/30">
+              <Link href="/terms" className="hover:text-[#F7F4EB]/60 transition-colors duration-300">
+                Terms &amp; Conditions
+              </Link>
+              <Link href="/privacy" className="hover:text-[#F7F4EB]/60 transition-colors duration-300">
+                Privacy Policy
+              </Link>
+            </div>
           </div>
         </div>
       </section>

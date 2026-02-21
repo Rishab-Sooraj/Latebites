@@ -41,27 +41,27 @@ export default function CartBar() {
                                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
                                     <ShoppingBag className="w-6 h-6 text-white" />
                                 </div>
-                                <div className="min-w-0">
-                                    <p className="text-white/80 text-xs font-medium truncate">
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-white/80 text-[10px] sm:text-xs font-medium truncate uppercase tracking-wider">
                                         {restaurantName}
                                     </p>
-                                    <p className="text-white font-bold text-lg">
-                                        {totalItems} item{totalItems !== 1 ? 's' : ''} | ₹{grandTotal}
+                                    <p className="text-white font-bold text-sm sm:text-base md:text-lg whitespace-nowrap">
+                                        {totalItems} item{totalItems !== 1 ? 's' : ''} <span className="mx-1 text-white/30">|</span> ₹{grandTotal}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Right side - Actions */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                                 {/* Clear cart button */}
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         clearCart();
                                     }}
-                                    className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
                                 >
-                                    <X className="w-5 h-5 text-white/80" />
+                                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
                                 </button>
 
                                 {/* Checkout button */}
@@ -69,10 +69,10 @@ export default function CartBar() {
                                     onClick={handleCheckout}
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
-                                    className="flex items-center gap-2 px-6 py-3 bg-white text-emerald-700 font-bold rounded-xl shadow-lg cursor-pointer"
+                                    className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-emerald-700 font-bold text-sm sm:text-base rounded-xl shadow-lg cursor-pointer"
                                 >
                                     <span>Checkout</span>
-                                    <ChevronRight className="w-5 h-5" />
+                                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </motion.button>
                             </div>
                         </div>

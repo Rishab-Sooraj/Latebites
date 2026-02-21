@@ -1,4 +1,6 @@
-// ZeptoMail email service
+// Email service using Resend
+import { Resend } from 'resend';
+
 export interface EmailOptions {
     to: string;
     subject: string;
@@ -10,47 +12,35 @@ export interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-    const apiKey = process.env.ZEPTOMAIL_API_KEY;
+    const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {
-        console.warn('⚠️ ZEPTOMAIL_API_KEY not configured - email sending skipped');
+        console.warn('⚠️ RESEND_API_KEY not configured - email sending skipped');
         return false;
     }
 
     try {
-        const response = await fetch('https://api.zeptomail.in/v1.1/email', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': apiKey,
-            },
-            body: JSON.stringify({
-                from: {
-                    address: options.from?.email || 'noreply@latebites.in',
-                    name: options.from?.name || 'Latebites',
-                },
-                to: [
-                    {
-                        email_address: {
-                            address: options.to,
-                        },
-                    },
-                ],
-                subject: options.subject,
-                htmlbody: options.html,
-            }),
+        const resend = new Resend(apiKey);
+
+        const fromName = options.from?.name || 'Latebites';
+        const fromEmail = options.from?.email || 'noreply@latebites.in';
+
+        const { error } = await resend.emails.send({
+            from: `${fromName} <${fromEmail}>`,
+            to: [options.to],
+            subject: options.subject,
+            html: options.html,
         });
 
-        if (!response.ok) {
-            const error = await response.text();
-            console.error('❌ ZeptoMail error:', error);
+        if (error) {
+            console.error('❌ Resend error:', error);
             return false;
         }
 
         console.log('✅ Email sent successfully to:', options.to);
         return true;
-    } catch (error) {
-        console.error('❌ Failed to send email:', error);
+    } catch (err) {
+        console.error('❌ Failed to send email:', err);
         return false;
     }
 }

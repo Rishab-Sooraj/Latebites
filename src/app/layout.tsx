@@ -35,6 +35,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${cormorant.variable} ${jakarta.variable}`}>
+      <head>
+        {/* DNS prefetch for Supabase — applies globally */}
+        <link rel="dns-prefetch" href="https://zwwbfjygtertvsvbaqze.supabase.co" />
+        <link rel="preconnect" href="https://zwwbfjygtertvsvbaqze.supabase.co" crossOrigin="anonymous" />
+      </head>
       <body className="antialiased" suppressHydrationWarning>
         <Script
           id="orchids-browser-logs"

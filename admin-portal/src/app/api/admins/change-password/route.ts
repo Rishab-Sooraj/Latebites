@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient, createServerSupabaseClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { currentPassword, newPassword } = body;
+        const { currentPassword, newPassword, email } = body;
 
-        if (!currentPassword || !newPassword) {
+        if (!currentPassword || !newPassword || !email) {
             return NextResponse.json(
-                { error: 'Current and new passwords are required' },
+                { error: 'Email, current password, and new password are required' },
                 { status: 400 }
             );
         }
@@ -20,22 +25,31 @@ export async function POST(request: Request) {
             );
         }
 
-        // Get current user
-        const supabase = await createServerSupabaseClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        // Verify the current password by attempting a sign-in with a fresh client
+        const verifyClient = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+        );
 
-        if (!user?.email) {
+        const { data: signInData, error: signInError } = await verifyClient.auth.signInWithPassword({
+            email,
+            password: currentPassword,
+        });
+
+        if (signInError || !signInData.user) {
             return NextResponse.json(
-                { error: 'Not authenticated' },
-                { status: 401 }
+                { error: 'Current password is incorrect' },
+                { status: 400 }
             );
         }
 
-        // Verify admin exists
-        const { data: adminData } = await supabase
+        // Verify admin exists in admins table
+        const { data: adminData } = await supabaseAdmin
             .from('admins')
             .select('id, email')
-            .eq('email', user.email)
+            .ilike('email', email)
+            .eq('is_active', true)
             .single();
 
         if (!adminData) {
@@ -45,25 +59,9 @@ export async function POST(request: Request) {
             );
         }
 
-        // Use admin client to verify current password and update
-        const adminClient = createAdminClient();
-
-        // Verify current password by trying to sign in
-        const { error: signInError } = await adminClient.auth.signInWithPassword({
-            email: user.email,
-            password: currentPassword,
-        });
-
-        if (signInError) {
-            return NextResponse.json(
-                { error: 'Current password is incorrect' },
-                { status: 400 }
-            );
-        }
-
         // Update the password using admin client
-        const { error: updateError } = await adminClient.auth.admin.updateUserById(
-            user.id,
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+            signInData.user.id,
             { password: newPassword }
         );
 
@@ -75,30 +73,25 @@ export async function POST(request: Request) {
             );
         }
 
-        // Update must_change_password flag using raw SQL via admin client (bypasses RLS completely)
-        const { error: dbError } = await adminClient.rpc('update_admin_password_flag', {
-            admin_email: user.email,
-            new_flag_value: false
-        });
+        // Update must_change_password flag
+        const { error: dbError } = await supabaseAdmin
+            .from('admins')
+            .update({
+                must_change_password: false,
+                updated_at: new Date().toISOString()
+            })
+            .ilike('email', email);
 
-        // If RPC doesn't exist, try direct update as fallback
-        if (dbError && dbError.message.includes('does not exist')) {
-            console.log('RPC not found, using direct update...');
-            const { error: directError } = await adminClient
-                .from('admins')
-                .update({ must_change_password: false })
-                .eq('email', user.email);
-
-            if (directError) {
-                console.error('Direct update also failed:', directError);
-            }
-        } else if (dbError) {
+        if (dbError) {
             console.error('DB update error:', dbError);
+        } else {
+            console.log('Successfully updated must_change_password flag to false for:', email);
         }
 
         return NextResponse.json({
             success: true,
-            message: 'Password changed successfully',
+            message: 'Password changed successfully. Please log in again.',
+            requiresLogin: true,
         });
 
     } catch (error) {

@@ -8,7 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const supabase = createClient();
+  // Use useState to ensure client is only created once and persists across re-renders
+  const [supabase] = useState(() => createClient());
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,34 +22,69 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Use direct Supabase REST API to bypass the client's lock mechanism
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+
+      const authData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(authData.error_description || authData.message || 'Login failed');
+      }
+
+      // Set the session on the Supabase client
+      await supabase.auth.setSession({
+        access_token: authData.access_token,
+        refresh_token: authData.refresh_token,
       });
 
-      if (authError) throw authError;
+      // Check if user is an admin via server-side API (bypasses RLS)
+      const adminCheckRes = await fetch('/api/admin/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
 
-      // Check if user is an admin
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('email', email)
-        .eq('is_active', true)
-        .single();
+      const adminCheckData = await adminCheckRes.json();
 
-      if (adminError || !adminData) {
+      if (!adminCheckData.exists || !adminCheckData.admin) {
         await supabase.auth.signOut();
         throw new Error('Access denied. Admin privileges required.');
       }
 
+      const adminData = adminCheckData.admin;
+
+      // Check if admin is frozen or revoked
+      if (adminData.frozen_at) {
+        await supabase.auth.signOut();
+        throw new Error('Your account has been frozen. Contact a super admin.');
+      }
+
+      if (adminData.revoked_at) {
+        await supabase.auth.signOut();
+        throw new Error('Your account has been revoked.');
+      }
+
       // Check if admin needs to change password
-      // Only redirect if explicitly true (not null or false)
       if (adminData.must_change_password === true) {
         router.push('/change-password');
       } else {
         router.push('/dashboard');
       }
     } catch (err: unknown) {
+      // Silently ignore AbortError from background processes
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
     } finally {

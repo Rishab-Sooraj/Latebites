@@ -21,7 +21,10 @@ import {
     AlertCircle,
     Loader2,
     Package,
-    FileText
+    ClipboardList,
+    ShoppingBag,
+    MessageCircle,
+    Trash2
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -49,8 +52,11 @@ const getNavItems = (role: string) => {
     const baseItems = [
         { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { href: '/dashboard/restaurants', icon: Store, label: 'Restaurants' },
+        { href: '/dashboard/onboarding', icon: ClipboardList, label: 'Onboarding' },
+        { href: '/dashboard/orders', icon: ShoppingBag, label: 'Orders' },
         { href: '/dashboard/customers', icon: Users, label: 'Customers' },
-        { href: '/dashboard/onboarding', icon: FileText, label: 'Onboarding' },
+        { href: '/dashboard/support', icon: MessageCircle, label: 'Support' },
+        { href: '/dashboard/cleanup', icon: Trash2, label: 'Cleanup' },
     ];
 
     // Only super_admin can manage admins
@@ -61,6 +67,7 @@ const getNavItems = (role: string) => {
     return baseItems;
 };
 
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const router = useRouter();
     const pathname = usePathname();
@@ -69,6 +76,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const [admin, setAdmin] = useState<AdminData | null>(null);
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [openTicketCount, setOpenTicketCount] = useState(0);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState("");
@@ -79,6 +87,37 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     useEffect(() => {
         checkAuth();
+    }, []);
+
+    // Fetch open ticket count and subscribe to changes
+    useEffect(() => {
+        const fetchTickets = async () => {
+            try {
+                const res = await fetch('/api/support/conversations?status=open');
+                if (res.ok) {
+                    const data = await res.json();
+                    setOpenTicketCount(data.length || 0);
+                }
+            } catch { }
+        };
+
+        fetchTickets();
+
+        // Subscribe to new/updated conversations
+        const channel = supabase
+            .channel('layout_ticket_count')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'support_conversations' }, () => {
+                fetchTickets();
+            })
+            .subscribe();
+
+        // Also poll every 15s as backup
+        const interval = setInterval(fetchTickets, 15000);
+
+        return () => {
+            supabase.removeChannel(channel);
+            clearInterval(interval);
+        };
     }, []);
 
     // Search effect with debounce
@@ -99,51 +138,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const performSearch = async (query: string) => {
         setSearchLoading(true);
         try {
-            const results: SearchResult[] = [];
+            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
 
-            // Search orders by ID (partial match)
-            const { data: orders } = await supabase
-                .from('orders')
-                .select('*, customers(name, email, phone)')
-                .or(`id.ilike.%${query}%`)
-                .limit(5);
-
-            if (orders) {
-                orders.forEach(order => {
-                    results.push({
-                        type: 'order',
-                        id: order.id,
-                        title: `Order #${order.id.substring(0, 8)}...`,
-                        subtitle: order.customers?.name || 'Unknown Customer',
-                        status: order.status,
-                        data: order,
-                    });
-                });
+            if (!response.ok) {
+                throw new Error('Search failed');
             }
 
-            // Search customers by email or phone
-            const { data: customers } = await supabase
-                .from('customers')
-                .select('*')
-                .or(`email.ilike.%${query}%,phone.ilike.%${query}%,name.ilike.%${query}%`)
-                .limit(5);
-
-            if (customers) {
-                customers.forEach(customer => {
-                    results.push({
-                        type: 'customer',
-                        id: customer.id,
-                        title: customer.name || 'No Name',
-                        subtitle: customer.email || customer.phone || '',
-                        data: customer,
-                    });
-                });
-            }
+            const results = await response.json();
 
             setSearchResults(results);
             setShowSearchResults(results.length > 0);
         } catch (error) {
             console.error('Search error:', error);
+            setSearchResults([]);
+            setShowSearchResults(false);
         } finally {
             setSearchLoading(false);
         }
@@ -158,18 +166,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 return;
             }
 
-            const { data: adminData } = await supabase
-                .from('admins')
-                .select('*')
-                .eq('email', user.email)
-                .eq('is_active', true)
-                .single();
+            // Use API endpoint to check admin status (bypasses RLS)
+            const adminCheckRes = await fetch('/api/admin/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email }),
+            });
 
-            if (!adminData) {
+            const adminCheckData = await adminCheckRes.json();
+
+            if (!adminCheckData.exists || !adminCheckData.admin) {
                 await supabase.auth.signOut();
                 router.push('/');
                 return;
             }
+
+            const adminData = adminCheckData.admin;
 
             // Check if admin needs to change password
             // Only redirect if explicitly true (not null or false)
@@ -179,6 +191,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             }
 
             setAdmin(adminData);
+            // Store role in localStorage for child components
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('adminRole', adminData.role);
+            }
         } catch {
             router.push('/');
         } finally {
@@ -242,6 +258,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <nav className="flex-1 p-4 space-y-1">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
+                            const isSupport = item.label === 'Support';
                             return (
                                 <Link
                                     key={item.href}
@@ -254,7 +271,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                 >
                                     <item.icon className="w-5 h-5" />
                                     <span className="font-medium">{item.label}</span>
-                                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                                    {isSupport && openTicketCount > 0 && (
+                                        <span className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse">
+                                            {openTicketCount}
+                                        </span>
+                                    )}
+                                    {!isSupport && isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
                                 </Link>
                             );
                         })}
