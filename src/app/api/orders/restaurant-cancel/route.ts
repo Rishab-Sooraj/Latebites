@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
             .update({
                 status: 'cancelled',
                 cancellation_reason: cancellationReason,
-                cancelled_by: `restaurant:${restaurantId}`,
                 updated_at: new Date().toISOString(),
             })
             .eq('id', orderId);

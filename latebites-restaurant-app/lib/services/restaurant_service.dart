@@ -338,7 +338,6 @@ class RestaurantService {
       await _client.from('orders').update({
         'status': 'cancelled',
         'cancellation_reason': cancelReason,
-        'cancelled_by': 'restaurant:$_userId',
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', orderId);
 

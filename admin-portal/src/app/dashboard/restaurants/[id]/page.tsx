@@ -198,7 +198,9 @@ export default function RestaurantDetailPage() {
         if (!bagToDelete) return;
         setDeletingBagId(bagToDelete);
         try {
-            const response = await fetch(`/api/bags/delete?id=${bagToDelete}`, { method: 'DELETE' });
+            const { data: { user } } = await supabase.auth.getUser();
+            const adminEmail = user?.email || '';
+            const response = await fetch(`/api/bags/delete?id=${bagToDelete}&adminEmail=${encodeURIComponent(adminEmail)}`, { method: 'DELETE' });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to delete bag');
             setBags(prev => prev.filter(b => b.id !== bagToDelete));
