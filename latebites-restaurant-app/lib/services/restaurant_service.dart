@@ -224,8 +224,9 @@ class RestaurantService {
     }
   }
 
-  /// Subscribe to order updates for data refresh
-  RealtimeChannel subscribeToOrders(VoidCallback onUpdate) {
+  /// Subscribe to order updates for data refresh.
+  /// [onUpdate] receives `true` if the event is an INSERT (new order).
+  RealtimeChannel subscribeToOrders(void Function(bool isInsert) onUpdate) {
     return _client
         .channel('orders-changes-${DateTime.now().millisecondsSinceEpoch}')
         .onPostgresChanges(
@@ -233,8 +234,9 @@ class RestaurantService {
           schema: 'public',
           table: 'orders',
           callback: (payload) {
-            debugPrint('📦 Order update received');
-            onUpdate();
+            final isInsert = payload.eventType == PostgresChangeEvent.insert;
+            debugPrint('📦 Order ${isInsert ? "INSERT" : "UPDATE"} received');
+            onUpdate(isInsert);
           },
         )
         .subscribe();

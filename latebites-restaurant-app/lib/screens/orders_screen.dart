@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:vibration/vibration.dart';
 import '../config/theme.dart';
 import '../models/order.dart';
 import '../services/restaurant_service.dart';
@@ -22,23 +24,68 @@ class _OrdersScreenState extends State<OrdersScreen> {
   String? _error;
   String? _success;
   RealtimeChannel? _subscription;
+  Timer? _pollTimer;
+
+  // New-order alert state
+  String? _newOrderAlert;
 
   @override
   void initState() {
     super.initState();
     _fetchOrders();
     _subscribeToUpdates();
+    _startPolling();
   }
 
   @override
   void dispose() {
     _subscription?.unsubscribe();
+    _pollTimer?.cancel();
     super.dispose();
   }
 
+  // ─── Realtime subscription ──────────────────────────────────────────────
   void _subscribeToUpdates() {
-    _subscription = _service.subscribeToOrders(() {
+    _subscription = _service.subscribeToOrders((isInsert) {
       _fetchOrders();
+      if (isInsert) _showNewOrderAlert();
+    });
+  }
+
+  // ─── Fast backup poll (every 5s) ────────────────────────────────────────
+  void _startPolling() {
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      final oldCount = _orders.where((o) => o.isPending).length;
+      final orders = await _service.getOrders();
+      if (!mounted) return;
+      final newCount = orders.where((o) => o.isPending).length;
+
+      setState(() => _orders = orders);
+
+      // New pending order detected via poll
+      if (newCount > oldCount) {
+        _showNewOrderAlert();
+      }
+    });
+  }
+
+  // ─── In-app new order alert ─────────────────────────────────────────────
+  void _showNewOrderAlert() async {
+    // Vibrate
+    if (await Vibration.hasVibrator() ?? false) {
+      Vibration.vibrate(pattern: [0, 300, 150, 300, 150, 300]);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _newOrderAlert = '🔔 New order received!';
+      _filter = 'pending'; // auto-switch to pending tab
+    });
+
+    // Auto-dismiss after 6 seconds
+    Future.delayed(const Duration(seconds: 6), () {
+      if (mounted) setState(() => _newOrderAlert = null);
     });
   }
 
@@ -97,6 +144,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pendingCount = _orders.where((o) => o.isPending).length;
+
     return RefreshIndicator(
       onRefresh: _fetchOrders,
       color: AppTheme.primary,
@@ -109,9 +158,32 @@ class _OrdersScreenState extends State<OrdersScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Orders',
-                    style: Theme.of(context).textTheme.headlineMedium,
+                  Row(
+                    children: [
+                      Text(
+                        'Orders',
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      if (pendingCount > 0) ...[
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.warning.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppTheme.warning.withOpacity(0.4)),
+                          ),
+                          child: Text(
+                            '$pendingCount pending',
+                            style: TextStyle(
+                              color: AppTheme.warning,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -134,6 +206,68 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ),
           ),
+
+          // ─── New order alert banner ─────────────────────────────────
+          if (_newOrderAlert != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.primary.withOpacity(0.15),
+                        AppTheme.warning.withOpacity(0.10),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.notifications_active_rounded,
+                            color: AppTheme.primary, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'New Order Received!',
+                              style: TextStyle(
+                                color: AppTheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'A customer just placed an order. Check pending orders below.',
+                              style: TextStyle(
+                                  color: AppTheme.textMuted, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: AppTheme.textMuted, size: 18),
+                        onPressed: () =>
+                            setState(() => _newOrderAlert = null),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.3),
+              ),
+            ),
           
           // Status Messages
           if (_error != null)
@@ -237,7 +371,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       child: OrderCard(
                         order: order,
                         onVerifyOtp: (otp) => _handleVerifyOtp(order.id, otp),
-                        onCancelled: _fetchOrders, // refresh list on cancel
+                        onCancelled: _fetchOrders,
                       ).animate().fadeIn(
                         duration: 400.ms,
                         delay: Duration(milliseconds: index * 50),
