@@ -240,30 +240,35 @@ export default function RestaurantDetailPage() {
         setUploadingBanner(true);
         setBannerSuccess(false);
         try {
-            const ext = bannerFile.name.split('.').pop();
-            const fileName = `banner_${restaurant.id}_${Date.now()}.${ext}`;
+            // Get current admin's email for auth
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user?.email) throw new Error('Session expired. Please log in again.');
 
-            const { error: uploadError } = await supabase.storage
-                .from('restaurant-images')
-                .upload(fileName, bannerFile, { upsert: true });
+            // Convert file to base64 to send to server-side API
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(bannerFile);
+            });
 
-            if (uploadError) throw uploadError;
+            const fileExt = bannerFile.name.split('.').pop() || 'jpg';
 
-            const { data: urlData } = supabase.storage
-                .from('restaurant-images')
-                .getPublicUrl(fileName);
+            const response = await fetch('/api/restaurants/banner', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    restaurantId: restaurant.id,
+                    adminEmail: user.email,
+                    bannerBase64: base64,
+                    fileExt,
+                }),
+            });
 
-            const bannerUrl = urlData?.publicUrl;
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Upload failed');
 
-            // Update the restaurants table
-            const { error: updateError } = await supabase
-                .from('restaurants')
-                .update({ cover_image_url: bannerUrl })
-                .eq('id', restaurant.id);
-
-            if (updateError) throw updateError;
-
-            setRestaurant(prev => prev ? { ...prev, cover_image_url: bannerUrl } : null);
+            setRestaurant(prev => prev ? { ...prev, cover_image_url: data.bannerUrl } : null);
             setBannerSuccess(true);
             setBannerFile(null);
             setBannerPreview(null);
