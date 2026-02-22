@@ -187,14 +187,14 @@ export default function NewRestaurantPage() {
             if (verification.menuImage) {
                 const fileName = `menu_${selectedRestaurant.id}_${Date.now()}.${verification.menuImage.name.split('.').pop()}`;
                 const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('restaurant-menus')
+                    .from('restaurant-images')
                     .upload(fileName, verification.menuImage);
 
                 if (uploadError) {
                     console.error('Menu upload error:', uploadError);
                 } else {
                     const { data: urlData } = supabase.storage
-                        .from('restaurant-menus')
+                        .from('restaurant-images')
                         .getPublicUrl(fileName);
                     menuImageUrl = urlData?.publicUrl;
                 }
@@ -203,14 +203,14 @@ export default function NewRestaurantPage() {
             if (verification.bannerImage) {
                 const fileName = `banner_${selectedRestaurant.id}_${Date.now()}.${verification.bannerImage.name.split('.').pop()}`;
                 const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('restaurant-banners')
+                    .from('restaurant-images')
                     .upload(fileName, verification.bannerImage);
 
                 if (uploadError) {
                     console.error('Banner upload error:', uploadError);
                 } else {
                     const { data: urlData } = supabase.storage
-                        .from('restaurant-banners')
+                        .from('restaurant-images')
                         .getPublicUrl(fileName);
                     bannerImageUrl = urlData?.publicUrl;
                 }

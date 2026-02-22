@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     Store, MapPin, Phone, Mail, ArrowLeft, Package,
     ShoppingBag, Clock, AlertTriangle, Trash2, Loader2, Shield,
-    ExternalLink, Image as ImageIcon, Calendar, X, ZoomIn
+    ExternalLink, Image as ImageIcon, Calendar, X, ZoomIn, Upload, CheckCircle
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useRef } from "react";
 
 interface Restaurant {
     id: string;
@@ -24,6 +25,7 @@ interface Restaurant {
     is_active: boolean;
     strike_count?: number;
     menu_image_url?: string;
+    cover_image_url?: string;
     created_at: string;
 }
 
@@ -89,8 +91,14 @@ export default function RestaurantDetailPage() {
     const [issuingStrike, setIssuingStrike] = useState(false);
     const [strikeError, setStrikeError] = useState<string | null>(null);
 
-    // Menu Image Modal
     const [showMenuModal, setShowMenuModal] = useState(false);
+
+    // Banner Upload State
+    const [bannerFile, setBannerFile] = useState<File | null>(null);
+    const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+    const [uploadingBanner, setUploadingBanner] = useState(false);
+    const [bannerSuccess, setBannerSuccess] = useState(false);
+    const bannerInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (params.id) {
@@ -227,6 +235,47 @@ export default function RestaurantDetailPage() {
         }
     };
 
+    const handleBannerUpload = async () => {
+        if (!bannerFile || !restaurant) return;
+        setUploadingBanner(true);
+        setBannerSuccess(false);
+        try {
+            const ext = bannerFile.name.split('.').pop();
+            const fileName = `banner_${restaurant.id}_${Date.now()}.${ext}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('restaurant-images')
+                .upload(fileName, bannerFile, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage
+                .from('restaurant-images')
+                .getPublicUrl(fileName);
+
+            const bannerUrl = urlData?.publicUrl;
+
+            // Update the restaurants table
+            const { error: updateError } = await supabase
+                .from('restaurants')
+                .update({ cover_image_url: bannerUrl })
+                .eq('id', restaurant.id);
+
+            if (updateError) throw updateError;
+
+            setRestaurant(prev => prev ? { ...prev, cover_image_url: bannerUrl } : null);
+            setBannerSuccess(true);
+            setBannerFile(null);
+            setBannerPreview(null);
+            if (bannerInputRef.current) bannerInputRef.current.value = '';
+        } catch (err: any) {
+            console.error('Banner upload error:', err);
+            alert('Failed to upload banner: ' + err.message);
+        } finally {
+            setUploadingBanner(false);
+        }
+    };
+
     const canIssueStrike = () => {
         if (!restaurant || !currentAdmin) return false;
         const currentStrikes = restaurant.strike_count || 0;
@@ -312,7 +361,7 @@ export default function RestaurantDetailPage() {
                 </div>
             </div>
 
-            {/* Top Section: Info + Strike + Menu */}
+            {/* Top Section: Info + Strike + Menu + Banner */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Restaurant Info Card */}
                 <motion.div
@@ -465,6 +514,96 @@ export default function RestaurantDetailPage() {
                             <p className="text-zinc-500 text-sm">No menu uploaded</p>
                         </div>
                     )}
+                </motion.div>
+
+                {/* Banner Upload Card */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="lg:col-span-12 bg-gradient-to-br from-zinc-900 to-zinc-900/50 border border-zinc-800 rounded-2xl p-6"
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Restaurant Banner</h3>
+                        {restaurant.cover_image_url && (
+                            <span className="text-xs text-emerald-400 flex items-center gap-1">
+                                <CheckCircle className="w-3.5 h-3.5" /> Banner set
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-6">
+                        {/* Current / Preview */}
+                        <div className="flex-1 min-h-[160px] relative rounded-xl overflow-hidden border border-zinc-700">
+                            {bannerPreview ? (
+                                <>
+                                    <img src={bannerPreview} alt="Banner preview" className="w-full h-full object-cover" style={{ minHeight: '160px' }} />
+                                    <button
+                                        onClick={() => { setBannerFile(null); setBannerPreview(null); if (bannerInputRef.current) bannerInputRef.current.value = ''; }}
+                                        className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80"
+                                    >
+                                        <X className="w-3.5 h-3.5 text-white" />
+                                    </button>
+                                </>
+                            ) : restaurant.cover_image_url ? (
+                                <img src={restaurant.cover_image_url} alt="Current Banner" className="w-full h-full object-cover" style={{ minHeight: '160px' }} />
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 bg-zinc-800/30" style={{ minHeight: '160px' }}>
+                                    <ImageIcon className="w-10 h-10 text-zinc-600 mb-2" />
+                                    <p className="text-zinc-500 text-sm">No banner set yet</p>
+                                    <p className="text-zinc-600 text-xs mt-1">This restaurant uses the default image on customer pages</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Upload controls */}
+                        <div className="flex flex-col justify-between gap-4 md:w-56">
+                            <div>
+                                <p className="text-zinc-400 text-xs mb-3">
+                                    Upload a wide banner image (16:9 recommended). This will appear on browse and restaurant pages for customers.
+                                </p>
+                                <label className="flex flex-col items-center gap-2 px-4 py-4 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-zinc-500 transition-colors">
+                                    <Upload className="w-6 h-6 text-zinc-500" />
+                                    <span className="text-zinc-400 text-xs font-medium text-center">
+                                        {bannerFile ? bannerFile.name : 'Choose Banner Image'}
+                                    </span>
+                                    <span className="text-zinc-600 text-[10px]">JPG, PNG up to 5MB</span>
+                                    <input
+                                        ref={bannerInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                setBannerFile(file);
+                                                const reader = new FileReader();
+                                                reader.onloadend = () => setBannerPreview(reader.result as string);
+                                                reader.readAsDataURL(file);
+                                                setBannerSuccess(false);
+                                            }
+                                        }}
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="space-y-2">
+                                {bannerSuccess && (
+                                    <p className="text-emerald-400 text-xs flex items-center gap-1.5">
+                                        <CheckCircle className="w-3.5 h-3.5" /> Banner updated successfully!
+                                    </p>
+                                )}
+                                <button
+                                    onClick={handleBannerUpload}
+                                    disabled={!bannerFile || uploadingBanner}
+                                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-black font-semibold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {uploadingBanner ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                    {uploadingBanner ? 'Uploading...' : restaurant.cover_image_url ? 'Replace Banner' : 'Upload Banner'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </motion.div>
             </div>
 
