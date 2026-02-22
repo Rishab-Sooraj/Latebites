@@ -47,7 +47,6 @@ class _OrderCardState extends State<OrderCard> {
     });
   }
 
-
   Color get _statusColor {
     switch (widget.order.status) {
       case 'pending':
@@ -66,10 +65,10 @@ class _OrderCardState extends State<OrderCard> {
 
   Future<void> _handleVerify() async {
     if (_otp.length != 4) return;
-    
+
     setState(() => _isVerifying = true);
     await widget.onVerifyOtp(_otp);
-    
+
     if (mounted) {
       setState(() {
         _isVerifying = false;
@@ -78,6 +77,7 @@ class _OrderCardState extends State<OrderCard> {
     }
   }
 
+  // ─── Cancel flow entry point ────────────────────────────────────────────────
   void _showCancelDialog(BuildContext context) {
     final pickupStartStr = widget.order.pickupStartTime;
     if (pickupStartStr == null) return;
@@ -94,6 +94,171 @@ class _OrderCardState extends State<OrderCard> {
     final lockInTime = pickupStart.subtract(const Duration(minutes: 45));
     final isLocked = now.isAfter(lockInTime);
 
+    // After lock-in → hard warning first, then reason dialog
+    if (isLocked) {
+      _showLockInWarning(context);
+    } else {
+      _showReasonDialog(context, isLocked: false);
+    }
+  }
+
+  // ─── Step 1: Red warning bottom sheet (only shown after lock-in) ─────────
+  void _showLockInWarning(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A0808),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: AppTheme.error.withOpacity(0.6), width: 1.5),
+        ),
+        padding: EdgeInsets.fromLTRB(
+            24, 16, 24, MediaQuery.of(ctx).viewInsets.bottom + 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Warning icon
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppTheme.error.withOpacity(0.15),
+                shape: BoxShape.circle,
+                border:
+                    Border.all(color: AppTheme.error.withOpacity(0.6), width: 2),
+              ),
+              child:
+                  const Icon(Icons.warning_rounded, color: Colors.redAccent, size: 36),
+            ),
+            const SizedBox(height: 16),
+
+            Text(
+              'Lock-in Period Active',
+              style: TextStyle(
+                color: AppTheme.error,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Cancelling NOW will have serious consequences.',
+              style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 18),
+
+            // Consequences
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+              ),
+              child: Column(
+                children: [
+                  _warningRow(Icons.gavel_rounded,
+                      'An automatic PENALTY STRIKE will be added to your account.'),
+                  const Divider(height: 20, color: Colors.white10),
+                  _warningRow(Icons.account_balance_wallet_outlined,
+                      'You are liable for the customer refund — handled via support.'),
+                  const Divider(height: 20, color: Colors.white10),
+                  _warningRow(Icons.block_rounded,
+                      '3 strikes = your account is permanently deactivated.'),
+                  const Divider(height: 20, color: Colors.white10),
+                  _warningRow(Icons.lock_clock_rounded,
+                      'Lock-in started 45 min before pickup. You are past that point.'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Proceed
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.warning_rounded, size: 18),
+                label: const Text(
+                  'I UNDERSTAND — PROCEED TO CANCEL',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Future.delayed(const Duration(milliseconds: 250), () {
+                    if (context.mounted) {
+                      _showReasonDialog(context, isLocked: true);
+                    }
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.error,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Go back
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.textMuted,
+                  side: BorderSide(color: AppTheme.border),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text('GO BACK — KEEP THE ORDER',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _warningRow(IconData icon, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppTheme.error, size: 18),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+                color: AppTheme.textMuted, fontSize: 13, height: 1.45),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── Step 2: Reason + confirm dialog ─────────────────────────────────────
+  void _showReasonDialog(BuildContext context, {required bool isLocked}) {
     final reasonController = TextEditingController();
     bool isCancelling = false;
 
@@ -123,54 +288,13 @@ class _OrderCardState extends State<OrderCard> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Lock-in warning
-                  if (isLocked) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.error.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppTheme.error.withOpacity(0.4)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '⚠️ Lock-in Period Active',
-                            style: TextStyle(
-                              color: AppTheme.error,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Cancelling after lock-in will:\n'
-                            '• Issue an automatic penalty strike (${widget.order.shortId})\n'
-                            '• Customer refund handled by support\n'
-                            '• 3 strikes deactivates your account',
-                            style: TextStyle(
-                              color: AppTheme.textMuted,
-                              fontSize: 12,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                  ],
-
                   Text(
                     isLocked
-                        ? 'Are you absolutely sure? This will incur a penalty strike.'
+                        ? 'You have acknowledged the penalty. Please state your reason:'
                         : 'Are you sure you want to cancel this order?',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 14),
-
-                  // Reason input
                   Text(
                     'Reason for cancellation',
                     style: TextStyle(
@@ -183,10 +307,12 @@ class _OrderCardState extends State<OrderCard> {
                   TextField(
                     controller: reasonController,
                     maxLines: 2,
-                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+                    style:
+                        const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
                     decoration: InputDecoration(
                       hintText: 'e.g. Ran out of stock, kitchen issue…',
-                      hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                      hintStyle:
+                          TextStyle(color: AppTheme.textMuted, fontSize: 12),
                       filled: true,
                       fillColor: AppTheme.surfaceLight,
                       border: OutlineInputBorder(
@@ -199,7 +325,8 @@ class _OrderCardState extends State<OrderCard> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: AppTheme.error.withOpacity(0.6)),
+                        borderSide:
+                            BorderSide(color: AppTheme.error.withOpacity(0.6)),
                       ),
                       contentPadding: const EdgeInsets.all(10),
                     ),
@@ -231,7 +358,7 @@ class _OrderCardState extends State<OrderCard> {
 
                         if (result.success) {
                           _showCancelResult(context, result);
-                          widget.onCancelled?.call(); // refresh parent list
+                          widget.onCancelled?.call();
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -255,7 +382,7 @@ class _OrderCardState extends State<OrderCard> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('CANCEL ORDER'),
+                    : const Text('CONFIRM CANCEL'),
               ),
             ],
           );
@@ -264,10 +391,9 @@ class _OrderCardState extends State<OrderCard> {
     );
   }
 
-  /// Shows a result snackbar / dialog after cancellation
+  // ─── Result dialog after cancellation ────────────────────────────────────
   void _showCancelResult(BuildContext context, CancelResult result) {
     if (!result.isAfterLockIn) {
-      // Simple success banner
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Order cancelled. Bag quantity restored.'),
@@ -277,7 +403,6 @@ class _OrderCardState extends State<OrderCard> {
       return;
     }
 
-    // After lock-in — show a prominent dialog explaining the penalty
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -303,8 +428,7 @@ class _OrderCardState extends State<OrderCard> {
                 border: Border.all(color: AppTheme.error.withOpacity(0.4)),
               ),
               child: Text(
-                'Penalty Strike Issued\n'
-                'Strike ${result.newStrikeCount}/3 on your account.',
+                'Penalty Strike Issued\nStrike ${result.newStrikeCount}/3 on your account.',
                 style: TextStyle(
                   color: AppTheme.error,
                   fontWeight: FontWeight.bold,
@@ -326,7 +450,8 @@ class _OrderCardState extends State<OrderCard> {
                 child: const Text(
                   '🚫 Your account has been deactivated due to 3 strikes. '
                   'Please contact Latebites support.',
-                  style: TextStyle(color: Colors.redAccent, fontSize: 12, height: 1.5),
+                  style: TextStyle(
+                      color: Colors.redAccent, fontSize: 12, height: 1.5),
                 ),
               ),
             ],
@@ -392,7 +517,8 @@ class _OrderCardState extends State<OrderCard> {
                     ),
                     const SizedBox(width: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: _statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
@@ -409,9 +535,9 @@ class _OrderCardState extends State<OrderCard> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Details Grid
                 Column(
                   children: [
@@ -460,11 +586,12 @@ class _OrderCardState extends State<OrderCard> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Timers
-                if (widget.order.isPending && widget.order.pickupStartTime != null) ...[
+                if (widget.order.isPending &&
+                    widget.order.pickupStartTime != null) ...[
                   _buildTimers(),
                   const SizedBox(height: 16),
                 ],
@@ -494,7 +621,7 @@ class _OrderCardState extends State<OrderCard> {
               ],
             ),
           ),
-          
+
           // OTP Section (for pending orders)
           if (widget.order.isPending)
             Container(
@@ -531,8 +658,8 @@ class _OrderCardState extends State<OrderCard> {
                       SizedBox(
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: _otp.length == 4 && !_isVerifying 
-                              ? _handleVerify 
+                          onPressed: _otp.length == 4 && !_isVerifying
+                              ? _handleVerify
                               : null,
                           child: _isVerifying
                               ? const SizedBox(
@@ -599,8 +726,8 @@ class _OrderCardState extends State<OrderCard> {
               Text(
                 value,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textPrimary,
-                ),
+                      color: AppTheme.textPrimary,
+                    ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
@@ -610,27 +737,26 @@ class _OrderCardState extends State<OrderCard> {
       ],
     );
   }
+
   Widget _buildTimers() {
     final pickupStartStr = widget.order.pickupStartTime!;
     final parts = pickupStartStr.split(':');
     final now = DateTime.now();
-    
-    // Parse pickup time
-    var pickupStart = DateTime(now.year, now.month, now.day, int.parse(parts[0]), int.parse(parts[1]));
-    
-    // If pickup time is earlier than current time, it means it's tomorrow
+
+    var pickupStart = DateTime(now.year, now.month, now.day,
+        int.parse(parts[0]), int.parse(parts[1]));
+
     if (pickupStart.isBefore(now)) {
       pickupStart = pickupStart.add(const Duration(days: 1));
     }
-    
+
     final lockInTime = pickupStart.subtract(const Duration(minutes: 45));
-    
+
     final timeToLock = lockInTime.difference(_now);
     final timeToPickup = pickupStart.difference(_now);
-    
+
     final isLocked = timeToLock.isNegative;
-    
-    // Format duration as H:MM:SS or M:SS
+
     String formatDuration(Duration d) {
       if (d.isNegative) return '0:00';
       final hours = d.inHours;
@@ -644,7 +770,7 @@ class _OrderCardState extends State<OrderCard> {
         return '${seconds}s';
       }
     }
-    
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -693,7 +819,8 @@ class _OrderCardState extends State<OrderCard> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+            Text(label,
+                style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
             Text(
               value,
               style: TextStyle(
