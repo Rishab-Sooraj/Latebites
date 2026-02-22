@@ -237,6 +237,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       child: OrderCard(
                         order: order,
                         onVerifyOtp: (otp) => _handleVerifyOtp(order.id, otp),
+                        onCancelled: _fetchOrders, // refresh list on cancel
                       ).animate().fadeIn(
                         duration: 400.ms,
                         delay: Duration(milliseconds: index * 50),

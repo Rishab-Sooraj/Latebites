@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../config/theme.dart';
 import '../models/order.dart';
+import '../services/restaurant_service.dart';
 import 'otp_input.dart';
 
 class OrderCard extends StatefulWidget {
   final Order order;
   final Function(String otp) onVerifyOtp;
+  final VoidCallback? onCancelled; // called after a successful cancellation
 
   const OrderCard({
     super.key,
     required this.order,
     required this.onVerifyOtp,
+    this.onCancelled,
   });
 
   @override
@@ -78,102 +81,270 @@ class _OrderCardState extends State<OrderCard> {
   void _showCancelDialog(BuildContext context) {
     final pickupStartStr = widget.order.pickupStartTime;
     if (pickupStartStr == null) return;
-    
+
     final parts = pickupStartStr.split(':');
     final now = DateTime.now();
-    
-    // Parse pickup time
-    var pickupStart = DateTime(now.year, now.month, now.day, int.parse(parts[0]), int.parse(parts[1]));
-    
-    // If pickup time is earlier than current time, it means it's tomorrow
+
+    var pickupStart = DateTime(
+        now.year, now.month, now.day, int.parse(parts[0]), int.parse(parts[1]));
     if (pickupStart.isBefore(now)) {
       pickupStart = pickupStart.add(const Duration(days: 1));
     }
-    
+
     final lockInTime = pickupStart.subtract(const Duration(minutes: 45));
-    final isLocked = lockInTime.difference(_now).isNegative;
-    
+    final isLocked = now.isAfter(lockInTime);
+
+    final reasonController = TextEditingController();
+    bool isCancelling = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            backgroundColor: AppTheme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Icon(
+                  isLocked ? Icons.warning_amber_rounded : Icons.cancel_outlined,
+                  color: AppTheme.error,
+                  size: 26,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('Cancel Order', overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Lock-in warning
+                  if (isLocked) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.error.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.error.withOpacity(0.4)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '⚠️ Lock-in Period Active',
+                            style: TextStyle(
+                              color: AppTheme.error,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Cancelling after lock-in will:\n'
+                            '• Issue an automatic penalty strike (${widget.order.shortId})\n'
+                            '• Customer refund handled by support\n'
+                            '• 3 strikes deactivates your account',
+                            style: TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 12,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  Text(
+                    isLocked
+                        ? 'Are you absolutely sure? This will incur a penalty strike.'
+                        : 'Are you sure you want to cancel this order?',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Reason input
+                  Text(
+                    'Reason for cancellation',
+                    style: TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: reasonController,
+                    maxLines: 2,
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Ran out of stock, kitchen issue…',
+                      hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                      filled: true,
+                      fillColor: AppTheme.surfaceLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppTheme.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppTheme.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppTheme.error.withOpacity(0.6)),
+                      ),
+                      contentPadding: const EdgeInsets.all(10),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isCancelling ? null : () => Navigator.pop(dialogContext),
+                child: const Text('KEEP ORDER'),
+              ),
+              ElevatedButton(
+                onPressed: isCancelling
+                    ? null
+                    : () async {
+                        setDialogState(() => isCancelling = true);
+
+                        final service = RestaurantService();
+                        final result = await service.cancelOrder(
+                          orderId: widget.order.id,
+                          reason: reasonController.text.trim().isNotEmpty
+                              ? reasonController.text.trim()
+                              : null,
+                        );
+
+                        if (!dialogContext.mounted) return;
+                        Navigator.pop(dialogContext);
+
+                        if (result.success) {
+                          _showCancelResult(context, result);
+                          widget.onCancelled?.call(); // refresh parent list
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(result.error ?? 'Cancellation failed'),
+                              backgroundColor: AppTheme.error,
+                            ),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.error,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppTheme.error.withOpacity(0.5),
+                ),
+                child: isCancelling
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('CANCEL ORDER'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Shows a result snackbar / dialog after cancellation
+  void _showCancelResult(BuildContext context, CancelResult result) {
+    if (!result.isAfterLockIn) {
+      // Simple success banner
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Order cancelled. Bag quantity restored.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      return;
+    }
+
+    // After lock-in — show a prominent dialog explaining the penalty
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(
-              isLocked ? Icons.warning_amber_rounded : Icons.cancel_outlined,
-              color: AppTheme.error,
-              size: 28,
-            ),
-            const SizedBox(width: 12),
-            const Text('Cancel Order?'),
+            Icon(Icons.warning_amber_rounded, color: AppTheme.error, size: 26),
+            const SizedBox(width: 10),
+            const Text('Order Cancelled'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (isLocked) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.error.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.error.withOpacity(0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '⚠️ Lock-in Period Active',
-                      style: TextStyle(
-                        color: AppTheme.error,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Cancelling after lock-in may result in:\n• Customer dissatisfaction\n• Negative reviews\n• Potential penalties',
-                      style: TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.error.withOpacity(0.4)),
+              ),
+              child: Text(
+                'Penalty Strike Issued\n'
+                'Strike ${result.newStrikeCount}/3 on your account.',
+                style: TextStyle(
+                  color: AppTheme.error,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  height: 1.5,
                 ),
               ),
-              const SizedBox(height: 12),
+            ),
+            const SizedBox(height: 12),
+            if (result.restaurantDeactivated) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade900.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade700),
+                ),
+                child: const Text(
+                  '🚫 Your account has been deactivated due to 3 strikes. '
+                  'Please contact Latebites support.',
+                  style: TextStyle(color: Colors.redAccent, fontSize: 12, height: 1.5),
+                ),
+              ),
             ],
+            const SizedBox(height: 10),
             Text(
-              isLocked
-                  ? 'Are you absolutely sure you want to cancel this order?'
-                  : 'Are you sure you want to cancel this order?',
-              style: Theme.of(context).textTheme.bodyMedium,
+              'The customer will be notified and may contact support for a refund.',
+              style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('NO, KEEP IT'),
-          ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Implement cancel order logic
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Order cancellation feature coming soon'),
-                  backgroundColor: AppTheme.error,
-                ),
-              );
-            },
+            onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
-              foregroundColor: Colors.white,
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.black,
             ),
-            child: const Text('YES, CANCEL'),
+            child: const Text('OK, UNDERSTOOD'),
           ),
         ],
       ),
