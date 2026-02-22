@@ -188,12 +188,18 @@ export default function OrdersPage() {
     };
 
     const filteredOrders = orders.filter(order => {
-        const matchesSearch =
-            order.bag_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.restaurant_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.customer_email?.toLowerCase().includes(searchQuery.toLowerCase());
+        const q = searchQuery.toLowerCase().trim();
+        const matchesSearch = !q ||
+            order.id?.toLowerCase().includes(q) ||
+            order.id?.substring(0, 8).toLowerCase().includes(q) ||
+            order.bag_title?.toLowerCase().includes(q) ||
+            order.restaurant_name?.toLowerCase().includes(q) ||
+            order.customer_name?.toLowerCase().includes(q) ||
+            order.customer_email?.toLowerCase().includes(q) ||
+            order.customer_phone?.includes(q);
+
         const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+
         return matchesSearch && matchesStatus;
     });
 

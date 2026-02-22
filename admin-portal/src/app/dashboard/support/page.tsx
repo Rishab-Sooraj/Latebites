@@ -95,13 +95,13 @@ export default function SupportPage() {
         }
     }, [filterStatus]);
 
-    // Subscribe to messages when conversation changes
+    // Subscribe to messages + fast-poll when conversation changes
     useEffect(() => {
         if (!selectedConversation?.id) return;
 
         fetchMessages(selectedConversation.id);
 
-        // Set up real-time subscription for this conversation's messages
+        // Realtime subscription (fires immediately when Supabase realtime works)
         const channel = supabase
             .channel(`messages:${selectedConversation.id}`)
             .on(
@@ -122,10 +122,30 @@ export default function SupportPage() {
             )
             .subscribe();
 
+        // Fast 3s poll as a guaranteed fallback (handles RLS-blocked realtime)
+        const convId = selectedConversation.id;
+        const pollInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/support/messages?conversation_id=${convId}`);
+                if (!res.ok) return;
+                const fresh: Message[] = await res.json();
+                setMessages((current) => {
+                    // Only update if there are new messages (avoid re-renders for identical lists)
+                    if (fresh.length === current.length) return current;
+                    // Merge: keep existing + add any new by id
+                    const existingIds = new Set(current.map((m) => m.id));
+                    const newOnes = fresh.filter((m) => !existingIds.has(m.id));
+                    return newOnes.length > 0 ? [...current, ...newOnes] : current;
+                });
+            } catch { /* silent */ }
+        }, 3000);
+
         return () => {
             supabase.removeChannel(channel);
+            clearInterval(pollInterval);
         };
     }, [selectedConversation?.id]);
+
 
     // Set up global real-time subscription for new conversations + conversation updates
     useEffect(() => {
