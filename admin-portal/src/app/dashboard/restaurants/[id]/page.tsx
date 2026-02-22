@@ -366,9 +366,9 @@ export default function RestaurantDetailPage() {
                 </div>
             </div>
 
-            {/* Top Section: Info + Strike + Menu + Banner */}
+            {/* Top Row: Info + Strike + Menu */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Restaurant Info Card */}
+                {/* Restaurant Info Card — col 1-5 */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -408,7 +408,7 @@ export default function RestaurantDetailPage() {
                     </div>
                 </motion.div>
 
-                {/* Strike Management Card */}
+                {/* Strike Management Card — col 6-9 */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -416,8 +416,6 @@ export default function RestaurantDetailPage() {
                     className="lg:col-span-4 bg-gradient-to-br from-zinc-900 to-zinc-900/50 border border-zinc-800 rounded-2xl p-6 flex flex-col"
                 >
                     <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">Strike Management</h3>
-
-                    {/* Strike Meter */}
                     <div className={`p-4 rounded-xl bg-gradient-to-r ${getStrikeColor(strikeCount)} mb-4`}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
@@ -425,10 +423,7 @@ export default function RestaurantDetailPage() {
                                 <span className="text-white font-bold text-lg">{strikeCount}/3</span>
                             </div>
                             {canIssueStrike() && (
-                                <button
-                                    onClick={() => setShowStrikeForm(true)}
-                                    className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold rounded-lg transition-colors backdrop-blur-sm"
-                                >
+                                <button onClick={() => setShowStrikeForm(true)} className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold rounded-lg transition-colors backdrop-blur-sm">
                                     + Issue Strike
                                 </button>
                             )}
@@ -442,26 +437,16 @@ export default function RestaurantDetailPage() {
                             {strikeCount >= 3 ? 'Restaurant suspended' : strikeCount === 0 ? 'No violations' : `${3 - strikeCount} strike(s) until suspension`}
                         </p>
                     </div>
-
-                    {/* Super Admin Warning */}
                     {strikeCount === 2 && currentAdmin?.role !== 'super_admin' && (
                         <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2 text-xs">
                             <Shield className="w-4 h-4 text-amber-500 flex-shrink-0" />
                             <span className="text-amber-400">Only Super Admin can issue the final strike</span>
                         </div>
                     )}
-
-                    {/* Strike Form or History */}
                     <div className="flex-1 overflow-hidden">
                         {showStrikeForm ? (
                             <div className="space-y-3">
-                                <textarea
-                                    value={strikeReason}
-                                    onChange={(e) => setStrikeReason(e.target.value)}
-                                    placeholder="Reason for issuing strike..."
-                                    className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-red-500/50 resize-none"
-                                    rows={3}
-                                />
+                                <textarea value={strikeReason} onChange={(e) => setStrikeReason(e.target.value)} placeholder="Reason for issuing strike..." className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-red-500/50 resize-none" rows={3} />
                                 {strikeError && <p className="text-red-400 text-xs">{strikeError}</p>}
                                 <div className="flex gap-2">
                                     <button onClick={handleIssueStrike} disabled={issuingStrike || !strikeReason.trim()} className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -471,7 +456,7 @@ export default function RestaurantDetailPage() {
                                 </div>
                             </div>
                         ) : strikes.length > 0 ? (
-                            <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                                 {strikes.map((strike) => (
                                     <div key={strike.id} className="p-3 bg-zinc-800/50 rounded-xl border border-zinc-800">
                                         <div className="flex items-center justify-between mb-1">
@@ -490,7 +475,7 @@ export default function RestaurantDetailPage() {
                     </div>
                 </motion.div>
 
-                {/* Menu Image Card */}
+                {/* Menu Image Card — col 10-12 */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -500,16 +485,10 @@ export default function RestaurantDetailPage() {
                     <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">Menu</h3>
                     {restaurant.menu_image_url ? (
                         <div className="flex-1 relative group cursor-pointer" onClick={() => setShowMenuModal(true)}>
-                            <img
-                                src={restaurant.menu_image_url}
-                                alt="Restaurant Menu"
-                                className="w-full h-full object-cover rounded-xl border border-zinc-700"
-                                style={{ minHeight: '180px', maxHeight: '220px' }}
-                            />
+                            <img src={restaurant.menu_image_url} alt="Restaurant Menu" className="w-full h-full object-cover rounded-xl border border-zinc-700" style={{ minHeight: '180px', maxHeight: '220px' }} />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
                                 <div className="flex items-center gap-2 text-white text-sm font-medium">
-                                    <ZoomIn className="w-5 h-5" />
-                                    View Full Menu
+                                    <ZoomIn className="w-5 h-5" /> View Full Menu
                                 </div>
                             </div>
                         </div>
@@ -520,97 +499,101 @@ export default function RestaurantDetailPage() {
                         </div>
                     )}
                 </motion.div>
+            </div>
 
-                {/* Banner Upload Card */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                    className="lg:col-span-12 bg-gradient-to-br from-zinc-900 to-zinc-900/50 border border-zinc-800 rounded-2xl p-6"
-                >
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Restaurant Banner</h3>
-                        {restaurant.cover_image_url && (
-                            <span className="text-xs text-emerald-400 flex items-center gap-1">
-                                <CheckCircle className="w-3.5 h-3.5" /> Banner set
-                            </span>
+            {/* Banner Upload — full width, separate row */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="bg-gradient-to-br from-zinc-900 to-zinc-900/50 border border-zinc-800 rounded-2xl p-6"
+            >
+                <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Restaurant Banner</h3>
+                    {restaurant.cover_image_url && (
+                        <span className="text-xs text-emerald-400 flex items-center gap-1.5">
+                            <CheckCircle className="w-3.5 h-3.5" /> Banner set
+                        </span>
+                    )}
+                </div>
+
+                <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Banner preview / current */}
+                    <div className="flex-1 relative rounded-xl overflow-hidden border border-zinc-700" style={{ minHeight: '200px' }}>
+                        {bannerPreview ? (
+                            <>
+                                <img src={bannerPreview} alt="Banner preview" className="w-full h-full object-cover" style={{ minHeight: '200px' }} />
+                                <button
+                                    onClick={() => { setBannerFile(null); setBannerPreview(null); if (bannerInputRef.current) bannerInputRef.current.value = ''; }}
+                                    className="absolute top-3 right-3 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
+                                >
+                                    <X className="w-4 h-4 text-white" />
+                                </button>
+                                <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-lg">Preview</div>
+                            </>
+                        ) : restaurant.cover_image_url ? (
+                            <>
+                                <img src={restaurant.cover_image_url} alt="Current Banner" className="w-full h-full object-cover" style={{ minHeight: '200px' }} />
+                                <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-lg">Current banner</div>
+                            </>
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-center p-8 bg-zinc-800/30" style={{ minHeight: '200px' }}>
+                                <ImageIcon className="w-12 h-12 text-zinc-600 mb-3" />
+                                <p className="text-zinc-400 text-sm font-medium">No banner set yet</p>
+                                <p className="text-zinc-600 text-xs mt-1">Restaurant shows the default image to customers</p>
+                            </div>
                         )}
                     </div>
 
-                    <div className="flex flex-col md:flex-row gap-6">
-                        {/* Current / Preview */}
-                        <div className="flex-1 min-h-[160px] relative rounded-xl overflow-hidden border border-zinc-700">
-                            {bannerPreview ? (
-                                <>
-                                    <img src={bannerPreview} alt="Banner preview" className="w-full h-full object-cover" style={{ minHeight: '160px' }} />
-                                    <button
-                                        onClick={() => { setBannerFile(null); setBannerPreview(null); if (bannerInputRef.current) bannerInputRef.current.value = ''; }}
-                                        className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80"
-                                    >
-                                        <X className="w-3.5 h-3.5 text-white" />
-                                    </button>
-                                </>
-                            ) : restaurant.cover_image_url ? (
-                                <img src={restaurant.cover_image_url} alt="Current Banner" className="w-full h-full object-cover" style={{ minHeight: '160px' }} />
-                            ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 bg-zinc-800/30" style={{ minHeight: '160px' }}>
-                                    <ImageIcon className="w-10 h-10 text-zinc-600 mb-2" />
-                                    <p className="text-zinc-500 text-sm">No banner set yet</p>
-                                    <p className="text-zinc-600 text-xs mt-1">This restaurant uses the default image on customer pages</p>
-                                </div>
-                            )}
-                        </div>
+                    {/* Upload controls */}
+                    <div className="lg:w-64 flex flex-col gap-4">
+                        <p className="text-zinc-400 text-sm leading-relaxed">
+                            Upload a wide banner image <span className="text-zinc-500">(16:9 recommended)</span>. This will appear on the browse page and restaurant detail page for customers.
+                        </p>
 
-                        {/* Upload controls */}
-                        <div className="flex flex-col justify-between gap-4 md:w-56">
-                            <div>
-                                <p className="text-zinc-400 text-xs mb-3">
-                                    Upload a wide banner image (16:9 recommended). This will appear on browse and restaurant pages for customers.
-                                </p>
-                                <label className="flex flex-col items-center gap-2 px-4 py-4 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-zinc-500 transition-colors">
-                                    <Upload className="w-6 h-6 text-zinc-500" />
-                                    <span className="text-zinc-400 text-xs font-medium text-center">
-                                        {bannerFile ? bannerFile.name : 'Choose Banner Image'}
-                                    </span>
-                                    <span className="text-zinc-600 text-[10px]">JPG, PNG up to 5MB</span>
-                                    <input
-                                        ref={bannerInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                setBannerFile(file);
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => setBannerPreview(reader.result as string);
-                                                reader.readAsDataURL(file);
-                                                setBannerSuccess(false);
-                                            }
-                                        }}
-                                    />
-                                </label>
-                            </div>
+                        <label className="flex flex-col items-center gap-2.5 px-4 py-5 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-amber-500/40 hover:bg-amber-500/5 transition-all">
+                            <Upload className="w-7 h-7 text-zinc-500" />
+                            <span className="text-zinc-300 text-sm font-medium text-center">
+                                {bannerFile ? bannerFile.name : 'Click to choose image'}
+                            </span>
+                            <span className="text-zinc-600 text-xs">JPG or PNG, up to 5MB</span>
+                            <input
+                                ref={bannerInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        setBannerFile(file);
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => setBannerPreview(reader.result as string);
+                                        reader.readAsDataURL(file);
+                                        setBannerSuccess(false);
+                                    }
+                                }}
+                            />
+                        </label>
 
-                            <div className="space-y-2">
-                                {bannerSuccess && (
-                                    <p className="text-emerald-400 text-xs flex items-center gap-1.5">
-                                        <CheckCircle className="w-3.5 h-3.5" /> Banner updated successfully!
-                                    </p>
-                                )}
-                                <button
-                                    onClick={handleBannerUpload}
-                                    disabled={!bannerFile || uploadingBanner}
-                                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-black font-semibold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
-                                >
-                                    {uploadingBanner ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                    {uploadingBanner ? 'Uploading...' : restaurant.cover_image_url ? 'Replace Banner' : 'Upload Banner'}
-                                </button>
-                            </div>
-                        </div>
+                        {bannerSuccess && (
+                            <p className="text-emerald-400 text-sm flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 flex-shrink-0" /> Banner updated! Visible to customers now.
+                            </p>
+                        )}
+
+                        <button
+                            onClick={handleBannerUpload}
+                            disabled={!bannerFile || uploadingBanner}
+                            className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+                        >
+                            {uploadingBanner ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                            {uploadingBanner ? 'Uploading...' : restaurant.cover_image_url ? 'Replace Banner' : 'Upload Banner'}
+                        </button>
                     </div>
-                </motion.div>
-            </div>
+                </div>
+            </motion.div>
+
+
 
             {/* Bags Section */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
@@ -756,6 +739,6 @@ export default function RestaurantDetailPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }
