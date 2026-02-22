@@ -10,16 +10,12 @@ export default function CartBar() {
     const pathname = usePathname();
     const { items, restaurantName, totalItems, grandTotal, clearCart, isLoaded } = useCart();
 
-    // Don't show on checkout, signup, auth pages, or landing page
     const hideOnPages = ['/cart', '/signup', '/auth', '/verify', '/verify-otp', '/'];
     const shouldHide = hideOnPages.some(page => pathname === page || (page !== '/' && pathname?.startsWith(page)));
 
-    // Don't render until cart is loaded from localStorage
     if (!isLoaded || items.length === 0 || shouldHide) return null;
 
-    const handleCheckout = () => {
-        router.push('/cart');
-    };
+    const itemsSummary = items.map(i => `${i.quantity}× ${i.size}`).join('  ·  ');
 
     return (
         <AnimatePresence>
@@ -27,72 +23,57 @@ export default function CartBar() {
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
-                className="fixed bottom-0 left-0 right-0 z-50 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-white via-white to-white/95"
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="fixed bottom-0 left-0 right-0 z-50"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
-                <div className="max-w-3xl mx-auto">
-                    <motion.div
-                        initial={{ scale: 0.95 }}
-                        animate={{ scale: 1 }}
-                        className="bg-emerald-600 rounded-2xl shadow-2xl shadow-emerald-600/30 overflow-hidden"
-                    >
-                        <div className="flex items-center justify-between p-4">
-                            {/* Left side - Restaurant info */}
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                                    <ShoppingBag className="w-6 h-6 text-white" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-white/80 text-[10px] sm:text-xs font-medium truncate uppercase tracking-wider">
-                                        {restaurantName}
-                                    </p>
-                                    <p className="text-white font-bold text-sm sm:text-base md:text-lg whitespace-nowrap">
-                                        {totalItems} item{totalItems !== 1 ? 's' : ''} <span className="mx-1 text-white/30">|</span> ₹{grandTotal}
-                                    </p>
-                                </div>
-                            </div>
+                {/* Fade from white behind */}
+                <div className="h-3 bg-gradient-to-t from-white to-transparent" />
 
-                            {/* Right side - Actions */}
-                            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                                {/* Clear cart button */}
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        clearCart();
-                                    }}
-                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-                                >
-                                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
-                                </button>
+                <div className="bg-white px-3 pt-2 pb-3">
+                    <div className="bg-emerald-600 rounded-2xl shadow-xl shadow-emerald-600/25 flex items-center px-3 py-2.5 gap-3">
 
-                                {/* Checkout button */}
-                                <motion.button
-                                    onClick={handleCheckout}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-emerald-700 font-bold text-sm sm:text-base rounded-xl shadow-lg cursor-pointer"
-                                >
-                                    <span>Checkout</span>
-                                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                                </motion.button>
-                            </div>
+                        {/* Icon */}
+                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <ShoppingBag className="w-5 h-5 text-white" />
                         </div>
 
-                        {/* Items preview strip */}
-                        <div className="px-4 pb-3">
-                            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                                {items.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className="flex-shrink-0 px-3 py-1.5 bg-white/15 rounded-lg"
-                                    >
-                                        <span className="text-white/90 text-xs font-medium">
-                                            {item.quantity}x {item.size}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
+                        {/* Info — restaurant + items summary */}
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-semibold text-white/70 uppercase tracking-widest truncate leading-none mb-0.5">
+                                {restaurantName}
+                            </p>
+                            <p className="text-[13px] font-bold text-white leading-none truncate">
+                                {itemsSummary}
+                            </p>
                         </div>
-                    </motion.div>
+
+                        {/* Price */}
+                        <div className="flex-shrink-0 text-right mr-1">
+                            <p className="text-[11px] text-white/60 font-medium leading-none mb-0.5">Total</p>
+                            <p className="text-[15px] font-extrabold text-white leading-none">₹{grandTotal}</p>
+                        </div>
+
+                        {/* Clear */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); clearCart(); }}
+                            className="flex-shrink-0 w-8 h-8 rounded-lg bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors"
+                            aria-label="Clear cart"
+                        >
+                            <X className="w-4 h-4 text-white/80" />
+                        </button>
+
+                        {/* Checkout CTA */}
+                        <motion.button
+                            onClick={() => router.push('/cart')}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            className="flex-shrink-0 flex items-center gap-1.5 bg-white text-emerald-700 font-extrabold text-[13px] px-4 py-2.5 rounded-xl shadow-md"
+                        >
+                            Checkout
+                            <ChevronRight className="w-4 h-4" />
+                        </motion.button>
+                    </div>
                 </div>
             </motion.div>
         </AnimatePresence>
