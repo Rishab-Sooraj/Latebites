@@ -45,6 +45,20 @@ export async function POST(request: Request) {
             );
         }
 
+        // ── Clear FK references before deletion ──────────────────────────────
+        // The `restaurants` table has `onboarded_by` pointing to `admins.id`.
+        // Null it out so the FK constraint doesn't block the delete.
+        await supabaseAdmin
+            .from('restaurants')
+            .update({ onboarded_by: null })
+            .eq('onboarded_by', adminId);
+
+        // Also clear any support conversation admin assignments
+        await supabaseAdmin
+            .from('support_conversations')
+            .update({ admin_id: null })
+            .eq('admin_id', adminToDelete.user_id ?? '');
+
         // Delete from admins table
         const { error: deleteError } = await supabaseAdmin
             .from('admins')
@@ -58,6 +72,7 @@ export async function POST(request: Request) {
                 { status: 500 }
             );
         }
+
 
         // Delete auth user
         if (adminToDelete.user_id) {
