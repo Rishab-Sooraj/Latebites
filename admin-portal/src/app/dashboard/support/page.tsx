@@ -138,7 +138,7 @@ export default function SupportPage() {
                     return newOnes.length > 0 ? [...current, ...newOnes] : current;
                 });
             } catch { /* silent */ }
-        }, 3000);
+        }, 1000);
 
         return () => {
             supabase.removeChannel(channel);
